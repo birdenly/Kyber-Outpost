@@ -1,3 +1,4 @@
+// Modified for Kyber Outpost (LAN Edition) - 2026-11-10.
 import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
@@ -113,22 +114,11 @@ class StartServerCommand extends Command<int> {
 
   @override
   Future<int> run() async {
-    final allowDedicated = Platform.environment['KYBER_BYPASS_DOCKER_I_REALLY_KNOW_WHAT_I_AM_DOING'];
-    if (allowDedicated == null || allowDedicated.isEmpty) {
-      _logger.info(
-        'To host dedicated servers, please use our Docker image. For more information, visit https://docs.kyber.gg',
-      );
-      return ExitCode.usage.code;
-    }
-
     final serverName =
         (Platform.environment['KYBER_SERVER_NAME'] ??
-                argResults?['server-name'])
-            as String?;
-    if (serverName == null || serverName.isEmpty) {
-      _logger.err('server-name is required');
-      return ExitCode.usage.code;
-    }
+                argResults?['server-name'] ??
+                'Kyber Outpost LAN Server')
+            as String;
 
     final modulePath = argResults?['module-path'] as String?;
     EnvHelper.setPath(modulePath);
@@ -246,24 +236,10 @@ class StartServerCommand extends Command<int> {
     if (argResults?['token'] != null) {
       kToken = argResults?['token'] as String;
     } else {
-      try {
-        final authToken = await getAuthToken();
-        final resp = await sl.get<KyberGRPCService>().login(authToken);
-        kToken = resp.token;
-      } catch (e) {
-        if (e is GrpcError) {
-          if (e.code == StatusCode.unauthenticated ||
-              e.code == StatusCode.permissionDenied) {
-            _logger.err('Kyber  Login Error: ${e.message}');
-          } else {
-            _logger.err('Failed to fetch Kyber auth token: $e');
-          }
-
-          return ExitCode.usage.code;
-        }
-      }
+      kToken = 'lan_offline_token';
     }
 
+    Env.set('KYBER_ONLINE_MODE', '0');
     sl.get<KyberGRPCService>().token = kToken;
 
     final userId = _stableStringHash(loginCredentials?.split(':').first ?? '');
