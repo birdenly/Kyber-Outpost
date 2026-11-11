@@ -34,6 +34,9 @@ part '../models/maxima_state.dart';
 
 class MaximaCubit extends Cubit<MaximaState> {
   MaximaCubit() : super(MaximaState.initial()) {
+    if (!sl.isRegistered<MaximaCubit>()) {
+      sl.registerSingleton<MaximaCubit>(this);
+    }
     init();
   }
 
@@ -45,6 +48,9 @@ class MaximaCubit extends Cubit<MaximaState> {
 
   @override
   Future<void> close() async {
+    if (sl.isRegistered<MaximaCubit>()) {
+      sl.unregister<MaximaCubit>();
+    }
     _updateTimer?.cancel();
     await super.close();
   }
