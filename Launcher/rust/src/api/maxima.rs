@@ -305,6 +305,15 @@ pub async fn search_user(name: String) -> anyhow::Result<ServicePlayer> {
 }
 
 pub async fn check_game_installation() -> anyhow::Result<()> {
+    let reg_dir = get_game_dir("star-wars-battlefront-2".to_string());
+    if !reg_dir.is_empty()
+        && std::path::Path::new(&reg_dir)
+            .join("starwarsbattlefrontii.exe")
+            .exists()
+    {
+        return Ok(());
+    }
+
     let maxima_arc = maxima().clone();
     let mut maxima = maxima_arc.lock().await;
     let game = maxima.mut_library().game_by_base_slug("star-wars-battlefront-2").await;
@@ -515,9 +524,11 @@ pub async fn login_flow(login_override: Option<String>) -> anyhow::Result<Servic
 
 #[cfg(windows)]
 pub async fn check_service() -> anyhow::Result<()> {
-    if !is_service_running()? {
+    if !is_service_running().unwrap_or(false) {
         info!("Starting service...");
-        start_service().await?;
+        if let Err(err) = start_service().await {
+            warn!("Could not start MaximaBackgroundService (continuing in user mode): {}", err);
+        }
     }
 
     Ok(())
@@ -530,20 +541,22 @@ pub async fn check_service() -> anyhow::Result<()> {
 
 #[cfg(windows)]
 async fn native_setup() -> anyhow::Result<()> {
-    if !is_service_valid()? {
-        info!("Installing service...");
-        register_service_user()?;
-        tokio::time::sleep(std::time::Duration::from_secs(1)).await;
-    }
-
-    if !is_service_running()? {
-        info!("Starting service...");
-        start_service().await?;
+    if is_service_valid().unwrap_or(false) {
+        if !is_service_running().unwrap_or(false) {
+            info!("Starting service...");
+            if let Err(err) = start_service().await {
+                warn!("Could not start MaximaBackgroundService (continuing in user mode): {}", err);
+            }
+        }
+    } else {
+        info!("MaximaBackgroundService not valid for current path; running in portable user mode.");
     }
 
     if let Err(err) = check_registry_validity() {
         warn!("{}, fixing...", err);
-        request_registry_setup().await?;
+        if is_service_running().unwrap_or(false) {
+            let _ = request_registry_setup().await;
+        }
     }
 
     Ok(())
