@@ -1,3 +1,4 @@
+// Modified for Kyber Outpost (LAN Edition) - 2026-11-10.
 import 'package:collection/collection.dart';
 import 'package:fluent_ui/fluent_ui.dart';
 import 'package:flutter/material.dart' as mt;
@@ -95,37 +96,9 @@ class _CosmeticModsDialogState extends State<CosmeticModsDialog> {
   }
 
   Future<void> checkPassword() async {
-    try {
-      final service = sl.get<KyberGRPCService>();
-      final result = await service.serverBrowserClient.canJoinServer(
-        .new(
-          id: serverInfo.id,
-          password: password,
-        ),
-      );
-
-      if (result.deniedReason == .BANNED) {
-        await ServerBanDialog.show(context, banInfo: result.banInfo);
-        Navigator.of(context).pop(result);
-        return;
-      }
-
-      if (result.canJoin || result.deniedReason == .SERVER_FULL) {
-        return setState(() {
-          correctPassword = true;
-        });
-      }
-
-      NotificationService.error(message: 'Invalid password');
-    } catch (e, s) {
-      if (e is GrpcError && e.code == StatusCode.notFound) {
-        Navigator.pop(context);
-        NotificationService.error(message: 'Server not found');
-      } else {
-        Logger.root.severe('An error occurred', e, s);
-        NotificationService.error(message: 'An error occurred');
-      }
-    }
+    setState(() {
+      correctPassword = true;
+    });
   }
 
   @override
@@ -276,44 +249,6 @@ class _CosmeticModsDialogState extends State<CosmeticModsDialog> {
             text: 'Join Server',
             icon: Assets.icons.kyberLogo.svg(height: 20),
             onPressed: () async {
-              if (!serverInfo.requiresPassword) {
-                try {
-                  final result = await sl
-                      .get<KyberGRPCService>()
-                      .serverBrowserClient
-                      .canJoinServer(
-                        .new(
-                          id: serverInfo.id,
-                        ),
-                      );
-
-                  if (!result.canJoin && result.hasBanInfo()) {
-                    await ServerBanDialog.show(
-                      context,
-                      banInfo: result.banInfo,
-                    );
-                    Navigator.of(context).pop(result);
-                    return;
-                  }
-                } catch (e, s) {
-                  if (e is GrpcError && e.code == StatusCode.permissionDenied) {
-                    Logger.root.severe('An error occurred', e, s);
-                    Navigator.pop(context);
-                    NotificationService.error(
-                      message: e.message ?? 'You are banned from this server',
-                    );
-                  } else {
-                    Logger.root.severe('An error occurred', e, s);
-                    NotificationService.error(
-                      message: e is GrpcError
-                          ? e.message ?? e.code.toString()
-                          : 'An error occurred',
-                    );
-                  }
-                  return;
-                }
-              }
-
               final result = JoinDialogResult(
                 collection: withoutMods
                     ? ModCollectionMetaData.noMods()
