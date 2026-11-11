@@ -1,3 +1,4 @@
+// Modified for Kyber Outpost (LAN Edition) - 2026-11-10.
 import 'dart:async';
 
 import 'package:collection/collection.dart';
@@ -5,7 +6,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:kyber/kyber.dart';
 import 'package:kyber_launcher/core/routing/app_router.dart';
 import 'package:kyber_launcher/core/services/app_settings.dart';
-import 'package:kyber_launcher/core/services/notification_service.dart';
+import 'package:kyber_launcher/features/lan/services/lan_discovery_service.dart';
 import 'package:kyber_launcher/features/server_browser/constants/modes.dart';
 import 'package:kyber_launcher/features/server_browser/models/server_entry.dart';
 import 'package:kyber_launcher/features/server_browser/models/server_filter.dart';
@@ -30,10 +31,13 @@ class ServerListCubit extends Cubit<ServerListState> {
           _friends = value;
           loadServers();
         })
+        .catchError((_) {
+          _friends = [];
+          loadServers();
+        })
         .timeout(
-          const Duration(seconds: 5),
+          const Duration(seconds: 3),
           onTimeout: () {
-            NotificationService.error(message: 'Failed to load friends list');
             _friends = [];
             loadServers();
           },
@@ -41,7 +45,7 @@ class ServerListCubit extends Cubit<ServerListState> {
 
     emit(const ServerListLoading());
 
-    _updateTimer = Timer.periodic(const Duration(seconds: 40), (timer) {
+    _updateTimer = Timer.periodic(const Duration(seconds: 5), (timer) {
       final route = router.routeInformationProvider.value.uri.toString();
       if (!route.startsWith('/home')) {
         _needsUpdate = true;
@@ -146,31 +150,9 @@ class ServerListCubit extends Cubit<ServerListState> {
 
     _needsUpdate = false;
 
-    final servers = await sl
-        .get<KyberGRPCService>()
-        .serverBrowserClient
-        .getServers(ServerListRequest());
-    final s = servers.servers.map((e) {
-      return Server(
-        id: e.id,
-        mods: e.mods,
-        name: e.name,
-        levelSetup: e.levelSetup,
-        port: e.port,
-        description: e.description,
-        creator: e.creator,
-        creatorId: e.creatorId,
-        requiresPassword: e.requiresPassword,
-        official: e.official,
-        ip: e.ip,
-        maxPlayerCount: e.maxPlayerCount,
-        playerCount: e.playerCount,
-        requiresProxy: e.requiresProxy,
-        region: e.region,
-        mapImageHash: e.mapImageHash,
-        meta: e.meta.entries,
-      );
-    }).toList();
+    final lanDiscovery = sl.get<LanDiscoveryService>()..sendDiscoveryProbe();
+    await Future<void>.delayed(const Duration(milliseconds: 120));
+    final s = List<Server>.from(lanDiscovery.getDiscoveredServers());
 
     if (Preferences.admin.dummyServer) {
       s.add(KyberDummyServer(title: 'Dummy Server'));

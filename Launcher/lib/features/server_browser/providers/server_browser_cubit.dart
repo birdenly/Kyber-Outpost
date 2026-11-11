@@ -1,7 +1,9 @@
+// Modified for Kyber Outpost (LAN Edition) - 2026-11-10.
 import 'dart:async';
 
 import 'package:background_downloader/background_downloader.dart';
 import 'package:collection/collection.dart';
+import 'package:dio/dio.dart';
 import 'package:fluent_ui/fluent_ui.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:grpc/grpc.dart' hide Server;
@@ -20,7 +22,10 @@ import 'package:kyber_launcher/features/download_manager/repositories/download_r
 import 'package:kyber_launcher/features/download_manager/services/download_orchestrator.dart';
 import 'package:kyber_launcher/features/download_manager/services/mod_bridge_service.dart';
 import 'package:kyber_launcher/features/kyber/helper/kyber_server_helper.dart';
+import 'package:kyber_launcher/features/lan/dialogs/lan_mod_download_dialog.dart';
+import 'package:kyber_launcher/features/lan/services/lan_mod_server_service.dart';
 import 'package:kyber_launcher/features/maxima/providers/maxima_cubit.dart';
+import 'package:kyber_launcher/features/mod_browser/providers/mod_browser_cubit.dart';
 import 'package:kyber_launcher/features/mods/helper/mod_helper.dart';
 import 'package:kyber_launcher/features/mods/services/mod_service.dart';
 import 'package:kyber_launcher/features/nexusmods/dialogs/nexusmods_login.dart';
@@ -140,6 +145,25 @@ class ServerBrowserCubit extends Cubit<ServerBrowserState> {
         cosmeticCollection: cosmeticCollection,
       );
     } else if (enabledDownload) {
+      final missingMods = serverInfo.mods
+          .where((mod) => !ModHelper.isInstalled(mod.name, mod.version))
+          .toList();
+
+      var downloadSource = LanModDownloadSource.lanHostWithInternetFallback;
+      if (navigatorKey.currentContext != null) {
+        final chosenSource = await showKyberDialog<LanModDownloadSource>(
+          context: navigatorKey.currentContext!,
+          builder: (_) => LanModDownloadDialog(
+            server: serverInfo,
+            missingMods: missingMods,
+          ),
+        );
+        if (chosenSource == null) {
+          return;
+        }
+        downloadSource = chosenSource;
+      }
+
       _joiningPassword = serverPassword;
       _joiningSpectator = spectator;
       _joiningCollection = cosmeticCollection;
@@ -148,23 +172,12 @@ class ServerBrowserCubit extends Cubit<ServerBrowserState> {
           joiningServer: serverInfo,
         ),
       );
-      _startDownloads();
+      await _startDownloads(downloadSource: downloadSource);
     }
   }
 
   Future<BanInfo?> _isBanned(Server serverInfo) async {
-    if (serverInfo.requiresPassword) {
-      return null;
-    }
-
-    final response = await sl
-        .get<KyberGRPCService>()
-        .serverBrowserClient
-        .canJoinServer(
-          .new(id: serverInfo.id),
-        );
-
-    return response.hasBanInfo() ? response.banInfo : null;
+    return null;
   }
 
   Future<void> _startPartyJoinGame(
@@ -312,11 +325,77 @@ class ServerBrowserCubit extends Cubit<ServerBrowserState> {
     }
   }
 
-  Future<void> _startDownloads() async {
+  Future<bool> _tryDownloadFromLanHost(
+    Server serverInfo,
+    ServerMod serverMod,
+    int modIndex,
+  ) async {
+    final hostIp = serverInfo.ip.isNotEmpty ? serverInfo.ip : '127.0.0.1';
+    final httpPort =
+        int.tryParse(serverInfo.meta['lan_http_port'] ?? '25202') ??
+        LanModServerService.kDefaultPort;
+
+    final directUrl = LanModServerService.buildDirectModUrl(
+      hostIp: hostIp,
+      httpPort: httpPort,
+      mod: serverMod,
+      index: modIndex,
+    );
+
+    try {
+      final dio = Dio(
+        BaseOptions(
+          connectTimeout: const Duration(seconds: 3),
+          receiveTimeout: const Duration(seconds: 3),
+        ),
+      );
+      final headResp = await dio.head<void>(directUrl);
+      if (headResp.statusCode != 200 && headResp.statusCode != 206) {
+        return false;
+      }
+
+      final safeName = serverMod.name
+          .replaceAll(RegExp(r'[<>:"/\\|?*]'), '_')
+          .trim();
+      final safeVersion = serverMod.version
+          .replaceAll(RegExp(r'[<>:"/\\|?*]'), '_')
+          .trim();
+      final filename = '$safeName ($safeVersion).fbmod';
+
+      final request = DownloadRequest(
+        link: directUrl,
+        displayName: '${serverMod.name} (${serverMod.version})',
+        linkType: dl.DownloadLinkType.direct,
+        size: serverMod.fileSize.toInt(),
+        filename: filename,
+        priority: 1,
+        metadata: {
+          'name': serverMod.name,
+          'version': serverMod.version,
+          'link': serverMod.link,
+          'fileSize': serverMod.fileSize.toInt(),
+        },
+      );
+
+      return sl.get<DownloadOrchestrator>().enqueueDownload(request);
+    } catch (e) {
+      Logger('server_browser').fine(
+        'Mod ${serverMod.name} not available from LAN Host ($directUrl): $e',
+      );
+      return false;
+    }
+  }
+
+  Future<void> _startDownloads({
+    LanModDownloadSource downloadSource =
+        LanModDownloadSource.lanHostWithInternetFallback,
+  }) async {
     final server = state.selectedServer;
     if (server == null) {
       return;
     }
+
+    unawaited(sl.get<LanModServerService>().enablePeerModSeeding());
 
     var failedMods = 0;
 
@@ -332,9 +411,49 @@ class ServerBrowserCubit extends Cubit<ServerBrowserState> {
 
     final serverInfo = state.joiningServer ?? server.serverInfo;
 
-    final missingMods = serverInfo.mods
+    final allMissingServerMods = serverInfo.mods
         .where((mod) => !ModHelper.isInstalled(mod.name, mod.version))
-        .map(
+        .toList();
+
+    final remainingForInternet = <ServerMod>[];
+
+    if (downloadSource == LanModDownloadSource.lanHostOnly ||
+        downloadSource == LanModDownloadSource.lanHostWithInternetFallback) {
+      for (final serverMod in allMissingServerMods) {
+        final modIndex = serverInfo.mods.indexOf(serverMod);
+        final enqueued = await _tryDownloadFromLanHost(
+          serverInfo,
+          serverMod,
+          modIndex,
+        );
+        if (!enqueued) {
+          if (downloadSource == LanModDownloadSource.lanHostOnly) {
+            failedMods++;
+          } else {
+            remainingForInternet.add(serverMod);
+          }
+        }
+      }
+    } else {
+      remainingForInternet.addAll(allMissingServerMods);
+    }
+
+    if (remainingForInternet.isNotEmpty) {
+      final isOnline = await ModBrowserCubit.hasInternetConnection();
+      if (!isOnline) {
+        for (final serverMod in remainingForInternet) {
+          final modIndex = serverInfo.mods.indexOf(serverMod);
+          final enqueued = await _tryDownloadFromLanHost(
+            serverInfo,
+            serverMod,
+            modIndex,
+          );
+          if (!enqueued) {
+            failedMods++;
+          }
+        }
+      } else {
+        final missingMods = remainingForInternet.map(
           (m) => mb.BridgeMod(
             name: m.name,
             version: m.version,
@@ -342,78 +461,92 @@ class ServerBrowserCubit extends Cubit<ServerBrowserState> {
           ),
         );
 
-    final chunks = missingMods.slices(50);
-    final modsToDownload = <mb.Mod>[];
-    final notFound = <mb.BridgeMod>[];
-    for (final chunk in chunks) {
-      final resp = await sl
-          .get<ModBridgeGRPCService>()
-          .searchClient
-          .searchMods(
-            mb.SearchModsRequest(mods: chunk),
-          )
-          .catchError((e) {
-            Logger('server_browser').severe('Error searching mods', e);
-            NotificationService.showNotification(
-              message: 'Error searching mods: $e',
+        final chunks = missingMods.slices(50);
+        final modsToDownload = <mb.Mod>[];
+        final notFound = <mb.BridgeMod>[];
+        for (final chunk in chunks) {
+          final resp = await sl
+              .get<ModBridgeGRPCService>()
+              .searchClient
+              .searchMods(
+                mb.SearchModsRequest(mods: chunk),
+              )
+              .catchError((e) {
+                Logger('server_browser').warning(
+                  'ModBridge search unavailable, falling back to direct/LAN: $e',
+                );
+                return mb.SearchModsResponse(notFound: chunk);
+              });
+
+          if (resp.mods.isEmpty && resp.notFound.isEmpty) {
+            notFound.addAll(chunk);
+            continue;
+          }
+
+          modsToDownload.addAll(resp.mods);
+          notFound.addAll(resp.notFound);
+        }
+
+        final finderService = ModFinderService();
+        for (final mod in notFound) {
+          final serverMod = serverInfo.mods.firstWhere(
+            (e) => e.name == mod.name && e.version == mod.version,
+          );
+
+          var resolvedFromNexus = false;
+          if (serverMod.link.isNotEmpty) {
+            try {
+              final resp = await finderService.searchMod(
+                serverMod.link,
+                mod.version,
+              );
+              if (resp.$2.isNotEmpty) {
+                final modId = resp.$1;
+                final file = resp.$2.first;
+                final link =
+                    'https://www.nexusmods.com/starwarsbattlefront22017/mods/$modId?tab=files&file_id=${file.fileId}';
+                final fMod = mb.Mod(
+                  name: file.name,
+                  link: link,
+                  modId: .parse(modId),
+                  fileId: .parse(file.fileId),
+                  id: serverInfo.mods.indexOf(serverMod).toString(),
+                );
+
+                modsToDownload.add(fMod);
+                resolvedFromNexus = true;
+              }
+            } catch (_) {}
+          }
+
+          if (!resolvedFromNexus) {
+            final modIndex = serverInfo.mods.indexOf(serverMod);
+            final enqueuedFromLan = await _tryDownloadFromLanHost(
+              serverInfo,
+              serverMod,
+              modIndex,
             );
+            if (!enqueuedFromLan) {
+              failedMods++;
+            }
+          }
+        }
 
-            return mb.SearchModsResponse();
-          });
+        var nexusLoginPrompted = false;
+        for (final mod in modsToDownload) {
+          final serverMod = serverInfo.mods[int.parse(mod.id)];
 
-      if (resp.mods.isEmpty && resp.notFound.isEmpty) {
-        continue;
-      }
+          if (mod.link.contains('nexusmods') && nexusLoginPrompted) {
+            continue;
+          }
 
-      modsToDownload.addAll(resp.mods);
-      notFound.addAll(resp.notFound);
-    }
-
-    final finderService = ModFinderService();
-    for (final mod in notFound) {
-      final serverMod = serverInfo.mods.firstWhere(
-        (e) => e.name == mod.name && e.version == mod.version,
-      );
-
-      if (serverMod.link.isEmpty) {
-        failedMods++;
-        continue;
-      }
-
-      final resp = await finderService.searchMod(serverMod.link, mod.version);
-      if (resp.$2.isEmpty) {
-        failedMods++;
-        continue;
-      }
-
-      final modId = resp.$1;
-      final file = resp.$2.first;
-      final link =
-          'https://www.nexusmods.com/starwarsbattlefront22017/mods/$modId?tab=files&file_id=${file.fileId}';
-      final fMod = mb.Mod(
-        name: file.name,
-        link: link,
-        modId: .parse(modId),
-        fileId: .parse(file.fileId),
-        id: serverInfo.mods.indexOf(serverMod).toString(),
-      );
-
-      modsToDownload.add(fMod);
-    }
-
-    var nexusLoginPrompted = false;
-    for (final mod in modsToDownload) {
-      final serverMod = serverInfo.mods[int.parse(mod.id)];
-
-      if (mod.link.contains('nexusmods') && nexusLoginPrompted) {
-        continue;
-      }
-
-      try {
-        await _handleDownload(mod, serverMod: serverMod);
-      } on MissingNexusAuthException {
-        nexusLoginPrompted = true;
-        continue;
+          try {
+            await _handleDownload(mod, serverMod: serverMod);
+          } on MissingNexusAuthException {
+            nexusLoginPrompted = true;
+            continue;
+          }
+        }
       }
     }
 

@@ -1,3 +1,4 @@
+// Modified for Kyber Outpost (LAN Edition) - 2026-11-10.
 import 'package:fixnum/fixnum.dart';
 import 'package:fluent_ui/fluent_ui.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
@@ -5,13 +6,19 @@ import 'package:form_builder_validators/form_builder_validators.dart';
 import 'package:grpc/grpc.dart';
 import 'package:kyber/gen/Proto/kyber_common.pb.dart';
 import 'package:kyber/kyber.dart' hide ServerMod;
+import 'package:kyber_collection/kyber_collection.dart';
 import 'package:kyber_launcher/core/config/colors.dart';
 import 'package:kyber_launcher/core/services/image_helper.dart';
 import 'package:kyber_launcher/core/services/notification_service.dart';
+import 'package:kyber_launcher/features/lan/services/lan_discovery_service.dart';
+import 'package:kyber_launcher/features/lan/services/lan_mod_server_service.dart';
 import 'package:kyber_launcher/features/map_rotation/models/map_rotation_entry.dart';
 import 'package:kyber_launcher/features/map_rotation/providers/map_rotation_cubit.dart';
+import 'package:kyber_launcher/features/maxima/extensions/server_mod.dart';
 import 'package:kyber_launcher/features/maxima/helper/maxima_helper.dart';
 import 'package:kyber_launcher/features/maxima/models/maxima_game_instance.dart';
+import 'package:kyber_launcher/features/maxima/providers/maxima_cubit.dart';
+import 'package:kyber_launcher/features/mod_collections/extensions/mod_collection_extension.dart';
 import 'package:kyber_launcher/features/mods/services/level_declaration_service.dart';
 import 'package:kyber_launcher/features/server_host/providers/host_collection_cubit.dart';
 import 'package:kyber_launcher/features/server_host/widgets/settings_box/server_settings_box.dart';
@@ -224,25 +231,11 @@ class SettingsBoxHeader extends StatelessWidget {
                           }
 
                           if (state.selected) {
-                            await sl
-                                .get<KyberGRPCService>()
-                                .serverBrowserClient
-                                .updateServer(
-                                  UpdateServerRequest(
-                                    id: state.id,
-                                    name: form.value['serverName'] as String,
-                                    description:
-                                        form.value['description'] as String?,
-                                    password: form.value['password'] as String?,
-                                  ),
-                                );
                             NotificationService.showNotification(
                               message: 'Server updated',
                             );
                             return;
                           }
-
-                          await uploadHashes(context);
 
                           final mapRotation = context
                               .read<MapRotationCubit>()
@@ -309,20 +302,56 @@ class SettingsBoxHeader extends StatelessWidget {
                               mapRotation: mapRotation,
                             );
 
+                            final orderedFrostyMods = collection
+                                .getLocalMods(
+                                  onlyGameplay: true,
+                                  expandCollections: true,
+                                )
+                                .whereType<FrostyMod>()
+                                .where((e) => !e.isCollection)
+                                .toList();
+                            final orderedServerMods = orderedFrostyMods
+                                .map(ServerMod().fromFrostyMod)
+                                .toList();
+                            final hostCreator =
+                                context
+                                    .read<MaximaCubit>()
+                                    .state
+                                    .servicePlayer
+                                    ?.displayName ??
+                                'OutpostHost';
+                            final serverId = 'lan_host_${startRequest.name}';
+
+                            final lanModServer = sl.get<LanModServerService>();
+                            await lanModServer.configureHostedServer(
+                              serverId: serverId,
+                              serverName: startRequest.name,
+                              description: startRequest.description,
+                              creator: hostCreator,
+                              requiresPassword:
+                                  startRequest.password.isNotEmpty,
+                              maxPlayers: startRequest.maxPlayers > 0
+                                  ? startRequest.maxPlayers
+                                  : 40,
+                              levelSetup: mapRotation.first,
+                              orderedMods: orderedFrostyMods,
+                            );
+
                             await sl
-                                .get<KyberGRPCService>()
-                                .serverBrowserClient
-                                .validateServer(
-                                  RegisterServerRequest(
-                                    name: startRequest.name,
-                                    description: startRequest.description,
-                                    password: startRequest.password,
-                                    maxPlayerCount: startRequest.maxPlayers,
-                                    explodedMods: [],
-                                    mods: [],
-                                    levelSetup: LevelSetup(map: '', mode: ''),
-                                    statsSource: .KYBER,
-                                  ),
+                                .get<LanDiscoveryService>()
+                                .startBroadcasting(
+                                  serverId: serverId,
+                                  name: startRequest.name,
+                                  description: startRequest.description,
+                                  creator: hostCreator,
+                                  requiresPassword:
+                                      startRequest.password.isNotEmpty,
+                                  maxPlayers: startRequest.maxPlayers > 0
+                                      ? startRequest.maxPlayers
+                                      : 40,
+                                  levelSetup: mapRotation.first,
+                                  mods: orderedServerMods,
+                                  httpPort: lanModServer.port,
                                 );
 
                             final initialCommands = <String>[];

@@ -1,8 +1,11 @@
+// Modified for Kyber Outpost (LAN Edition) - 2026-11-10.
 import 'package:fluent_ui/fluent_ui.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
+import 'package:kyber/kyber.dart';
 import 'package:kyber_launcher/core/config/colors.dart';
 import 'package:kyber_launcher/features/kyber/helper/kyber_status_helper.dart';
 import 'package:kyber_launcher/features/kyber/providers/kyber_api_status_cubit.dart';
+import 'package:kyber_launcher/features/lan/dialogs/lan_direct_connect_dialog.dart';
 import 'package:kyber_launcher/features/lightswitch/models/status.dart';
 import 'package:kyber_launcher/features/server_browser/constants/modes.dart';
 import 'package:kyber_launcher/features/server_browser/models/server_entry.dart';
@@ -15,6 +18,8 @@ import 'package:kyber_launcher/features/server_browser/widgets/server_info_box/s
 import 'package:kyber_launcher/features/server_browser/widgets/server_list/server_list.dart';
 import 'package:kyber_launcher/gen/assets.gen.dart';
 import 'package:kyber_launcher/gen/fonts.gen.dart';
+import 'package:kyber_launcher/shared/ui/buttons/button.dart';
+import 'package:kyber_launcher/shared/ui/dialog/kyber_dialog.dart';
 import 'package:kyber_launcher/shared/ui/elements/filter_dropdown.dart';
 import 'package:kyber_launcher/shared/ui/elements/kyber_page_selector.dart';
 import 'package:kyber_launcher/shared/ui/layout/bordered_content.dart';
@@ -128,6 +133,24 @@ class _HeaderBar extends StatelessWidget {
                     context.read<ServerListCubit>().loadServers(),
                 selectedIndex: -1,
               ),
+            ),
+            const SizedBox(width: 15),
+            KyberButton(
+              text: 'DIRECT IP',
+              onPressed: () async {
+                final server = await showKyberDialog<Server>(
+                  context: context,
+                  builder: (_) => const LanDirectConnectDialog(),
+                );
+                if (server != null && context.mounted) {
+                  await context.read<ServerListCubit>().loadServers();
+                  if (context.mounted) {
+                    context.read<ServerBrowserCubit>().selectServer(
+                      SingleServer(server: server),
+                    );
+                  }
+                }
+              },
             ),
             const SizedBox(width: 15),
             const Expanded(

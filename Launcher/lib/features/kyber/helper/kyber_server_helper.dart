@@ -1,3 +1,4 @@
+// Modified for Kyber Outpost (LAN Edition) - 2026-11-10.
 import 'package:collection/collection.dart';
 import 'package:fluent_ui/fluent_ui.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
@@ -76,73 +77,24 @@ class KyberServerHelper {
 
     var serverIp = server.ip;
     final currentIp = await KyberNetworkHelper.getCurrentIpAddress();
-    if (serverIp == currentIp) {
+    if (serverIp.isEmpty || serverIp == currentIp) {
       serverIp = '127.0.0.1';
     }
 
-    final proxyCubit = navigatorKey.currentContext!.read<KyberProxyCubit>();
-    if (proxyCubit.isLoading) {
-      NotificationService.info(message: 'Waiting for proxies to load...');
-    }
-
-    await proxyCubit.ensureReady();
-    final proxies = proxyCubit.state.proxies;
-    var selectedProxy = proxies.firstWhereOrNull(
-      (p) => p.proxy.id == Preferences.general.proxy,
-    );
-    if (selectedProxy == null) {
-      selectedProxy = proxies.firstOrNull;
-      _logger.warning(
-        'No proxy selected, using ${selectedProxy?.proxy.name} instead',
-      );
-      if (selectedProxy == null) {
-        _logger.severe('No proxy available');
-        throw Exception('No proxy available');
-      }
-
-      NotificationService.showNotification(
-        message:
-            'Selected Proxy not available, using ${selectedProxy.proxy.name} instead',
-        severity: InfoBarSeverity.warning,
-      );
-    }
-
+    final targetPort = server.port > 0 ? server.port : 25200;
     _logger.info(
-      'Joining server with proxy ${selectedProxy.proxy.name} (${selectedProxy.proxy.ip})',
+      'Joining LAN server directly at $serverIp:$targetPort '
+      'with ${tmpCollection.mods.length} mod(s) in exact Host load order',
     );
 
     try {
-      final service = sl.get<KyberGRPCService>();
-      final JoinTokenResponse joinToken;
-      try {
-        joinToken = await service.clientServerClient.createJoinToken(
-          .new(
-            server: server.id,
-            password: password,
-          ),
-        );
-      } on GrpcError catch (e) {
-        if (queueIfFull &&
-            e.code == StatusCode.resourceExhausted &&
-            LightswitchCubit.isFeatureEnabled(.queues)) {
-          await _joinQueueForServer(
-            server,
-            selectedCollection: selectedCollection,
-            spectator: spectator,
-            password: password,
-          );
-          return;
-        }
-        rethrow;
-      }
-
       final joinRequest = JoinServerRequest(
         id: server.id,
-        ip: server.requiresProxy ? selectedProxy.proxy.ip : serverIp,
-        port: server.requiresProxy ? null : server.port,
-        type: server.requiresProxy ? .PROXIED : .DIRECT,
+        ip: serverIp,
+        port: targetPort,
+        type: .DIRECT,
         spectate: spectator ?? false,
-        joinToken: joinToken.token,
+        joinToken: password ?? '',
       );
 
       if (!sl.isRegistered<MaximaGameInstance>()) {
