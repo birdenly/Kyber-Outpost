@@ -154,10 +154,14 @@ class MaximaHelper {
     final playerName = cubitPlayerName ??
         Platform.environment['KYBER_PLAYER_NAME'] ??
         'OutpostPlayer${InstanceManager.nameSuffix}';
+    final userLicenseId =
+        Platform.environment['KYBER_USER_ID'] ?? '2842339971';
     ProcessEnv.set('KYBER_ONLINE_MODE', '0');
     ProcessEnv.set('KYBER_SERVER_PORT', InstanceManager.gamePort.toString());
     ProcessEnv.set('KYBER_API_TOKEN', 'lan_offline_token');
     ProcessEnv.set('KYBER_PLAYER_NAME', playerName);
+    ProcessEnv.set('KYBER_USER_ID', userLicenseId);
+    ProcessEnv.set('EASecureLaunchTokenTemp', userLicenseId);
     ProcessEnv.set('EALaunchEAID', playerName);
     ProcessEnv.set('EALaunchUserAuthToken', 'lan_offline_token');
     ProcessEnv.set(
