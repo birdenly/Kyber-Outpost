@@ -1,3 +1,4 @@
+// Modified for Kyber Outpost (LAN Edition) - 2026-11-10.
 import 'dart:io';
 import 'dart:typed_data';
 
@@ -15,25 +16,7 @@ class TaskbarIconHelper {
   static int? _defaultIcon;
 
   static Future<Uint8List?> _getIcon() async {
-    try {
-      final response = await Dio()
-          .get<Uint8List>(
-        'https://s3.kyber.gg/frontend-assets/launcher_icon.ico',
-        options: Options(
-          responseType: .bytes,
-          followRedirects: false,
-          validateStatus: (status) => status != null && status < 400,
-        ),
-      )
-          .timeout(
-        const Duration(seconds: 5),
-        onTimeout: () => throw Exception('Request timed out'),
-      );
-
-      return response.data != null ? Uint8List.fromList(response.data!) : null;
-    } catch (_) {
-      return null;
-    }
+    return null;
   }
 
   static HWND _findWindow() => FindWindow(

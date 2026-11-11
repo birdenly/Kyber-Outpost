@@ -44,24 +44,12 @@ class StorageHelper {
   }
 
   static Future<void> saveCurrentVersion() async {
-    if (!box.containsKey(VersionModule.installer.name) && kReleaseMode) {
+    if (!box.containsKey(VersionModule.installer.name)) {
       try {
-        final versions = await sl
-            .get<KyberGRPCService>()
-            .launcherClient
-            .versions(
-              ServiceVersionsRequest(
-                id: VersionModule.installer.name,
-                channel: VersionModule.installer.releaseChannel,
-              ),
-            );
-        final latestVersion = versions.versions.where((x) => x.isLatest);
-        if (latestVersion.isNotEmpty) {
-          await box.put(
-            VersionModule.installer.name,
-            latestVersion.first.version,
-          );
-        }
+        await box.put(
+          VersionModule.installer.name,
+          '2.0.0-outpost-lan',
+        );
       } catch (_) {}
     }
   }

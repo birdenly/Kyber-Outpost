@@ -1,3 +1,4 @@
+// Modified for Kyber Outpost (LAN Edition) - 2026-11-10.
 import 'dart:io';
 
 import 'package:cached_network_image/cached_network_image.dart';
@@ -66,11 +67,18 @@ class _MaximaAvatarState extends State<MaximaAvatar> {
       return;
     }
 
-    final result = await avatarImage(
-      pd: pd,
-      width: 208,
-      height: 208,
-    );
+    String? result;
+    if (pd.isNotEmpty && pd != '0') {
+      try {
+        result = await avatarImage(
+          pd: pd,
+          width: 208,
+          height: 208,
+        );
+      } catch (_) {
+        result = null;
+      }
+    }
 
     if (!mounted) return;
 

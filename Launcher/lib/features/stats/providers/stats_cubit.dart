@@ -1,3 +1,4 @@
+// Modified for Kyber Outpost (LAN Edition) - 2026-11-10.
 import 'package:fluent_ui/fluent_ui.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:grpc/grpc.dart';
@@ -60,63 +61,7 @@ class StatsCubit extends Cubit<StatsState> {
   }
 
   Future<void> fetchStats({StatsSource? statsSource}) async {
-    try {
-      if (!hasKBStats && statsSource != StatsSource.EA_PC) {
-        return;
-      }
-
-      emit(StatsLoading());
-
-      if (personaId == null) {
-        await loadPersonaId();
-      }
-
-      statsSource ??= StatsSource.EA_PC;
-      _statsSource = statsSource;
-
-      final kService = sl.get<KyberGRPCService>();
-
-      final player = navigatorKey.currentContext
-          ?.read<MaximaCubit>()
-          .state
-          .servicePlayer;
-      if (player == null) {
-        emit(StatsError('You are not logged in'));
-        return;
-      }
-      final statsResponse = await kService.statsClient.getStats(
-        StatsRequest(
-          source: statsSource,
-          user: player.id,
-          personaId: player.psd,
-        ),
-      );
-      final statistics = PlayerStats.fromMap(statsResponse.stats);
-      _selectedCharacterStats = statistics.heroes.first;
-
-      emit(
-        StatsLoaded(
-          stats: statsResponse.stats,
-          statsSource: statsSource,
-          playerStats: statistics,
-          selectedObject: _selectedCharacterStats!,
-        ),
-      );
-    } on GrpcError catch (e) {
-      print('e: ${e.message}, code: ${e.code}');
-      if (e.code == StatusCode.notFound && statsSource != StatsSource.EA_PC) {
-        hasKBStats = false;
-        NotificationService.info(message: 'No KYBER stats found for $username');
-        return fetchStats(statsSource: StatsSource.EA_PC);
-      } else if (e.message == 'EA Stats client is not available') {
-        NotificationService.warning(message: 'EA stats are currently unavailable');
-        return fetchStats(statsSource: StatsSource.KYBER);
-      }
-
-      emit(StatsError(e.message ?? 'Unknown GRPC Error'));
-    } catch (e) {
-      emit(StatsError(e.toString()));
-    }
+    emit(StatsError('Cloud statistics are unavailable in Kyber Outpost (LAN Mode).'));
   }
 
   void selectHero(StatsObject<Object> object) {
