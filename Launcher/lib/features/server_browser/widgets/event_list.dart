@@ -1,3 +1,4 @@
+// Modified for Kyber Outpost (LAN Edition) - 2026-11-10.
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:fluent_ui/fluent_ui.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
@@ -37,6 +38,59 @@ class HomeEventList extends StatelessWidget {
             }
 
             state as EventsLoaded;
+            if (state.posts.isEmpty) {
+              return const Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  SizedBox(
+                    height: 60,
+                    child: Padding(
+                      padding: EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Text(
+                            'KYBER OUTPOST (LAN EDITION)',
+                            style: TextStyle(
+                              fontFamily: FontFamily.battlefrontUI,
+                              fontSize: 21,
+                              height: 1,
+                            ),
+                          ),
+                          Text(
+                            'LOCAL NETWORK DISCOVERY & P2P MOD SHARING',
+                            style: TextStyle(
+                              fontFamily: FontFamily.battlefrontUI,
+                              fontSize: 14,
+                              color: kWhiteColor,
+                              height: 1,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                  CardSection(),
+                  Expanded(
+                    child: Padding(
+                      padding: EdgeInsets.all(20),
+                      child: Center(
+                        child: Text(
+                          'LAN Mode Active — Host or join servers directly on your local network (ports 25200-25202).',
+                          textAlign: TextAlign.center,
+                          style: TextStyle(
+                            fontFamily: FontFamily.battlefrontUI,
+                            fontSize: 15,
+                            color: kWhiteColor,
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
+              );
+            }
 
             return Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,

@@ -1,3 +1,4 @@
+// Modified for Kyber Outpost (LAN Edition) - 2026-11-10.
 import 'package:background_downloader/background_downloader.dart';
 import 'package:collection/collection.dart';
 import 'package:fluent_ui/fluent_ui.dart';
@@ -500,16 +501,13 @@ class _ServerInfoBoxState extends State<ServerInfoBox> {
   }
 
   void _shareServer() {
-    final uri = Uri(
-      scheme: 'https',
-      host: 'api.prod.kyber.gg',
-      path: 'redirect',
-      queryParameters: {
-        'target': 'join_server?server_id=${serverInfo.id}',
-      },
+    final shareText = serverInfo.ip.isNotEmpty
+        ? '${serverInfo.ip}:${serverInfo.port > 0 ? serverInfo.port : 25200}'
+        : serverInfo.id;
+    Clipboard.setData(.new(text: shareText));
+    NotificationService.info(
+      message: 'Copied LAN address ($shareText) to clipboard!',
     );
-    Clipboard.setData(.new(text: uri.toString()));
-    NotificationService.info(message: 'Copied to clipboard!');
   }
 
   Widget _buildActionRow() => _ActionDropdown<ModCollectionMetaData?>(
