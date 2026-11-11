@@ -110,11 +110,12 @@ class LanModServerService {
     required LevelSetup levelSetup,
     required List<FrostyMod> orderedMods,
     int gamePort = 25200,
+    String? basePathOverride,
   }) async {
     await start();
 
     _allowedMods.clear();
-    final basePath = ModService.getBasePath();
+    final basePath = basePathOverride ?? ModService.getBasePath();
 
     for (var i = 0; i < orderedMods.length; i++) {
       final mod = orderedMods[i];
@@ -146,7 +147,7 @@ class LanModServerService {
           filename: safeFilename,
           filePath: fullPath,
           fileSize: file.lengthSync(),
-          link: mod.details.link,
+          link: mod.details.link ?? '',
         ),
       );
     }
@@ -213,7 +214,7 @@ class LanModServerService {
           filename: safeFilename,
           filePath: fullPath,
           fileSize: file.lengthSync(),
-          link: mod.details.link,
+          link: mod.details.link ?? '',
         ),
       );
     }

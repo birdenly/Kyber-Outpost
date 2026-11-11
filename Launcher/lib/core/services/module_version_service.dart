@@ -1,3 +1,4 @@
+// Modified for Kyber Outpost (LAN Edition) - 2026-11-10.
 import 'dart:io';
 
 import 'package:collection/collection.dart';
@@ -123,17 +124,7 @@ class ModuleVersionService {
     required VersionModule module,
     required String channel,
   }) async {
-    if (module == VersionModule.installer) {
-      final version = await getLatestLauncherVersion(channel);
-      return version != null;
-    }
-
-    final rq = ServiceVersionsRequest(id: module.name, channel: channel);
-    final versions = await sl.get<KyberGRPCService>().launcherClient.versions(
-      rq,
-    );
-    return versions.versions.isNotEmpty &&
-        versions.versions.firstWhereOrNull((x) => x.isLatest) != null;
+    return true;
   }
 
   Future<bool> updateAvailable({
@@ -141,61 +132,29 @@ class ModuleVersionService {
     String? channel,
     KyberGRPCService? service,
   }) async {
-    if (Platform.isMacOS && module == VersionModule.installer) {
-      return false;
-    }
-
-    if ((kDebugMode || kProfileMode) && module == VersionModule.installer) {
-      return false;
-    }
-
-    channel ??= module.releaseChannel;
-    final rq = ServiceVersionsRequest(id: module.name, channel: channel);
-    final versions = await (service ?? sl.get<KyberGRPCService>())
-        .launcherClient
-        .versions(rq);
-
-    final currentVersion = await module.getCurrentVersion();
-    final latestVersion = versions.versions.firstWhereOrNull((x) => x.isLatest);
-    if (currentVersion == null) {
-      _logger.info('No version found for ${module.name}.');
-      return true;
-    }
-
-    if (latestVersion == null) {
-      _logger.info(
-        'No latest version found for ${module.name}. Switching to stable.',
-      );
-      await module.setReleaseChannel('stable');
-      return true;
-    }
-
-    late bool updateAvailable;
-    if (module == VersionModule.installer) {
-      final latestVersion = await getLatestLauncherVersion();
-      if (latestVersion == 'DISCONTINUED' || latestVersion == null) {
-        _logger.info(
-          'The branch ${VersionModule.installer.releaseChannel} has been discontinued. Switching to main.',
-        );
-        await VersionModule.installer.setReleaseChannel('stable');
-        return true;
+    if (module == VersionModule.module) {
+      final moduleDir = FileHelper.getModuleDirectory();
+      if (!moduleDir.existsSync()) {
+        moduleDir.createSync(recursive: true);
       }
 
-      updateAvailable = latestVersion != currentVersion;
-    } else {
-      updateAvailable = latestVersion.version != currentVersion;
-    }
+      final exeDir = dirname(Platform.resolvedExecutable);
+      final bundledDll = File(join(exeDir, 'Kyber.dll'));
+      final targetDll = File(join(moduleDir.path, 'Kyber.dll'));
+      if (bundledDll.existsSync() && !targetDll.existsSync()) {
+        bundledDll.copySync(targetDll.path);
+      }
 
-    if (updateAvailable) {
-      _logger.info(
-        'New version available for ${module.name}: ${latestVersion.version}',
-      );
-      return true;
-    }
+      final bundledVivox = File(join(exeDir, 'vivoxsdk.dll'));
+      final targetVivox = File(join(moduleDir.path, 'vivoxsdk.dll'));
+      if (bundledVivox.existsSync() && !targetVivox.existsSync()) {
+        bundledVivox.copySync(targetVivox.path);
+      }
 
-    if (module.requiredFiles.any((x) => !File(x).existsSync())) {
-      _logger.info('Required files missing for ${module.name}.');
-      return true;
+      final versionFile = File(join(moduleDir.path, 'VERSION'));
+      if (!versionFile.existsSync()) {
+        versionFile.writeAsStringSync('2.0.0-outpost-lan');
+      }
     }
 
     return false;

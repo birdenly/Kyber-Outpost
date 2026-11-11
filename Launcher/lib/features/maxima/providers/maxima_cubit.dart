@@ -122,22 +122,22 @@ class MaximaCubit extends Cubit<MaximaState> {
     final loggedIn = await isLoggedIn();
     if (loggedIn) {
       logger.info('Already logged in');
-      await requestLogin(skipMaximaCheck: true);
-
-      if (state.status == .error) {
-        return;
-      }
-
-      return emit(
-        state.copyWith(
-          loggedIn: true,
-          servicePlayer: state.servicePlayer,
-          status: .loaded,
-        ),
-      );
+    } else {
+      logger.info('Offline/LAN mode: initializing local player session');
     }
 
-    emit(state.copyWith(status: .loaded));
+    await requestLogin(skipMaximaCheck: true);
+    if (state.status == .error) {
+      return;
+    }
+
+    emit(
+      state.copyWith(
+        loggedIn: true,
+        servicePlayer: state.servicePlayer,
+        status: .loaded,
+      ),
+    );
   }
 
   Future<void> logout() async {
@@ -245,9 +245,9 @@ class MaximaCubit extends Cubit<MaximaState> {
           pd: '0',
           psd: '0',
           displayName: fallbackName,
-          uniqueId: '0',
+          uniqueName: fallbackName,
           nickname: fallbackName,
-          country: 'US',
+          relationship: 'SELF',
         );
       }
 
@@ -264,7 +264,9 @@ class MaximaCubit extends Cubit<MaximaState> {
       emit(
         state.copyWith(
           loggedIn: true,
-          entitlements: UserEntitlement.values,
+          entitlements: UserEntitlement.values
+              .where((e) => e != UserEntitlement.staff)
+              .toList(),
           servicePlayer: servicePlayer,
           status: MaximaStatus.loaded,
           isPatron: false,

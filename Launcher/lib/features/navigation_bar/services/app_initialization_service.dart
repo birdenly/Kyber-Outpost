@@ -1,3 +1,4 @@
+// Modified for Kyber Outpost (LAN Edition) - 2026-11-10.
 import 'dart:async';
 import 'dart:io';
 
@@ -49,27 +50,7 @@ class AppInitializationService {
   }
 
   static void _connectToSessionService(BuildContext context) async {
-    if (!context.mounted) return;
-
-    try {
-      await context.read<SessionCubit>().connect();
-    } on GrpcError catch (e) {
-      _logger.severe('Failed to connect to session service: ${e.message}');
-      NotificationService.error(
-        message: 'Failed to connect to session service: ${e.message}',
-      );
-    } on WebSocketChannelException catch (e) {
-      _logger.severe('Failed to connect to session service: ${e.message}');
-      NotificationService.error(
-        message:
-            'Failed to connect to session service. Some features may not work properly.',
-      );
-    } catch (e) {
-      _logger.severe('Failed to connect to session service: $e');
-      NotificationService.error(
-        message: 'Failed to connect to session service: $e',
-      );
-    }
+    return;
   }
 
   static Future<void> startServices(BuildContext context) async {
