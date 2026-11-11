@@ -144,8 +144,14 @@ class MaximaHelper {
     final moduleDebug = Preferences.debug.moduleDebugLogs;
     final newPath = '$path;${FileHelper.getModuleDirectory().path}';
     final interfacePort = await KyberNetworkHelper.findAvailablePort();
-    final playerName =
-        sl.get<MaximaCubit>().state.servicePlayer?.displayName ??
+    String? cubitPlayerName;
+    try {
+      if (sl.isRegistered<MaximaCubit>()) {
+        cubitPlayerName =
+            sl.get<MaximaCubit>().state.servicePlayer?.displayName;
+      }
+    } catch (_) {}
+    final playerName = cubitPlayerName ??
         Platform.environment['KYBER_PLAYER_NAME'] ??
         'OutpostPlayer${InstanceManager.nameSuffix}';
     ProcessEnv.set('KYBER_ONLINE_MODE', '0');
