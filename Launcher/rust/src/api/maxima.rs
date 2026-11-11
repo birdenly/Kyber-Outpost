@@ -1,3 +1,4 @@
+// Modified for Kyber Outpost (LAN Edition) - 2026-11-10.
 use std::io::Sink;
 
 use flutter_rust_bridge::for_generated::anyhow::bail;
@@ -331,29 +332,37 @@ pub async fn start_game(
 ) -> anyhow::Result<u32> {
     let maxima_arc = maxima().clone();
 
-    let offer_id = {
+    let mut resolved_path = game_path_override.clone();
+    let launch_mode = {
         let mut maxima = maxima_arc.lock().await;
-        let game = maxima.mut_library().game_by_base_slug(&game_slug).await;
-        if game.is_err() {
-            bail!(game.err().unwrap())
-        }
+        let logged_in = {
+            let mut auth_storage = maxima.auth_storage().lock().await;
+            auth_storage.logged_in().await.unwrap_or(false)
+        };
 
-        let game = game?;
-        if game.is_none() {
-            bail!("Game not found");
+        if logged_in {
+            match maxima.mut_library().game_by_base_slug(&game_slug).await {
+                Ok(Some(game)) if game.is_installed().await => {
+                    LaunchMode::Online(game.offer_id().to_owned())
+                }
+                _ => LaunchMode::Offline("1035052".to_string()),
+            }
+        } else {
+            LaunchMode::Offline("1035052".to_string())
         }
-
-        let game = game.unwrap();
-        if !game.is_installed().await {
-            bail!("Game not installed");
-        }
-
-        game.offer_id().to_owned()
     };
 
+    if resolved_path.is_none() {
+        let reg_dir = get_game_dir(game_slug.clone());
+        if !reg_dir.is_empty() {
+            let exe_path = std::path::PathBuf::from(reg_dir).join("starwarsbattlefrontii.exe");
+            resolved_path = Some(exe_path.to_string_lossy().to_string());
+        }
+    }
+
     // TODO: re-enable cloud-saves (@headassbtw please fix)
-    launch::start_game(maxima_arc.clone(), LaunchMode::Online(offer_id), LaunchOptions {
-        path_override: game_path_override,
+    launch::start_game(maxima_arc.clone(), launch_mode, LaunchOptions {
+        path_override: resolved_path,
         arguments: game_args.unwrap_or_default(),
         cloud_saves: false,
     }).await?;
@@ -386,12 +395,17 @@ fn is_maxima_running() -> bool {
 }
 
 pub async fn check_game_ownership() -> anyhow::Result<bool> {
+    let reg_dir = get_game_dir("star-wars-battlefront-2".to_string());
+    if !reg_dir.is_empty() {
+        return Ok(true);
+    }
+
     let maxima_arc = maxima().clone();
     let mut maxima = maxima_arc.lock().await;
 
     let game = maxima.mut_library().game_by_base_slug("star-wars-battlefront-2").await;
     if game.is_err() {
-        bail!(game.err().unwrap())
+        return Ok(true);
     }
 
     let game = game?;
@@ -450,8 +464,10 @@ pub async fn get_auth_token() -> String {
     let y = maxima().lock().await;
     {
         let mut auth_storage = y.auth_storage().lock().await;
-        let token = auth_storage.access_token().await;
-        return token.unwrap().unwrap();
+        if let Ok(Some(token)) = auth_storage.access_token().await {
+            return token;
+        }
+        return "lan_offline_token".to_string();
     }
 }
 
@@ -481,11 +497,13 @@ pub async fn login_flow(login_override: Option<String>) -> anyhow::Result<Servic
     let y = maxima().lock().await;
     {
         let mut auth_storage = y.auth_storage().lock().await;
-        let logged_in = auth_storage.logged_in().await?;
-        if !logged_in || login_override.is_some() {
-            info!("Logging in...");
+        let logged_in = auth_storage.logged_in().await.unwrap_or(false);
+        if login_override.is_some() {
+            info!("Logging in with override...");
             let token_res = login(login_override).await?;
             auth_storage.add_account(&token_res).await?;
+        } else if !logged_in {
+            info!("Offline/LAN mode: using local player profile without EA OAuth.");
         }
     }
 

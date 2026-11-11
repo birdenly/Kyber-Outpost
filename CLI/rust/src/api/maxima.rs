@@ -1,3 +1,4 @@
+// Modified for Kyber Outpost (LAN Edition) - 2026-11-10.
 use std::{path::PathBuf, time::Instant};
 
 use anyhow::bail;
@@ -108,7 +109,11 @@ pub async fn start_game(
 
     let dummy_user = maxima().lock().await.dummy_local_user();
     let launch_option = if dummy_user {
-        LaunchMode::OnlineOffline(1035052.to_string(), user.unwrap(), pass.unwrap())
+        if let (Some(u), Some(p)) = (user, pass) {
+            LaunchMode::OnlineOffline(1035052.to_string(), u, p)
+        } else {
+            LaunchMode::Offline(1035052.to_string())
+        }
     } else {
         let offer_id = {
             let mut maxima = maxima_arc.lock().await;
