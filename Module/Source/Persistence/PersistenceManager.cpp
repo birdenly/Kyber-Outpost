@@ -1,4 +1,5 @@
 // Copyright Armchair Developers / Sean Kahler. Licensed under GPLv3.
+// Modified for Kyber Outpost (LAN Edition) - 2026-11-10.
 
 #include <Persistence/PersistenceManager.h>
 
@@ -112,7 +113,7 @@ void LoadPlayerPersistenceHk(void* inst, ServerPlayer* player)
     static const auto trampoline = HookManager::Call(LoadPlayerPersistenceHk);
     trampoline(inst, player);
 
-    if (!g_program->m_server->IsRunning() || player->IsAIPlayer() || player->IsSpectator() || !g_program->m_isDedicatedServer)
+    if (!g_program->m_server->IsRunning() || !g_program->m_server->m_onlineMode || player->IsAIPlayer() || player->IsSpectator() || !g_program->m_isDedicatedServer)
     {
         return;
     }

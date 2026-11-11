@@ -1,4 +1,5 @@
 // Copyright Armchair Developers / Sean Kahler. Licensed under GPLv3.
+// Modified for Kyber Outpost (LAN Edition) - 2026-11-10.
 
 #include <Core/Program.h>
 
@@ -210,10 +211,9 @@ void Program::InitializationThread()
     _putenv_s("GAME_DATA_DIR", "");
 
     const char* apiToken = std::getenv("KYBER_API_TOKEN");
-    if (apiToken == nullptr)
+    if (apiToken == nullptr || strlen(apiToken) == 0)
     {
-        ErrorUtils::ThrowException("No API token specified");
-        return;
+        apiToken = "lan_offline_token";
     }
 
     ix::initNetSystem();
@@ -228,21 +228,21 @@ void Program::InitializationThread()
     m_settingsManager = new KyberSettingsManager();
     m_scriptManager = new ScriptManager();
 
-    if (!m_isDedicatedServer)
+    if (!m_isDedicatedServer && m_server->m_onlineMode)
     {
         m_client->m_voipManager = new VoipManager();
     }
 
-    std::string title = "KYBER";
+    std::string title = "KYBER OUTPOST";
     if (m_isDedicatedServer)
     {
-        title += " - 24/7 SERVER";
+        title += " - LAN SERVER";
     }
     title += " (" + std::string(KYBER_VERSION) + ")";
 
     SetConsoleTitleA(title.c_str());
 
-    KYBER_LOG(Info, "[Engine] Initializing KYBER v" << KYBER_VERSION);
+    KYBER_LOG(Info, "[Engine] Initializing KYBER OUTPOST v" << KYBER_VERSION);
 
     bool useStdinConsole = (m_isDedicatedServer && !hideConsole) || std::getenv("KYBER_STDIN_CONSOLE") != nullptr;
     if (useStdinConsole)
@@ -421,11 +421,14 @@ void MessageManagerDispatchMessageHk(void* inst, Message* message)
 
         if (g_program->m_server->IsRunning())
         {
-            g_program->m_server->m_persistenceManager->SavePlayerStats(msg->m_player);
+            if (g_program->m_server->m_onlineMode)
+            {
+                g_program->m_server->m_persistenceManager->SavePlayerStats(msg->m_player);
 
-            g_program->GetAPI()->GetServerManagement()->SendPlayerList();
-            g_program->GetAPI()->GetServerManagement()->SendConsoleMessage(
-                StringUtils::Format("%s (%llu) left the server", msg->m_player->m_name, msg->m_player->m_onlineId.m_nativeData));
+                g_program->GetAPI()->GetServerManagement()->SendPlayerList();
+                g_program->GetAPI()->GetServerManagement()->SendConsoleMessage(
+                    StringUtils::Format("%s (%llu) left the server", msg->m_player->m_name, msg->m_player->m_onlineId.m_nativeData));
+            }
 
             ServerPlayerDisconnectedEvent* disconnectedEvent = new (FB_SERVER_ARENA) ServerPlayerDisconnectedEvent();
             disconnectedEvent->player = msg->m_player;
@@ -441,8 +444,11 @@ void MessageManagerDispatchMessageHk(void* inst, Message* message)
     {
         ServerPlayerChatMessage* msg = (ServerPlayerChatMessage*)message;
 
-        std::string log = std::string(msg->m_sender->m_name) + ": " + msg->m_message;
-        g_program->GetAPI()->GetServerManagement()->SendConsoleMessage(log);
+        if (g_program->m_server->m_onlineMode)
+        {
+            std::string log = std::string(msg->m_sender->m_name) + ": " + msg->m_message;
+            g_program->GetAPI()->GetServerManagement()->SendConsoleMessage(log);
+        }
     }
     else if (name == "ServerPeerInitializedMessage")
     {
@@ -598,6 +604,11 @@ void GameSimulationInitDedicatedServerHk(void* inst, void* createInfo)
         g_program->m_server->Register();
         g_program->m_server->InitializeChatFilterPreset();
     }
+    else
+    {
+        g_program->m_server->m_serverId = "lan_server";
+        KYBER_LOG(Info, "[Server] Dedicated server starting in LAN mode on UDP port 25200");
+    }
 
     ServerCreationInfo& info = *g_program->m_server->m_creationInfo;
     ServerSettings* serverSettings = Settings<ServerSettings>("Server");
@@ -665,7 +676,19 @@ void GameSimulationInitHk(GameSimulation* inst, void* createInfo)
 
 const char* GetHostIdHk(__int64 inst)
 {
-    return std::getenv("EALaunchEAID");
+    const char* playerName = std::getenv("KYBER_PLAYER_NAME");
+    if (playerName != nullptr && strlen(playerName) > 0)
+    {
+        return playerName;
+    }
+
+    const char* eaId = std::getenv("EALaunchEAID");
+    if (eaId != nullptr && strlen(eaId) > 0)
+    {
+        return eaId;
+    }
+
+    return "OutpostPlayer";
 }
 
 const char* GetLocalizedStringInternalHk(const char* inst, const char* id)

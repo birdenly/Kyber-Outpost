@@ -1,4 +1,5 @@
 // Copyright Armchair Developers / Sean Kahler. Licensed under GPLv3.
+// Modified for Kyber Outpost (LAN Edition) - 2026-11-10.
 
 #include <optional>
 #define _WINSOCKAPI_
@@ -29,7 +30,11 @@ void LauncherInterface::Initialize() const
     Status status = m_stub->Initialize(&context, empty, &request);
     if (!status.ok())
     {
-        KYBER_LOG(Error, "[RPC] RPC error while initializing (" << status.error_message() << ")");
+        KYBER_LOG(Warning, "[RPC] RPC error while initializing (" << status.error_message() << "), continuing in standalone LAN mode");
+        g_program->Initialize();
+        std::unique_lock<std::mutex> lock(g_program->m_startupMutex);
+        g_program->m_startupInitialized = true;
+        g_program->m_startupCondition.notify_one();
         return;
     }
 
@@ -78,7 +83,7 @@ void LauncherInterface::Initialize() const
         event->port = joinServer.port();
         event->spectate = joinServer.spectate();
         event->proxied = joinServer.type() == kyber_interface::JoinServerType::PROXIED;
-        event->password = "";
+        event->password = joinServer.jointoken();
         g_program->m_client->m_joinToken = joinServer.jointoken();
         g_program->m_client->m_eventManager->QueueEvent(event);
         break;

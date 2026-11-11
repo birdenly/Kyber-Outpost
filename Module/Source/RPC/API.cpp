@@ -1,3 +1,6 @@
+// Copyright Armchair Developers / Sean Kahler. Licensed under GPLv3.
+// Modified for Kyber Outpost (LAN Edition) - 2026-11-10.
+
 #define _WINSOCKAPI_
 
 #include <RPC/API.h>
@@ -72,21 +75,27 @@ void ListenToStateChanges(const std::shared_ptr<grpc::Channel>& channel) {
 
 API::API(std::string token)
 {
-    auto credentials = grpc::SslCredentials(GetSslOptions());
+    const char* onlineModeEnv = std::getenv("KYBER_ONLINE_MODE");
+    bool isOnlineMode = (onlineModeEnv != nullptr && std::string(onlineModeEnv) == "1");
 
-    std::string rpcUri = PlatformUtils::GetEnv("KYBER_API_HOSTNAME", "api-rpc.prod.kyber.gg");
-    std::string httpUri = PlatformUtils::GetEnv("KYBER_HTTP_HOSTNAME", "api.prod.kyber.gg");
-    
-    std::shared_ptr<Channel> channel = grpc::CreateChannel(rpcUri, credentials);
+    if (isOnlineMode)
+    {
+        auto credentials = grpc::SslCredentials(GetSslOptions());
 
-    m_stateListenerThread = std::thread(ListenToStateChanges, channel);
+        std::string rpcUri = PlatformUtils::GetEnv("KYBER_API_HOSTNAME", "api-rpc.prod.kyber.gg");
+        std::string httpUri = PlatformUtils::GetEnv("KYBER_HTTP_HOSTNAME", "api.prod.kyber.gg");
 
-    m_clientServer = std::make_unique<ClientServerAPI>(channel, &m_asyncManager, token);
-    m_proxy = std::make_unique<ProxyAPI>(channel, token);
-    m_serverBrowser = std::make_unique<ServerBrowserAPI>(channel, &m_asyncManager, token);
-    m_serverManagement = std::make_unique<ServerManagementAPI>(httpUri, token);
-    m_statistics = std::make_unique<StatisticsAPI>(channel, &m_asyncManager, token);
-    m_voip = std::make_unique<VoipAPI>(channel, &m_asyncManager, token);
+        std::shared_ptr<Channel> channel = grpc::CreateChannel(rpcUri, credentials);
+
+        m_stateListenerThread = std::thread(ListenToStateChanges, channel);
+
+        m_clientServer = std::make_unique<ClientServerAPI>(channel, &m_asyncManager, token);
+        m_proxy = std::make_unique<ProxyAPI>(channel, token);
+        m_serverBrowser = std::make_unique<ServerBrowserAPI>(channel, &m_asyncManager, token);
+        m_serverManagement = std::make_unique<ServerManagementAPI>(httpUri, token);
+        m_statistics = std::make_unique<StatisticsAPI>(channel, &m_asyncManager, token);
+        m_voip = std::make_unique<VoipAPI>(channel, &m_asyncManager, token);
+    }
 
     std::string launcherPort = PlatformUtils::GetEnv("KYBER_LAUNCHER_PORT");
     std::shared_ptr<Channel> launcherChannel = grpc::CreateChannel("127.0.0.1:" + launcherPort, grpc::InsecureChannelCredentials());

@@ -1,4 +1,5 @@
 // Copyright Armchair Developers / Sean Kahler. Licensed under GPLv3.
+// Modified for Kyber Outpost (LAN Edition) - 2026-11-10.
 
 #include <Core/Server.h>
 
@@ -54,7 +55,7 @@ static bool IsOnlineMode()
         return std::string(onlineMode) == "1";
     }
 
-    return true;
+    return false;
 }
 
 void ServerLoadLevelMessagePostHk(LevelSetup* levelSetup, bool fadeOut, bool forceReloadResources)
@@ -218,7 +219,15 @@ void Server::Start(const ServerCreationInfo& info, bool changeState)
 
     m_creationInfo = info;
 
-    g_program->m_server->Register(true);
+    if (m_onlineMode)
+    {
+        g_program->m_server->Register(true);
+    }
+    else
+    {
+        m_serverId = "lan_server";
+        KYBER_LOG(Info, "[Server] Starting server in LAN mode on UDP port 25200");
+    }
 
     m_socketSpawnInfo = SocketSpawnInfo(false, "", m_serverId, "");
 
@@ -255,7 +264,7 @@ void Server::LoadNextLevel(
     InitLevelSetup(&levelSetup, level, mode, startPoint, initialSubLevel);
     ServerLoadLevelMessage_post(&levelSetup, true, true);
 
-    if (!updateServerBrowser || m_serverId.empty())
+    if (!m_onlineMode || !updateServerBrowser || m_serverId.empty())
     {
         return;
     }
@@ -476,10 +485,12 @@ void ServerPlayerSetTeamIdHk(ServerPlayer* inst, int teamId)
     static const auto trampoline = HookManager::Call(ServerPlayerSetTeamIdHk);
     trampoline(inst, teamId);
 
-    if (!inst->IsAIPlayer())
+    if (!g_program->m_server->m_onlineMode || inst->IsAIPlayer())
     {
-        g_program->GetAPI()->GetServerManagement()->SendPlayerList();
+        return;
     }
+
+    g_program->GetAPI()->GetServerManagement()->SendPlayerList();
 }
 
 void PresenceBackendManagerAddBackendHk(void* inst, TypeObject* backend)
@@ -648,8 +659,31 @@ bool ServerConnectionOnCreatePlayerMessageHk(ServerConnection* inst, NetworkCrea
 
     if (!g_program->m_server->m_onlineMode)
     {
-        KYBER_LOG(Info, "[Server] " << message->playerName << " joined (Spectator: " << message->isSpectator << ")");
-        return trampoline(inst, message);
+        KYBER_LOG(Info, "[Server] [LAN] " << message->playerName << " joined (Spectator: " << message->isSpectator << ")");
+        bool result = trampoline(inst, message);
+
+        ServerPlayer* player = inst->GetPlayer();
+        if (player != nullptr)
+        {
+            uint64_t lanUserId = std::hash<std::string>{}(std::string(message->playerName));
+            player->m_onlineId.m_nativeData = lanUserId;
+            memset(player->m_onlineId.m_id, 0, sizeof(OnlineId::m_id));
+            strncpy(player->m_onlineId.m_id, player->m_name, sizeof(OnlineId::m_id) - 1);
+
+            g_program->m_server->InitializePlayer(player);
+
+            if (g_program->m_scriptManager != nullptr)
+            {
+                g_program->m_scriptManager->GetEventManager().Fire("ServerPlayer:Joined", player);
+            }
+
+            ServerPlayerAuthenticatedEvent* event = new ServerPlayerAuthenticatedEvent();
+            event->connection = inst;
+            event->groupId = 0;
+            g_program->m_server->m_eventManager->QueueEvent(event);
+        }
+
+        return result;
     }
 
     // TODO: Read KyberAuthentication join token's payload to print the userId of the player joining
@@ -771,7 +805,12 @@ void Server::Heartbeat(const UpdateParameters& params)
 
 void Server::Register(bool force, bool reuseId)
 {
-    if (!force && (!IsRunning() || !m_creationInfo || !m_onlineMode))
+    if (!m_onlineMode)
+    {
+        return;
+    }
+
+    if (!force && (!IsRunning() || !m_creationInfo))
     {
         return;
     }
@@ -955,6 +994,11 @@ void Server::InitializeGamePatches()
 
 void Server::InitializeChatFilterPreset()
 {
+    if (!m_onlineMode)
+    {
+        return;
+    }
+
     g_program->GetAPI()->GetClientServer()->GetChatFilter([this](std::optional<const ChatFilterResponse*> response) {
         if (!response)
         {
@@ -1005,7 +1049,7 @@ void Server::OnClientStartup()
 
 void Server::SendConsoleMessage(const std::string& message)
 {
-    if (!IsRunning())
+    if (!IsRunning() || !m_onlineMode)
     {
         return;
     }
