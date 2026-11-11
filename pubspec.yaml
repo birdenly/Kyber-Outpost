@@ -15,11 +15,9 @@ dev_dependencies:
   melos: ^7.1.1
 
 melos:
-  repository: https://github.com/ArmchairDevelopers/KyberV2
+  repository: https://github.com/birdenly/Kyber-Outpost
   ignore:
-    - 'API'
     - 'Module'
-    - 'Proxy'
     - 'ThirdParty'
   scripts:
     analyze:
