@@ -1,3 +1,4 @@
+// Modified for Kyber Outpost (LAN Edition) - 2026-11-10.
 import 'package:fluent_ui/fluent_ui.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:kyber_launcher/features/mod_browser/providers/mod_browser_cubit.dart';
@@ -19,119 +20,154 @@ class CategorizedModList extends StatefulWidget {
 }
 
 class _CategorizedModListState extends State<CategorizedModList> {
+  Widget _buildErrorView(BuildContext context, String message) {
+    return Column(
+      mainAxisAlignment: MainAxisAlignment.center,
+      spacing: 20,
+      children: [
+        Text(
+          message,
+          style: const TextStyle(
+            fontFamily: FontFamily.battlefrontUI,
+            fontSize: 17,
+          ),
+          textAlign: TextAlign.center,
+        ),
+        Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            KyberButton(
+              text: 'RETRY',
+              onPressed: () {
+                context.read<ModBrowserCubit>().loadPage(force: true);
+              },
+            ),
+          ],
+        ),
+      ],
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return FutureBuilder(
       future: sl.isReady<NexusModsService>(),
       builder: (context, snapshot) {
         if (snapshot.hasError) {
-          return Center(child: Text(snapshot.error!.toString()));
+          return _buildErrorView(
+            context,
+            ModBrowserCubit.kOfflineErrorMessage,
+          );
         }
 
         if (!snapshot.hasData) {
           return const Center(child: ProgressRing());
         }
 
-        if (sl.get<NexusModsService>().apiToken == null) {
-          return Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            spacing: 20,
-            children: [
-              const Text('Please sign in to Nexus Mods to view mods'),
-              Row(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  KyberButton(
-                    text: 'LOGIN',
-                    onPressed: () async {
-                      await showKyberDialog(
-                        context: context,
-                        builder: (_) => const NexusmodsLogin(),
-                        routeSettings: const RouteSettings(
-                          name: 'nexusmods_login',
-                        ),
-                      );
-                      context.read<ModBrowserCubit>().loadPage();
-                      setState(() => null);
-                    },
-                  ),
-                ],
-              ),
-            ],
-          );
-        }
-
-        return BlocBuilder<ModSearchCubit, SearchState>(
-          builder: (context, searchState) {
-            if (searchState is SearchLoading) {
-              return const Center(child: ProgressRing());
+        return BlocBuilder<ModBrowserCubit, ModBrowserState>(
+          builder: (context, state) {
+            if (state is ModBrowserError) {
+              return _buildErrorView(context, state.error);
             }
 
-            if (searchState is SearchLoaded) {
-              if (searchState.results.isEmpty) {
-                return Center(
-                  child: Text(
-                    'No mods found'.toUpperCase(),
-                    style: const TextStyle(
-                      fontFamily: FontFamily.battlefrontUI,
-                      fontSize: 17,
-                    ),
-                  ),
-                );
+            if (sl.get<NexusModsService>().apiToken == null) {
+              if (state is ModBrowserLoading) {
+                return const Center(child: ProgressRing());
               }
 
-              return GridView.builder(
-                gridDelegate: const SliverGridDelegateWithMaxCrossAxisExtent(
-                  maxCrossAxisExtent: 375,
-                  childAspectRatio: 16 / 9,
-                  crossAxisSpacing: 15,
-                  mainAxisSpacing: 15,
-                ),
-                padding: const .symmetric(
-                  vertical: 20,
-                  horizontal: 20,
-                ),
-                itemBuilder: (context, index) {
-                  final mod = searchState.results[index];
-                  return NMBModTile(
-                    key: Key(mod.id),
-                    mod: .new(
-                      name: mod.name,
-                      downloads: mod.downloads,
-                      id: mod.id,
-                      modId: mod.modId,
-                      summary: mod.summary,
-                      uid: mod.uid,
-                      uploader: .new(
-                        name: mod.uploader.name,
-                        avatar: mod.uploader.avatar,
-                        //recognizedAuthor: mod.uploader.recognizedAuthor,
-                        // TODO: Handle recognizedAuthor field properly
-                        // recognizedAuthor: false,
+              return Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                spacing: 20,
+                children: [
+                  const Text('Please sign in to Nexus Mods to view mods'),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      KyberButton(
+                        text: 'LOGIN',
+                        onPressed: () async {
+                          await showKyberDialog(
+                            context: context,
+                            builder: (_) => const NexusmodsLogin(),
+                            routeSettings: const RouteSettings(
+                              name: 'nexusmods_login',
+                            ),
+                          );
+                          if (context.mounted) {
+                            await context.read<ModBrowserCubit>().loadPage();
+                            setState(() {});
+                          }
+                        },
                       ),
-                      author: mod.author,
-                      fileSize: mod.fileSize,
-                      pictureUrl: mod.pictureUrl,
-                      thumbnailUrl: mod.thumbnailUrl,
-                    ),
-                  );
-                },
-                itemCount: searchState.results.length,
+                    ],
+                  ),
+                ],
               );
             }
 
-            if (searchState is SearchError) {
-              return Center(child: Text(searchState.error));
-            }
-
-            return BlocBuilder<ModBrowserCubit, ModBrowserState>(
-              builder: (context, state) {
-                if (state is ModBrowserLoading) {
+            return BlocBuilder<ModSearchCubit, SearchState>(
+              builder: (context, searchState) {
+                if (searchState is SearchLoading) {
                   return const Center(child: ProgressRing());
                 }
 
-                if (state is ModBrowserError) {
-                  return Center(child: Text(state.error));
+                if (searchState is SearchLoaded) {
+                  if (searchState.results.isEmpty) {
+                    return Center(
+                      child: Text(
+                        'No mods found'.toUpperCase(),
+                        style: const TextStyle(
+                          fontFamily: FontFamily.battlefrontUI,
+                          fontSize: 17,
+                        ),
+                      ),
+                    );
+                  }
+
+                  return GridView.builder(
+                    gridDelegate:
+                        const SliverGridDelegateWithMaxCrossAxisExtent(
+                          maxCrossAxisExtent: 375,
+                          childAspectRatio: 16 / 9,
+                          crossAxisSpacing: 15,
+                          mainAxisSpacing: 15,
+                        ),
+                    padding: const .symmetric(
+                      vertical: 20,
+                      horizontal: 20,
+                    ),
+                    itemBuilder: (context, index) {
+                      final mod = searchState.results[index];
+                      return NMBModTile(
+                        key: Key(mod.id),
+                        mod: .new(
+                          name: mod.name,
+                          downloads: mod.downloads,
+                          id: mod.id,
+                          modId: mod.modId,
+                          summary: mod.summary,
+                          uid: mod.uid,
+                          uploader: .new(
+                            name: mod.uploader.name,
+                            avatar: mod.uploader.avatar,
+                          ),
+                          author: mod.author,
+                          fileSize: mod.fileSize,
+                          pictureUrl: mod.pictureUrl,
+                          thumbnailUrl: mod.thumbnailUrl,
+                        ),
+                      );
+                    },
+                    itemCount: searchState.results.length,
+                  );
+                }
+
+                if (searchState is SearchError) {
+                  return _buildErrorView(context, searchState.error);
+                }
+
+                if (state is ModBrowserLoading || state is ModBrowserInitial) {
+                  return const Center(child: ProgressRing());
                 }
 
                 state as ModBrowserLoaded;

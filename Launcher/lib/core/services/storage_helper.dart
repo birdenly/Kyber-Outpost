@@ -1,3 +1,4 @@
+// Modified for Kyber Outpost (LAN Edition) - 2026-11-10.
 import 'dart:io';
 
 import 'package:flutter/foundation.dart';
@@ -44,19 +45,24 @@ class StorageHelper {
 
   static Future<void> saveCurrentVersion() async {
     if (!box.containsKey(VersionModule.installer.name) && kReleaseMode) {
-      final versions = await sl.get<KyberGRPCService>().launcherClient.versions(
-        ServiceVersionsRequest(
-          id: VersionModule.installer.name,
-          channel: VersionModule.installer.releaseChannel,
-        ),
-      );
-      final latestVersion = versions.versions.where((x) => x.isLatest);
-      if (latestVersion.isNotEmpty) {
-        await box.put(
-          VersionModule.installer.name,
-          latestVersion.first.version,
-        );
-      }
+      try {
+        final versions = await sl
+            .get<KyberGRPCService>()
+            .launcherClient
+            .versions(
+              ServiceVersionsRequest(
+                id: VersionModule.installer.name,
+                channel: VersionModule.installer.releaseChannel,
+              ),
+            );
+        final latestVersion = versions.versions.where((x) => x.isLatest);
+        if (latestVersion.isNotEmpty) {
+          await box.put(
+            VersionModule.installer.name,
+            latestVersion.first.version,
+          );
+        }
+      } catch (_) {}
     }
   }
 

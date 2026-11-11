@@ -1,3 +1,6 @@
+// Modified for Kyber Outpost (LAN Edition) - 2026-11-10.
+import 'dart:io';
+
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:graphql_flutter/graphql_flutter.dart';
 import 'package:kyber_launcher/core/services/app_settings.dart';
@@ -160,11 +163,20 @@ class ModBrowserCubit extends Cubit<ModBrowserState> {
     return timeFilter;
   }
 
-  Future<void> loadPage({int page = 1, bool force = false}) async {
-    if (sl.get<NexusModsService>().apiToken == null) {
-      return;
-    }
+  static const String kOfflineErrorMessage =
+      'Connect to the internet to see and download mods';
 
+  static Future<bool> hasInternetConnection() async {
+    try {
+      final result = await InternetAddress.lookup('api.nexusmods.com')
+          .timeout(const Duration(seconds: 3));
+      return result.isNotEmpty && result.first.rawAddress.isNotEmpty;
+    } catch (_) {
+      return false;
+    }
+  }
+
+  Future<void> loadPage({int page = 1, bool force = false}) async {
     if (state is ModBrowserLoading && !force) {
       return;
     }
@@ -177,6 +189,15 @@ class ModBrowserCubit extends Cubit<ModBrowserState> {
         page: page,
       ),
     );
+
+    final isOnline = await hasInternetConnection();
+    if (!isOnline) {
+      return emit(const ModBrowserError(error: kOfflineErrorMessage));
+    }
+
+    if (sl.get<NexusModsService>().apiToken == null) {
+      return emit(const ModBrowserInitial());
+    }
 
     try {
       final result = await nexusGqlClient!.query$modsByCategory(
@@ -194,7 +215,11 @@ class ModBrowserCubit extends Cubit<ModBrowserState> {
       );
 
       if (result.hasException) {
-        throw result.exception!;
+        final exception = result.exception!;
+        if (exception.linkException != null) {
+          return emit(const ModBrowserError(error: kOfflineErrorMessage));
+        }
+        throw exception;
       }
 
       return emit(
@@ -204,17 +229,19 @@ class ModBrowserCubit extends Cubit<ModBrowserState> {
           totalPages: (result.parsedData!.mods.totalCount / perPage).ceil(),
         ),
       );
+    } on SocketException catch (_) {
+      return emit(const ModBrowserError(error: kOfflineErrorMessage));
     } on GraphQLError catch (e) {
       return emit(ModBrowserError(error: e.message));
     } on OperationException catch (e) {
-      if (e.graphqlErrors.isEmpty) {
-        return emit(ModBrowserError(error: e.originalStackTrace.toString()));
+      if (e.linkException != null || e.graphqlErrors.isEmpty) {
+        return emit(const ModBrowserError(error: kOfflineErrorMessage));
       }
 
       return emit(ModBrowserError(error: e.graphqlErrors.first.message));
     } catch (e, s) {
       Logger.root.severe('Error loading mods', e, s);
-      return emit(ModBrowserError(error: e.toString()));
+      return emit(const ModBrowserError(error: kOfflineErrorMessage));
     }
   }
 }
