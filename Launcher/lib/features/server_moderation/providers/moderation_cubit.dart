@@ -1,6 +1,8 @@
+// Modified for Kyber Outpost (LAN Edition) - 2026-11-10.
 import 'dart:async';
 import 'dart:io';
 
+import 'package:collection/collection.dart';
 import 'package:fixnum/fixnum.dart';
 import 'package:fluent_ui/fluent_ui.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
@@ -8,6 +10,7 @@ import 'package:grpc/grpc.dart' hide Server;
 import 'package:kyber/kyber.dart';
 import 'package:kyber_launcher/core/services/app_settings.dart';
 import 'package:kyber_launcher/core/services/notification_service.dart';
+import 'package:kyber_launcher/features/lan/services/lan_discovery_service.dart';
 import 'package:kyber_launcher/features/maxima/models/maxima_game_instance.dart';
 import 'package:kyber_launcher/features/server_host/widgets/settings_box/server_settings_box.dart';
 import 'package:kyber_launcher/injection_container.dart';
@@ -44,89 +47,33 @@ class ModerationCubit extends Cubit<ModerationServerState> {
   }
 
   Future<void> loadModerators() async {
-    final moderators = await sl
-        .get<KyberGRPCService>()
-        .serverManagementClient
-        .getModerators(ModeratorsRequest(serverId: state.id));
-    emit(state.copyWith(moderators: moderators.users.toList()));
+    emit(state.copyWith(moderators: const []));
   }
 
   Future<void> loadPunishments() async {
-    final punishments = await sl
-        .get<KyberGRPCService>()
-        .serverManagementClient
-        .getPunishments(PunishmentsRequest(serverId: state.id));
-    punishments.punishments.sort((a, b) {
-      final isAExpired = DateTime.fromMillisecondsSinceEpoch(
-        a.expiresAt.toInt(),
-      );
-      final isBExpired = DateTime.fromMillisecondsSinceEpoch(
-        b.expiresAt.toInt(),
-      );
-
-      if (isAExpired.isBefore(DateTime.now()) &&
-          isBExpired.isBefore(DateTime.now())) {
-        return 0;
-      }
-
-      if (isAExpired.isBefore(DateTime.now())) {
-        return 1;
-      }
-
-      if (isBExpired.isBefore(DateTime.now())) {
-        return -1;
-      }
-
-      return isAExpired.compareTo(isBExpired);
-    });
-    emit(state.copyWith(punishments: punishments.punishments));
+    emit(state.copyWith(punishments: const []));
   }
 
   Future<void> unbanPlayer(String id) async {
-    _logger.info('Unbanning player $id');
-    await sl.get<KyberGRPCService>().serverManagementClient.unbanPlayer(
-      UnbanPlayerRequest(userId: id, serverId: state.id),
-    );
-
-    await loadPunishments();
+    _logger.info('Unbanning player $id in LAN mode');
   }
 
-  Future<void> promotePlayer(String id) {
-    _logger.info('Promoting player $id');
-    return sl
-        .get<KyberGRPCService>()
-        .serverManagementClient
-        .addModerator(
-          AddModeratorRequest(id: id),
-        )
-        .then((_) => loadModerators());
+  Future<void> promotePlayer(String id) async {
+    _logger.info('Promoting player $id in LAN mode');
   }
 
-  Future<void> demotePlayer(String id) {
-    _logger.info('Demoting player $id');
-    return sl
-        .get<KyberGRPCService>()
-        .serverManagementClient
-        .removeModerator(
-          RemoveModeratorRequest(id: id),
-        )
-        .then((_) => loadModerators());
+  Future<void> demotePlayer(String id) async {
+    _logger.info('Demoting player $id in LAN mode');
   }
 
   Future<void> banPlayer({
     required String id,
     required String reason,
     required Duration duration,
-  }) {
-    _logger.info('Banning player $id');
-    return sl.get<KyberGRPCService>().serverManagementClient.banPlayer(
-      ServerBanPlayerRequest(
-        id: state.id,
-        userId: id,
-        reason: reason.isEmpty ? 'Banned by moderator' : reason,
-        duration: Int64(duration.inSeconds),
-      ),
-    );
+  }) async {
+    final banReason = reason.isEmpty ? 'Banned by host' : reason;
+    _logger.info('Banning/kicking player $id in LAN mode ($banReason)');
+    sendCommand('/Kyber.KickById $id $banReason');
   }
 
   void swapTeam(ServerPlayer player) {
@@ -136,34 +83,37 @@ class ModerationCubit extends Cubit<ModerationServerState> {
     sendCommand('/Kyber.SetTeamById ${player.id} $team');
   }
 
-  Future<void> kickPlayer(String id, {String? reason = 'Kicked by moderator'}) {
-    _logger.info('Kicking player $id');
-    return sl.get<KyberGRPCService>().serverManagementClient.kickPlayer(
-      ServerKickPlayerRequest(
-        id: state.id,
-        userId: id,
-        reason: reason,
-      ),
-    );
+  Future<void> kickPlayer(
+    String id, {
+    String? reason = 'Kicked by moderator',
+  }) async {
+    final kickReason = (reason == null || reason.isEmpty)
+        ? 'Kicked by host'
+        : reason;
+    _logger.info('Kicking player $id in LAN mode ($kickReason)');
+    sendCommand('/Kyber.KickById $id $kickReason');
   }
 
   void sendCommand(String input) {
-    if (state.server == null) {
-      return;
-    }
-
     final command = switch (input) {
       final command when command.startsWith('/') => command.substring(1),
       _ => 'Kyber.Broadcast $input',
     };
 
-    _logger.info('Sending command: $command');
-    sl.get<KyberGRPCService>().serverManagementClient.runCommand(
-      ServerRunCommandRequest(
-        id: state.id,
-        command: command,
-      ),
-    );
+    _logger.info('Sending local LAN command: $command');
+    if (sl.isRegistered<MaximaGameInstance>()) {
+      unawaited(
+        sl
+            .get<MaximaGameInstance>()
+            .clientService
+            .commonClient
+            .runCommand(RunCommandRequest(command: command))
+            .catchError((Object e) {
+              _logger.warning('Failed to run local command: $e');
+              return Empty();
+            }),
+      );
+    }
   }
 
   void unloadServer() {
@@ -196,13 +146,37 @@ class ModerationCubit extends Cubit<ModerationServerState> {
     _keepAliveTimer?.cancel();
 
     try {
-      final id = serverId ?? state.id;
-      _logger.info('Loading server $id');
+      final id = serverId ?? state.id ?? 'lan_local';
+      _logger.info('Loading LAN server $id');
       emit(ModerationServerState(id: id, selected: true));
-      final service = sl.get<KyberGRPCService>();
-      final server = await service.serverBrowserClient.getServer(
-        ServerRequest(id: id),
-      );
+      final discoveredServers = sl
+          .get<LanDiscoveryService>()
+          .getDiscoveredServers();
+      final server =
+          discoveredServers.firstWhereOrNull((s) => s.id == id) ??
+          ((id == 'lan_server' || id == 'lan_local')
+              ? discoveredServers.firstOrNull
+              : null) ??
+          state.server ??
+          Server(
+            id: id,
+            name: Preferences.hostServer.name.isNotEmpty
+                ? Preferences.hostServer.name
+                : 'LAN Server',
+            description: Preferences.hostServer.description,
+            creator: 'LAN Host',
+            ip: '127.0.0.1',
+            port: 25200,
+            maxPlayerCount: Preferences.hostServer.maxPlayers,
+            playerCount: 1,
+            requiresProxy: false,
+            official: false,
+            region: 'LAN',
+            levelSetup: LevelSetup(
+              map: 'Levels/MP/Geonosis_01/Geonosis_01',
+              mode: 'PlanetaryBattles',
+            ),
+          );
       if (loadId != _loadId || isClosed) {
         return;
       }
@@ -210,93 +184,32 @@ class ModerationCubit extends Cubit<ModerationServerState> {
 
       hostingForm.currentState?.fields['serverName']?.didChange(server.name);
 
-      _logger.info('Subscribing to server events');
-
-      final channel = IOWebSocketChannel.connect(
-        'wss://api.${Preferences.admin.apiEnv}.kyber.gg/ws/client/${server.id}',
-        headers: {
-          'Authorization': service.token,
-        },
-        connectTimeout: const Duration(seconds: 10),
-      );
-
-      _channel = channel;
-
-      await channel.ready;
-      if (loadId != _loadId || isClosed) {
-        unawaited(channel.sink.close());
-        return;
+      Future<void> pollLocalPlayers() async {
+        if (!sl.isRegistered<MaximaGameInstance>() ||
+            loadId != _loadId ||
+            isClosed) {
+          return;
+        }
+        try {
+          final client = sl.get<MaximaGameInstance>().clientService;
+          final data = await client.commonClient.getInfo(Empty());
+          if (data.hasServer() && loadId == _loadId && !isClosed) {
+            emit(state.copyWith(players: data.server.playerList));
+          }
+        } catch (_) {}
       }
 
-      channel.stream.listen(
-        (event) {
-          try {
-            final data = ServerManagementAPIEvent.fromBuffer(
-              event as List<int>,
-            );
-            if (data.hasPlayers()) {
-              _logger.fine('Received players event');
-              emit(state.copyWith(players: data.players.players));
-            } else if (data.hasConsole()) {
-              _logger.fine('Received console event');
-              final commands = List<String>.from(state.commands)
-                ..add(data.console.message);
-              emit(state.copyWith(commands: commands));
-            }
-          } catch (e, s) {
-            _logger.severe('Error parsing event', e, s);
-          }
-        },
-        onDone: () {
-          _logger.info('Stream done');
-          if (loadId == _loadId) {
-            unloadServer();
-          }
-        },
-        onError: (dynamic e, StackTrace s) {
-          NotificationService.showNotification(
-            title: 'Server error',
-            message: 'An error occurred while communicating with the server',
-          );
-          _logger.severe('Stream error', e, s);
-          if (loadId == _loadId) {
-            unloadServer();
-          }
-        },
-      );
-
+      await pollLocalPlayers();
       _keepAliveTimer = Timer.periodic(
-        const Duration(seconds: 10),
+        const Duration(seconds: 3),
         (timer) {
-          if (loadId != _loadId || channel.closeCode != null) {
+          if (loadId != _loadId || isClosed) {
             timer.cancel();
             return;
           }
-          channel.sink.add('');
+          unawaited(pollLocalPlayers());
         },
       );
-
-      _logger.info('Fetching moderators');
-      await loadModerators();
-
-      _logger.info('Fetching punishments');
-      await loadPunishments();
-
-      await Future<void>.delayed(const Duration(seconds: 3));
-      if (loadId != _loadId) {
-        return;
-      }
-
-      if (sl.isRegistered<MaximaGameInstance>() && state.players.isEmpty) {
-        final client = sl.get<MaximaGameInstance>().clientService;
-        final data = await client.commonClient.getInfo(Empty());
-        if (data.hasServer() &&
-            state.players.isEmpty &&
-            data.server.playerList.isNotEmpty) {
-          _logger.info('Received players from game instance');
-          emit(state.copyWith(players: data.server.playerList));
-        }
-      }
     } on WebSocketException catch (e, s) {
       if (loadId != _loadId) {
         return;

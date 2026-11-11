@@ -1,3 +1,4 @@
+// Modified for Kyber Outpost (LAN Edition) - 2026-11-10.
 import 'dart:async';
 import 'dart:io';
 
@@ -15,6 +16,7 @@ import 'package:kyber_launcher/features/kyber/services/kyber_grpc_service.dart';
 import 'package:kyber_launcher/features/maxima/dialogs/maxima_start_game_dialog.dart';
 import 'package:kyber_launcher/features/maxima/extensions/server_mod.dart';
 import 'package:kyber_launcher/features/maxima/models/maxima_game_instance.dart';
+import 'package:kyber_launcher/features/maxima/providers/maxima_cubit.dart';
 import 'package:kyber_launcher/features/maxima/services/maxima_instance_service.dart';
 import 'package:kyber_launcher/features/mod_collections/extensions/mod_collection_extension.dart';
 import 'package:kyber_launcher/features/mods/services/mod_service.dart';
@@ -56,13 +58,7 @@ class MaximaHelper {
       }
 
       final modPaths = modCollection.getModPaths();
-      final preloadedMods = await sl
-          .get<KyberGRPCService>()
-          .launcherClient
-          .getPreloadedMods(Empty());
-      final modLimit = Preferences.general.enabledPreloadMods
-          ? 1739 - preloadedMods.mods.length
-          : 1739;
+      const modLimit = 1739;
       if (modPaths.length >= modLimit) {
         _logger.warning('Mod limit reached: ${modPaths.length}');
 
@@ -147,13 +143,18 @@ class MaximaHelper {
     final moduleDebug = Preferences.debug.moduleDebugLogs;
     final newPath = '$path;${FileHelper.getModuleDirectory().path}';
     final interfacePort = await KyberNetworkHelper.findAvailablePort();
-    final kToken = await sl.get<KyberGRPCService>().getAuthToken(
-      await maxima.getAuthToken(),
-    );
-    ProcessEnv.set('KYBER_API_TOKEN', kToken);
+    final playerName =
+        sl.get<MaximaCubit>().state.servicePlayer?.displayName ??
+        Platform.environment['KYBER_PLAYER_NAME'] ??
+        'OutpostPlayer';
+    ProcessEnv.set('KYBER_ONLINE_MODE', '0');
+    ProcessEnv.set('KYBER_API_TOKEN', 'lan_offline_token');
+    ProcessEnv.set('KYBER_PLAYER_NAME', playerName);
+    ProcessEnv.set('EALaunchEAID', playerName);
+    ProcessEnv.set('EALaunchUserAuthToken', 'lan_offline_token');
     ProcessEnv.set(
       'KYBER_MODULE_VERSION',
-      (await VersionModule.module.getCurrentVersion())!,
+      (await VersionModule.module.getCurrentVersion()) ?? '0.0.0-lan',
     );
     ProcessEnv.set('KYBER_INTERFACE_PORT', interfacePort.toString());
     ProcessEnv.set(

@@ -1,3 +1,4 @@
+// Modified for Kyber Outpost (LAN Edition) - 2026-11-10.
 import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:kyber/kyber.dart';
@@ -48,10 +49,6 @@ class HotKeyService {
       return;
     }
 
-    final servers = await sl
-        .get<KyberGRPCService>()
-        .serverManagementClient
-        .moderatedServers(Empty());
     final state = await sl
         .get<MaximaGameInstance>()
         .clientService
@@ -68,8 +65,8 @@ class HotKeyService {
       return;
     }
 
-    // Open the normal ingame panel for non moderators
-    if (!servers.servers.map((s) => s.id).contains(id)) {
+    // Open the normal ingame panel when playing as a client
+    if (!state.hasServer()) {
       final currentRoute = router
           .routerDelegate
           .currentConfiguration
@@ -85,7 +82,7 @@ class HotKeyService {
       return;
     }
 
-    _logger.info('Ingame hotkey pressed');
+    _logger.info('Ingame hotkey pressed (LAN Host)');
     await windowManager.focus();
     router.goNamed('server_host');
 

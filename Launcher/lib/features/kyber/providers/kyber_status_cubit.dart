@@ -1,10 +1,13 @@
+// Modified for Kyber Outpost (LAN Edition) - 2026-11-10.
 import 'dart:async';
 
+import 'package:collection/collection.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:grpc/grpc.dart' hide Server;
 import 'package:kyber/kyber.dart';
 import 'package:kyber_launcher/core/services/rich_presence.dart';
 import 'package:kyber_launcher/core/services/voip_service.dart';
+import 'package:kyber_launcher/features/lan/services/lan_discovery_service.dart';
 import 'package:kyber_launcher/features/maxima/models/maxima_game_instance.dart';
 import 'package:kyber_launcher/injection_container.dart';
 import 'package:logging/logging.dart';
@@ -34,21 +37,18 @@ class KyberStatusCubit extends Cubit<KyberStatusState> {
       }
 
       final id = state.hasServer() ? state.server.id : state.client.serverId;
-      final client = sl.get<KyberGRPCService>();
-      final server = await client.serverBrowserClient.getServer(
-        ServerRequest(id: id),
-      );
-      if (state is KyberStatusHosting) {
+      final server = _resolveLanServer(id, state);
+      if (this.state is KyberStatusHosting) {
         emit(
           KyberStatusHosting(
-            serverState: (state as KyberStatusHosting).serverState,
+            serverState: (this.state as KyberStatusHosting).serverState,
             server: server,
           ),
         );
-      } else if (state is KyberStatusPlaying) {
+      } else if (this.state is KyberStatusPlaying) {
         emit(
           KyberStatusPlaying(
-            serverState: (state as KyberStatusPlaying).serverState,
+            serverState: (this.state as KyberStatusPlaying).serverState,
             server: server,
             joined: joined,
           ),
@@ -59,6 +59,39 @@ class KyberStatusCubit extends Cubit<KyberStatusState> {
 
       sl.get<RichPresence>().updatePresenceKyber(state, server);
     });
+  }
+
+  Server _resolveLanServer(String id, CommonState commonState) {
+    final discoveredServers = sl
+        .get<LanDiscoveryService>()
+        .getDiscoveredServers();
+    final discovered =
+        discoveredServers.firstWhereOrNull((s) => s.id == id) ??
+        ((id == 'lan_server' || id == 'lan_local' || id.isEmpty)
+            ? discoveredServers.firstOrNull
+            : null);
+    if (discovered != null) {
+      return discovered;
+    }
+
+    return Server(
+      id: id.isNotEmpty ? id : 'lan_local',
+      name: 'Kyber Outpost LAN Server',
+      levelSetup: commonState.hasServer()
+          ? commonState.server.levelSetup
+          : LevelSetup(
+              map: 'Levels/MP/Geonosis_01/Geonosis_01',
+              mode: 'PlanetaryBattles',
+            ),
+      creator: 'LAN Host',
+      ip: '127.0.0.1',
+      port: 25200,
+      maxPlayerCount: 40,
+      playerCount: 1,
+      requiresProxy: false,
+      official: false,
+      region: 'LAN',
+    );
   }
 
   Future<void> onTick() async {
@@ -90,10 +123,7 @@ class KyberStatusCubit extends Cubit<KyberStatusState> {
               ((state is KyberStatusPlaying || state is KyberStatusHosting) &&
                   (state as dynamic).server == null))) {
         final id = data.hasServer() ? data.server.id : data.client.serverId;
-        final client = sl.get<KyberGRPCService>();
-        server = await client.serverBrowserClient.getServer(
-          ServerRequest(id: id),
-        );
+        server = _resolveLanServer(id, data);
         sl.get<RichPresence>().updatePresenceKyber(data, server);
       }
 

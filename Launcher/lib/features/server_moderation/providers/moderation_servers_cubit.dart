@@ -1,13 +1,13 @@
+// Modified for Kyber Outpost (LAN Edition) - 2026-11-10.
 import 'dart:async';
 import 'dart:math';
 
 import 'package:fixnum/fixnum.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:grpc/grpc.dart' as grpc;
 import 'package:kyber/kyber.dart';
 import 'package:kyber_launcher/core/services/app_settings.dart';
-import 'package:kyber_launcher/core/services/notification_service.dart';
 import 'package:kyber_launcher/features/kyber/models/modes.dart';
+import 'package:kyber_launcher/features/lan/services/lan_discovery_service.dart';
 import 'package:kyber_launcher/injection_container.dart';
 
 Server KyberDummyServer({
@@ -66,32 +66,17 @@ class ModerationServersCubit extends Cubit<ModerationServersState> {
   Future<void> loadServers() async {
     emit(const ModerationServersLoading());
     try {
-      final token = sl.get<KyberGRPCService>().token;
-      final servers = await sl
-          .get<KyberGRPCService>()
-          .serverManagementClient
-          .moderatedServers(Empty());
-      if (Preferences.admin.dummyServer) {
-        servers.servers.add(KyberDummyServer(title: 'Dummy Server'));
-      }
-
-      final sorted = servers.servers
-        ..sort((a, b) => b.playerCount.compareTo(a.playerCount));
-
-      emit(ModerationServersLoaded(sorted));
-    } catch (e) {
-      if (e is grpc.GrpcError) {
-        NotificationService.error(
-          message: 'Failed to load servers: ${e.message}',
-        );
-        return emit(const ModerationServersLoaded([]));
-      }
-
-      NotificationService.error(
-        message: 'Failed to load servers: $e',
+      final servers = List<Server>.from(
+        sl.get<LanDiscoveryService>().getDiscoveredServers(),
       );
+      if (Preferences.admin.dummyServer) {
+        servers.add(KyberDummyServer(title: 'Dummy Server'));
+      }
 
-      rethrow;
+      servers.sort((a, b) => b.playerCount.compareTo(a.playerCount));
+      emit(ModerationServersLoaded(servers));
+    } catch (_) {
+      emit(const ModerationServersLoaded(<Server>[]));
     }
   }
 }

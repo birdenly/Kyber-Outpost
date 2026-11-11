@@ -1,3 +1,4 @@
+// Modified for Kyber Outpost (LAN Edition) - 2026-11-10.
 import 'dart:async';
 import 'dart:io';
 import 'dart:isolate';
@@ -42,8 +43,10 @@ Future<Task?> _onTaskStart(Task task) async {
   final caFile = File(
     join(FileHelper.getModuleDirectory().path, 'ca_root.pem'),
   );
-  final certificate = caFile.readAsBytesSync();
-  SecurityContext.defaultContext.setTrustedCertificatesBytes(certificate);
+  if (caFile.existsSync()) {
+    final certificate = caFile.readAsBytesSync();
+    SecurityContext.defaultContext.setTrustedCertificatesBytes(certificate);
+  }
 
   return task;
 }
@@ -176,17 +179,23 @@ class DownloadOrchestrator with ChangeNotifier {
 
   Future<bool> enqueueDownload(DownloadRequest request) async {
     try {
-      final moduleUpdate = await ModuleVersionService().updateAvailable(
-        module: VersionModule.module,
-      );
-      if (moduleUpdate) {
-        await showKyberDialog(
-          context: navigatorKey.currentContext!,
-          builder: (_) => const UpdateDialog(
+      if (request.linkType != DownloadLinkType.direct) {
+        try {
+          final moduleUpdate = await ModuleVersionService().updateAvailable(
             module: VersionModule.module,
-            forceInstall: true,
-          ),
-        );
+          );
+          if (moduleUpdate) {
+            await showKyberDialog(
+              context: navigatorKey.currentContext!,
+              builder: (_) => const UpdateDialog(
+                module: VersionModule.module,
+                forceInstall: true,
+              ),
+            );
+          }
+        } catch (e) {
+          _logger.fine('Skipping module update check in LAN/offline mode: $e');
+        }
       }
 
       final resolved = await _linkResolver.resolve(request);

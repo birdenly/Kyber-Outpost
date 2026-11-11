@@ -1,4 +1,6 @@
+// Modified for Kyber Outpost (LAN Edition) - 2026-11-10.
 import 'dart:async';
+import 'dart:io';
 
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:graphql_flutter/graphql_flutter.dart';
@@ -20,6 +22,14 @@ class ModSearchCubit extends Cubit<SearchState> {
 
           try {
             emit(SearchLoading());
+            final isOnline = await ModBrowserCubit.hasInternetConnection();
+            if (!isOnline) {
+              emit(
+                SearchError(error: ModBrowserCubit.kOfflineErrorMessage),
+              );
+              return;
+            }
+
             final mbCubit = navigatorKey.currentContext!
                 .read<ModBrowserCubit>();
             final result = await nexusGqlClient!.query$searchMods(
@@ -33,15 +43,27 @@ class ModSearchCubit extends Cubit<SearchState> {
             );
 
             if (result.hasException) {
+              if (result.exception?.linkException != null) {
+                emit(
+                  SearchError(error: ModBrowserCubit.kOfflineErrorMessage),
+                );
+                return;
+              }
               emit(SearchError(error: result.exception.toString()));
               return;
             }
 
             emit(SearchLoaded(result.parsedData!.mods.nodes));
+          } on SocketException catch (_) {
+            return emit(
+              SearchError(error: ModBrowserCubit.kOfflineErrorMessage),
+            );
           } on GraphQLError catch (e) {
             return emit(SearchError(error: e.message));
           } catch (e) {
-            return emit(SearchError());
+            return emit(
+              SearchError(error: ModBrowserCubit.kOfflineErrorMessage),
+            );
           }
         });
   }

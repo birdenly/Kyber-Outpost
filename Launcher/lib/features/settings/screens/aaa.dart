@@ -1,3 +1,4 @@
+// Modified for Kyber Outpost (LAN Edition) - 2026-11-10.
 import 'dart:async';
 import 'dart:convert';
 
@@ -95,9 +96,12 @@ class _CreditsState extends State<Credits> {
 
   @override
   void initState() {
-    final x = Future.value(
-      sl.get<KyberGRPCService>().launcherClient.patronList(Empty()),
-    );
+    final x = sl
+        .get<KyberGRPCService>()
+        .launcherClient
+        .patronList(Empty())
+        .then<PatronListResponse>((v) => v)
+        .catchError((_) => PatronListResponse());
     final contributorsFuture = _fetchBfpContributors();
 
     Future.delayed(const Duration(seconds: 1), () async {
@@ -148,11 +152,15 @@ class _CreditsState extends State<Credits> {
   }
 
   Future<List<String>> _fetchBfpContributors() async {
-    final resp = await Dio().get<String>(
-      'https://battlefront.plus/lists/devs.json',
-    );
-    final parsed = jsonDecode(resp.data!) as List<dynamic>;
-    return parsed.map((e) => e['name'] as String).toList();
+    try {
+      final resp = await Dio().get<String>(
+        'https://battlefront.plus/lists/devs.json',
+      );
+      final parsed = jsonDecode(resp.data!) as List<dynamic>;
+      return parsed.map((e) => e['name'] as String).toList();
+    } catch (_) {
+      return <String>[];
+    }
   }
 
   @override

@@ -1,3 +1,4 @@
+// Modified for Kyber Outpost (LAN Edition) - 2026-11-10.
 import 'dart:async';
 import 'dart:io';
 
@@ -50,39 +51,7 @@ class MaximaCubit extends Cubit<MaximaState> {
   String? getUsername() => state.servicePlayer?.displayName;
 
   Future<void> verifyToken([int tries = 0]) async {
-    if (tries >= 3) {
-      _updateTimer?.cancel();
-      _updateTimer = null;
-      return requestLogin(skipMaximaCheck: true);
-    }
-
-    try {
-      final response = await sl.get<KyberGRPCService>().authClient.verify(
-        Empty(),
-      );
-      if (response.hasDiscord()) {
-        emit(
-          state.copyWith(
-            discordData: response.discord,
-          ),
-        );
-      }
-    } on GrpcError catch (e) {
-      if (e.code == StatusCode.unauthenticated) {
-        _updateTimer?.cancel();
-        _updateTimer = null;
-        logger.warning('Token invalid, reauthenticating...');
-        return requestLogin(skipMaximaCheck: true);
-      } else {
-        logger.severe('Error verifying token: ', e.message);
-        await Future<void>.delayed(const Duration(seconds: 2));
-        return verifyToken(tries + 1);
-      }
-    } catch (e, s) {
-      logger.severe('Unknown error verifying token:', e, s);
-      await Future<void>.delayed(const Duration(seconds: 2));
-      return verifyToken(tries + 1);
-    }
+    return;
   }
 
   void removeDiscordData() {
@@ -261,78 +230,44 @@ class MaximaCubit extends Cubit<MaximaState> {
     _loggingIn = true;
     ServicePlayer? servicePlayer;
     try {
-      logger.info('Requesting login');
+      logger.info('Requesting login (LAN Mode)');
 
       emit(state.copyWith(status: MaximaStatus.loading));
 
-      servicePlayer = await loginFlow();
-      await WindowToFront.activate();
-      await Sentry.configureScope((scope) async {
-        await scope.setUser(
-          SentryUser(
-            id: servicePlayer!.id,
-            username: servicePlayer.displayName,
-          ),
+      try {
+        servicePlayer = await loginFlow();
+      } catch (e) {
+        final fallbackName =
+            Platform.environment['KYBER_PLAYER_NAME'] ?? 'OutpostPlayer';
+        logger.info('Using local LAN profile: $fallbackName ($e)');
+        servicePlayer = ServicePlayer(
+          id: '0',
+          pd: '0',
+          psd: '0',
+          displayName: fallbackName,
+          uniqueId: '0',
+          nickname: fallbackName,
+          country: 'US',
         );
-        await scope.setTag(
-          'kyber-module-version',
-          (await VersionModule.module.getCurrentVersion()) ?? 'unknown',
-        );
-      });
-
-      final ownsGame = await checkGameOwnership();
-      if (!ownsGame) {
-        _updateTimer?.cancel();
-
-        logger.info('User does not own the game');
-
-        await showKyberDialog(
-          context: navigatorKey.currentContext!,
-          builder: (_) => const MaximaGameNotFoundDialog(),
-        );
-
-        _loggingIn = false;
-        emit(
-          MaximaState(
-            status: .error,
-            error: 'GameNotOwned',
-            servicePlayer: servicePlayer,
-          ),
-        );
-
-        return;
       }
 
-      // configCat.setDefaultUser(ConfigCatUser(
-      //   identifier: servicePlayer.id,
-      // ));
-
-      logger
-        ..info(
-          'Logged in as ${servicePlayer.displayName} (${servicePlayer.pd})',
-        )
-        ..info('Requesting Kyber auth token');
-
-      final authToken = await getAuthToken();
-      final resp = await sl.get<KyberGRPCService>().login(authToken);
-
-      final entitlements = resp.entitlements
-          .map(parseUserEntitlement)
-          .whereType<UserEntitlement>();
-      ProcessEnv.set('KYBER_API_TOKEN', resp.token);
+      await WindowToFront.activate();
 
       logger.info(
-        'Logged in to Kyber. User has ${resp.entitlements.length} entitlements',
+        'Initialized LAN session as ${servicePlayer.displayName}',
       );
+
+      ProcessEnv.set('KYBER_ONLINE_MODE', '0');
+      ProcessEnv.set('KYBER_API_TOKEN', 'lan_offline_token');
+      ProcessEnv.set('KYBER_PLAYER_NAME', servicePlayer.displayName);
 
       emit(
         state.copyWith(
           loggedIn: true,
-          entitlements: entitlements.toList(growable: false),
+          entitlements: UserEntitlement.values,
           servicePlayer: servicePlayer,
           status: MaximaStatus.loaded,
-          isPatron: resp.isPatreon,
-          discordData: resp.hasDiscord() ? resp.discord : null,
+          isPatron: false,
         ),
       );
 
@@ -348,21 +283,13 @@ class MaximaCubit extends Cubit<MaximaState> {
 
       _loggingIn = false;
 
-      await startRtmConnection();
-
-      logger.info('Initialized');
+      logger.info('Initialized (LAN Mode)');
 
       if (!sl.isRegistered<SearchService>()) {
-        sl.registerSingleton<SearchService>(SearchService(eaToken: authToken));
-      }
-
-      _updateTimer ??= Timer.periodic(
-          const Duration(minutes: 5),
-          (_) async {
-            logger.info('Validating session...');
-            await verifyToken();
-          },
+        sl.registerSingleton<SearchService>(
+          SearchService(eaToken: 'lan_offline_token'),
         );
+      }
 
       return;
     } catch (e, s) {

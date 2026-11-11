@@ -1,12 +1,15 @@
+// Modified for Kyber Outpost (LAN Edition) - 2026-11-10.
 import 'dart:async';
 import 'dart:io';
 
+import 'package:collection/collection.dart';
 import 'package:fluent_ui/fluent_ui.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:grpc/grpc.dart' hide Server;
 import 'package:kyber/kyber.dart';
 import 'package:kyber_launcher/core/services/app_settings.dart';
 import 'package:kyber_launcher/core/services/notification_service.dart';
+import 'package:kyber_launcher/features/lan/services/lan_discovery_service.dart';
 import 'package:kyber_launcher/injection_container.dart';
 import 'package:logging/logging.dart';
 import 'package:web_socket_channel/io.dart';
@@ -60,84 +63,34 @@ class IngameViewCubit extends Cubit<IngameViewState> {
 
     try {
       final id = serverId ?? state.id;
-      _logger.info('Loading server $id');
-      emit(IngameViewState(id: id));
-      final service = sl.get<KyberGRPCService>();
-      final server = await service.serverBrowserClient.getServer(
-        ServerRequest(id: id),
-      );
+      _logger.info('Loading LAN server $id');
+      final server =
+          state.server ??
+          sl
+              .get<LanDiscoveryService>()
+              .getDiscoveredServers()
+              .firstWhereOrNull((s) => s.id == id) ??
+          Server(
+            id: id ?? 'lan_local',
+            name: 'LAN Server',
+            creator: 'LAN Host',
+            ip: '127.0.0.1',
+            port: 25200,
+            maxPlayerCount: 40,
+            playerCount: 1,
+            requiresProxy: false,
+            official: false,
+            region: 'LAN',
+            levelSetup: LevelSetup(
+              map: 'Levels/MP/Geonosis_01/Geonosis_01',
+              mode: 'PlanetaryBattles',
+            ),
+          );
       if (loadId != _loadId || isClosed) {
         return;
       }
       emit(state.copyWith(id: id, server: server));
-
-      _logger.info('Subscribing to server events');
-
-      final channel = IOWebSocketChannel.connect(
-        'wss://api.${Preferences.admin.apiEnv}.kyber.gg/ws/client/${server.id}',
-        headers: {
-          'Authorization': service.token,
-        },
-        connectTimeout: const Duration(seconds: 10),
-      );
-
-      _channel = channel;
-
-      await channel.ready;
-      if (loadId != _loadId || isClosed) {
-        unawaited(channel.sink.close());
-        return;
-      }
-
-      channel.stream.listen(
-        (event) {
-          try {
-            final data = ServerManagementAPIEvent.fromBuffer(
-              event as List<int>,
-            );
-            if (data.hasPlayers()) {
-              _logger.fine('Received players event');
-              emit(state.copyWith(players: data.players.players));
-            } else if (data.hasConsole()) {
-              _logger.fine('Received console event');
-              final commands = List<String>.from(state.commands)
-                ..add(data.console.message);
-              emit(state.copyWith(commands: commands));
-            }
-          } catch (e, s) {
-            _logger.severe('Error parsing event', e, s);
-          }
-        },
-        onDone: () {
-          _logger.info('Stream done');
-          if (loadId == _loadId) {
-            unloadServer();
-          }
-        },
-        onError: (dynamic e, StackTrace s) {
-          NotificationService.showNotification(
-            title: 'Server error',
-            message: 'An error occurred while communicating with the server',
-          );
-          _logger.severe('Stream error', e, s);
-          if (loadId == _loadId) {
-            unloadServer();
-          }
-        },
-      );
-
-      _keepAliveTimer = Timer.periodic(
-        const Duration(seconds: 10),
-        (timer) {
-          if (loadId != _loadId || channel.closeCode != null) {
-            timer.cancel();
-            return;
-          }
-          channel.sink.add('');
-        },
-      );
-
-      await Future<void>.delayed(const Duration(seconds: 3));
+      return;
     } on WebSocketException catch (e, s) {
       if (loadId != _loadId) {
         return;

@@ -1,3 +1,4 @@
+// Modified for Kyber Outpost (LAN Edition) - 2026-11-10.
 import 'package:fluent_ui/fluent_ui.dart';
 import 'package:grpc/grpc.dart' hide Server;
 import 'package:kyber/kyber.dart';
@@ -37,50 +38,7 @@ class _ServerPasswordDialogState extends State<ServerPasswordDialog> {
       return;
     }
 
-    setState(() => checking = true);
-
-    try {
-      final service = sl.get<KyberGRPCService>();
-      final result = await service.serverBrowserClient.canJoinServer(
-        .new(
-          id: widget.serverInfo.id,
-          password: password,
-        ),
-      );
-
-      if (!mounted) {
-        return;
-      }
-
-      if (result.deniedReason == .BANNED) {
-        await ServerBanDialog.show(context, banInfo: result.banInfo);
-        if (!mounted) {
-          return;
-        }
-
-        Navigator.of(context).pop();
-        return;
-      }
-
-      if (result.canJoin || result.deniedReason == .SERVER_FULL) {
-        Navigator.of(context).pop(password);
-        return;
-      }
-
-      NotificationService.error(message: 'Invalid password');
-    } catch (e, s) {
-      if (!mounted) return;
-
-      if (e is GrpcError && e.code == StatusCode.notFound) {
-        Navigator.of(context).pop();
-        NotificationService.error(message: 'Server not found');
-      } else {
-        Logger.root.severe('An error occurred', e, s);
-        NotificationService.error(message: 'An error occurred');
-      }
-    } finally {
-      if (mounted) setState(() => checking = false);
-    }
+    Navigator.of(context).pop(password);
   }
 
   @override

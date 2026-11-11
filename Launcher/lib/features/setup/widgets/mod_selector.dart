@@ -1,3 +1,4 @@
+// Modified for Kyber Outpost (LAN Edition) - 2026-11-10.
 import 'dart:async';
 
 import 'package:fluent_ui/fluent_ui.dart';
@@ -49,14 +50,16 @@ class _ModSelectorState extends State<ModSelector> {
   @override
   void initState() {
     Timer.run(() async {
-      final config = await sl
-          .get<KyberGRPCService>()
-          .launcherClient
-          .getLauncherConfig(Empty());
-      apiMods = {for (final e in config.featuredMods) e.modId: e};
-      for (final item in config.featuredMods) {
-        downloadIds[item.modId] = item.fileId.toInt();
-      }
+      try {
+        final config = await sl
+            .get<KyberGRPCService>()
+            .launcherClient
+            .getLauncherConfig(Empty());
+        apiMods = {for (final e in config.featuredMods) e.modId: e};
+        for (final item in config.featuredMods) {
+          downloadIds[item.modId] = item.fileId.toInt();
+        }
+      } catch (_) {}
 
       for (final item in defaultIds.entries.take(6 - downloadIds.length)) {
         downloadIds[item.key] = item.value;
