@@ -90,6 +90,8 @@ extension VersionModuleExtension on VersionModule {
   }
 }
 
+const bool _kCloudUpdatesEnabled = false;
+
 class ModuleVersionService {
   final _logger = Logger('version_service');
 
@@ -168,6 +170,13 @@ class ModuleVersionService {
     void Function(int, int)? onProgress,
   }) async {
     if (!kReleaseMode && module == VersionModule.installer) {
+      return;
+    }
+
+    // Kyber Outpost (LAN Edition): never contact Kyber Cloud for updates.
+    // Only make sure the bundled module files are in place.
+    if (!_kCloudUpdatesEnabled) {
+      await updateAvailable(module: module);
       return;
     }
 

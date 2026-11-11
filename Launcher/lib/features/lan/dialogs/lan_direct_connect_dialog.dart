@@ -77,8 +77,8 @@ class _LanDirectConnectDialogState extends State<LanDirectConnectDialog> {
           ),
           const SizedBox(height: 10),
           const Text(
-            'Note: Kyber Outpost will automatically query port 25202 for the '
-            'server mod list and Frostbite load order before connecting.',
+            'Note: Kyber Outpost will automatically query the HTTP port '
+            '(game port + 2) for the server mod list and Frostbite load order before connecting.',
             style: TextStyle(
               fontFamily: FontFamily.battlefrontUI,
               fontSize: 13,

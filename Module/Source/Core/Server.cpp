@@ -6,6 +6,7 @@
 #include <Core/Program.h>
 #include <Hook/HookManager.h>
 #include <Base/Log.h>
+#include <cstdlib>
 #include <Utilities/MemoryUtils.h>
 #include <SDK/TypeInfo.h>
 #include <SDK/SDK.h>
@@ -192,7 +193,17 @@ void Server::Start(const ServerCreationInfo& info, bool changeState)
 
     NetworkSettings* networkSettings = Settings<NetworkSettings>("Network");
     networkSettings->MaxClientCount = info.maxPlayers;
-    networkSettings->ServerPort = 25200;
+    // Each Launcher instance (split-screen on one PC) picks its own game port.
+    uint16_t serverPort = 25200;
+    if (const char* portVar = std::getenv("KYBER_SERVER_PORT"))
+    {
+        int parsed = atoi(portVar);
+        if (parsed > 0 && parsed < 65536)
+        {
+            serverPort = static_cast<uint16_t>(parsed);
+        }
+    }
+    networkSettings->ServerPort = serverPort;
     networkSettings->UseFrameManager = true;
 
     KYBER_LOG(Info, "[Server] Protocol Version " << networkSettings->ProtocolVersion << " TitleId " << networkSettings->TitleId);
