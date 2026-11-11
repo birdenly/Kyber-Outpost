@@ -6,6 +6,7 @@ import 'dart:io';
 import 'package:collection/collection.dart';
 import 'package:kyber/kyber.dart';
 import 'package:kyber_collection/kyber_collection.dart';
+import 'package:kyber_launcher/core/services/instance_manager.dart';
 import 'package:kyber_launcher/features/mods/services/mod_service.dart';
 import 'package:kyber_launcher/injection_container.dart';
 import 'package:logging/logging.dart';
@@ -47,7 +48,7 @@ class LanModServerService {
   final Logger _logger = Logger('lan_mod_server');
 
   HttpServer? _server;
-  int _activePort = kDefaultPort;
+  int _activePort = InstanceManager.httpPort;
   int _activeDownloads = 0;
   final List<Completer<void>> _downloadWaitQueue = <Completer<void>>[];
 
@@ -62,7 +63,8 @@ class LanModServerService {
 
   List<LanHostedModEntry> get allowedMods => List.unmodifiable(_allowedMods);
 
-  Future<void> start({int preferredPort = kDefaultPort}) async {
+  Future<void> start({int? preferredPort}) async {
+    preferredPort ??= InstanceManager.httpPort;
     if (_server != null) {
       return;
     }
@@ -109,7 +111,7 @@ class LanModServerService {
     required int maxPlayers,
     required LevelSetup levelSetup,
     required List<FrostyMod> orderedMods,
-    int gamePort = 25200,
+    int? gamePort,
     String? basePathOverride,
   }) async {
     await start();
@@ -157,7 +159,7 @@ class LanModServerService {
       'name': serverName,
       'description': description,
       'creator': creator,
-      'port': gamePort,
+      'port': gamePort ?? InstanceManager.gamePort,
       'httpPort': _activePort,
       'requiresPassword': requiresPassword,
       'maxPlayers': maxPlayers,

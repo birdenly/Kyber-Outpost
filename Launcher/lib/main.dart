@@ -16,6 +16,7 @@ import 'package:grpc/grpc.dart';
 import 'package:hive_ce_flutter/hive_flutter.dart';
 import 'package:kyber_collection/kyber_collection.dart';
 import 'package:kyber_launcher/core/core.dart';
+import 'package:kyber_launcher/core/services/instance_manager.dart';
 import 'package:kyber_launcher/features/download_manager/providers/download_manager_cubit.dart';
 import 'package:kyber_launcher/features/events/providers/event_cubic.dart';
 import 'package:kyber_launcher/features/kyber/providers/kyber_api_status_cubit.dart';
@@ -131,6 +132,7 @@ Future<void> loadCerts() async {
 String? launcherVersion;
 
 void main() async {
+  await InstanceManager.initialize();
   if (Platform.isWindows && !kDebugMode) {
     final exeDir = dirname(Platform.resolvedExecutable);
     final rustLib = File(join(exeDir, 'rust_lib.dll'));

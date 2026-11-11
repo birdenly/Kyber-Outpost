@@ -8,6 +8,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_rust_bridge/flutter_rust_bridge.dart';
 import 'package:grpc/grpc.dart';
 import 'package:kyber/kyber.dart';
+import 'package:kyber_launcher/core/services/instance_manager.dart';
 import 'package:kyber_launcher/core/config/colors.dart';
 import 'package:kyber_launcher/core/routing/app_router.dart';
 import 'package:kyber_launcher/core/services/app_settings.dart';
@@ -234,11 +235,21 @@ class MaximaCubit extends Cubit<MaximaState> {
 
       emit(state.copyWith(status: MaximaStatus.loading));
 
+      // Split-screen instances need distinct default player names.
+      if (InstanceManager.index > 0 &&
+          Platform.environment['KYBER_PLAYER_NAME'] == null) {
+        ProcessEnv.set(
+          'KYBER_PLAYER_NAME',
+          'OutpostPlayer${InstanceManager.nameSuffix}',
+        );
+      }
+
       try {
         servicePlayer = await loginFlow();
       } catch (e) {
         final fallbackName =
-            Platform.environment['KYBER_PLAYER_NAME'] ?? 'OutpostPlayer';
+            Platform.environment['KYBER_PLAYER_NAME'] ??
+            'OutpostPlayer${InstanceManager.nameSuffix}';
         logger.info('Using local LAN profile: $fallbackName ($e)');
         servicePlayer = ServicePlayer(
           id: '0',

@@ -7,6 +7,7 @@ import 'package:fluent_ui/fluent_ui.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:grpc/grpc.dart' hide Server;
 import 'package:kyber/kyber.dart';
+import 'package:kyber_launcher/core/services/instance_manager.dart';
 import 'package:kyber_launcher/core/services/app_settings.dart';
 import 'package:kyber_launcher/core/services/notification_service.dart';
 import 'package:kyber_launcher/features/lan/services/lan_discovery_service.dart';
@@ -75,7 +76,7 @@ class IngameViewCubit extends Cubit<IngameViewState> {
             name: 'LAN Server',
             creator: 'LAN Host',
             ip: '127.0.0.1',
-            port: 25200,
+            port: InstanceManager.gamePort,
             maxPlayerCount: 40,
             playerCount: 1,
             requiresProxy: false,

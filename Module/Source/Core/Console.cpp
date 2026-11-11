@@ -723,7 +723,7 @@ void HostServerCommand(ConsoleContext& cc)
     info.mode = mode;
     info.maxPlayers = maxPlayers;
 
-    cc << "Starting LAN Host on UDP port 25200 (" << level << " / " << mode << ")...";
+    cc << "Starting LAN Host (" << level << " / " << mode << ")...";
     g_program->m_server->Start(info, true);
 }
 

@@ -7,6 +7,7 @@ import 'package:grpc/grpc.dart';
 import 'package:kyber/gen/Proto/kyber_common.pb.dart';
 import 'package:kyber/kyber.dart' hide ServerMod;
 import 'package:kyber_collection/kyber_collection.dart';
+import 'package:kyber_launcher/core/services/instance_manager.dart';
 import 'package:kyber_launcher/core/config/colors.dart';
 import 'package:kyber_launcher/core/services/image_helper.dart';
 import 'package:kyber_launcher/core/services/notification_service.dart';
@@ -191,7 +192,8 @@ class SettingsBoxHeader extends StatelessWidget {
                                     .servicePlayer
                                     ?.displayName ??
                                 'OutpostHost';
-                            final serverId = 'lan_host_${startRequest.name}';
+                            final serverId =
+                                'lan_host_${startRequest.name}_${InstanceManager.gamePort}';
 
                             final lanModServer = sl.get<LanModServerService>();
                             await lanModServer.configureHostedServer(
@@ -206,6 +208,7 @@ class SettingsBoxHeader extends StatelessWidget {
                                   : 40,
                               levelSetup: mapRotation.first,
                               orderedMods: orderedFrostyMods,
+                              gamePort: InstanceManager.gamePort,
                             );
 
                             await sl
@@ -222,6 +225,7 @@ class SettingsBoxHeader extends StatelessWidget {
                                       : 40,
                                   levelSetup: mapRotation.first,
                                   mods: orderedServerMods,
+                                  gamePort: InstanceManager.gamePort,
                                   httpPort: lanModServer.port,
                                 );
 

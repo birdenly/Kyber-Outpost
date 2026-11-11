@@ -7,6 +7,7 @@ import 'package:flutter_rust_bridge/flutter_rust_bridge.dart';
 import 'package:kyber/kyber.dart';
 import 'package:kyber_collection/kyber_collection.dart';
 import 'package:kyber_launcher/core/services/app_settings.dart';
+import 'package:kyber_launcher/core/services/instance_manager.dart';
 import 'package:kyber_launcher/core/services/module_version_service.dart';
 import 'package:kyber_launcher/core/services/notification_service.dart';
 import 'package:kyber_launcher/core/services/windows_env.dart';
@@ -146,8 +147,9 @@ class MaximaHelper {
     final playerName =
         sl.get<MaximaCubit>().state.servicePlayer?.displayName ??
         Platform.environment['KYBER_PLAYER_NAME'] ??
-        'OutpostPlayer';
+        'OutpostPlayer${InstanceManager.nameSuffix}';
     ProcessEnv.set('KYBER_ONLINE_MODE', '0');
+    ProcessEnv.set('KYBER_SERVER_PORT', InstanceManager.gamePort.toString());
     ProcessEnv.set('KYBER_API_TOKEN', 'lan_offline_token');
     ProcessEnv.set('KYBER_PLAYER_NAME', playerName);
     ProcessEnv.set('EALaunchEAID', playerName);

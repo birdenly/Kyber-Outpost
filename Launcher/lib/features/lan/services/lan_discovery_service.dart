@@ -6,6 +6,7 @@ import 'dart:io';
 import 'package:dio/dio.dart';
 import 'package:fixnum/fixnum.dart';
 import 'package:kyber/kyber.dart';
+import 'package:kyber_launcher/core/services/instance_manager.dart';
 import 'package:kyber_launcher/features/lan/services/lan_mod_server_service.dart';
 import 'package:logging/logging.dart';
 
@@ -70,8 +71,8 @@ class LanDiscoveryService {
     required int maxPlayers,
     required LevelSetup levelSetup,
     required List<ServerMod> mods,
-    int gamePort = 25200,
-    int httpPort = LanModServerService.kDefaultPort,
+    int? gamePort,
+    int? httpPort,
   }) async {
     await startListening();
 
@@ -81,8 +82,8 @@ class LanDiscoveryService {
       'name': name,
       'description': description,
       'creator': creator,
-      'port': gamePort,
-      'httpPort': httpPort,
+      'port': gamePort ?? InstanceManager.gamePort,
+      'httpPort': httpPort ?? InstanceManager.httpPort,
       'requiresPassword': requiresPassword,
       'maxPlayers': maxPlayers,
       'playerCount': 1,
@@ -143,8 +144,8 @@ class LanDiscoveryService {
 
   Future<Server> queryServerByIp(
     String rawInput, {
-    int defaultGamePort = 25200,
-    int defaultHttpPort = LanModServerService.kDefaultPort,
+    int defaultGamePort = InstanceManager.baseGamePort,
+    int? defaultHttpPort,
   }) async {
     var hostIp = rawInput.trim();
     var gamePort = defaultGamePort;
@@ -155,6 +156,10 @@ class LanDiscoveryService {
       gamePort = int.tryParse(parts.last.trim()) ?? defaultGamePort;
     }
 
+    // Each instance's HTTP mod server port is derived from its game port.
+    final httpPort =
+        defaultHttpPort ?? InstanceManager.httpPortForGamePort(gamePort);
+
     try {
       final dio = Dio(
         BaseOptions(
@@ -163,7 +168,7 @@ class LanDiscoveryService {
         ),
       );
       final response = await dio.get<Map<String, dynamic>>(
-        'http://$hostIp:$defaultHttpPort/lan/info',
+        'http://$hostIp:$httpPort/lan/info',
       );
       final data = response.data;
       if (data != null) {
@@ -171,14 +176,14 @@ class LanDiscoveryService {
           data,
           senderIp: hostIp,
           fallbackPort: gamePort,
-          fallbackHttpPort: defaultHttpPort,
+          fallbackHttpPort: httpPort,
         );
         registerManualServer(server);
         return server;
       }
     } catch (e) {
       _logger.fine(
-        'Could not fetch /lan/info from $hostIp:$defaultHttpPort, '
+        'Could not fetch /lan/info from $hostIp:$httpPort, '
         'creating direct LAN server entry: $e',
       );
     }
@@ -206,7 +211,7 @@ class LanDiscoveryService {
       mods: const <ServerMod>[],
       meta: <String, String>{
         'lan': 'true',
-        'lan_http_port': defaultHttpPort.toString(),
+        'lan_http_port': httpPort.toString(),
       }.entries,
     );
     registerManualServer(fallbackServer);

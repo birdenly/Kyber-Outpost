@@ -3,3 +3,4 @@ CLI/lib/src/version.dart
 
 pubspec.lock
 pubspec_overrides.yaml
+.sentry-native/
