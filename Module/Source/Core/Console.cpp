@@ -687,8 +687,8 @@ void JoinServerCommand(ConsoleContext& cc)
     auto stream = cc.stream();
     std::string ip;
     uint16_t port = 25200;
-    stream >> ip;
-    if (!(stream >> port))
+    stream >> ip >> port;
+    if (port == 0)
     {
         port = 25200;
     }
@@ -703,8 +703,8 @@ void HostServerCommand(ConsoleContext& cc)
     std::string level;
     std::string mode;
     int32_t maxPlayers = 40;
-    stream >> level >> mode;
-    if (!(stream >> maxPlayers) || maxPlayers <= 0)
+    stream >> level >> mode >> maxPlayers;
+    if (maxPlayers <= 0)
     {
         maxPlayers = 40;
     }
@@ -737,18 +737,8 @@ void KickByIdCommand(ConsoleContext& cc)
 
     auto stream = cc.stream();
     uint64_t id = 0;
-    stream >> id;
-
-    std::string reason;
-    std::getline(stream, reason);
-    if (!reason.empty() && reason[0] == ' ')
-    {
-        reason.erase(0, 1);
-    }
-    if (reason.empty())
-    {
-        reason = "Kicked by server host";
-    }
+    std::string reason = "Kicked by server host";
+    stream >> id >> reason;
 
     ServerPlayer* player = g_program->m_server->m_playerManager->GetPlayerOrSpectator(id);
     if (player == nullptr)
