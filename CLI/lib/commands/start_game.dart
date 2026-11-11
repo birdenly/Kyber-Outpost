@@ -1,3 +1,4 @@
+// Modified for Kyber Outpost (LAN Edition) - 2026-11-10.
 import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
@@ -25,6 +26,9 @@ import 'package:path/path.dart';
 class StartGameCommand extends Command<int> {
   StartGameCommand({required Logger logger}) : _logger = logger {
     argParser
+      ..addFlag('lan', defaultsTo: true, help: 'Starts the game in LAN/Offline mode')
+      ..addOption('name', abbr: 'n', help: 'Player nickname for LAN mode', valueHelp: 'OutpostPlayer')
+      ..addOption('connect-ip', help: 'Connect directly to a LAN server IP[:port]', valueHelp: '192.168.1.10:25200')
       ..addFlag('spectate', help: 'Starts the game in spectate mode')
       ..addOption('credentials', abbr: 'c', help: 'Specify the credentials to use for EA login', valueHelp: 'persona:password')
       ..addOption('raw-mods', help: 'Specify a list of mods to use', valueHelp: 'path/to/mod_file.json')
@@ -54,6 +58,13 @@ class StartGameCommand extends Command<int> {
     final modulePath = argResults?['module-path'] as String?;
     EnvHelper.setPath(modulePath);
 
+    final isLanMode = argResults?['lan'] as bool? ?? true;
+    final customName = argResults?['name'] as String?;
+    if (customName != null && customName.trim().isNotEmpty) {
+      Env.set('KYBER_PLAYER_NAME', customName.trim());
+      Env.set('EALaunchEAID', customName.trim());
+    }
+
     _logger.info('Starting login flow...');
     late ServicePlayer player;
     try {
@@ -78,29 +89,34 @@ class StartGameCommand extends Command<int> {
       return ExitCode.usage.code;
     }
 
-    _logger
-      ..success('Logged in as ${player.displayName}.')
-      ..info('Fetching Maxima auth token...');
+    _logger.success('Ready as ${customName ?? player.displayName}.');
 
-    final authToken = await getAuthToken();
+    if (isLanMode) {
+      Env.set('KYBER_ONLINE_MODE', '0');
+      Env.set('KYBER_API_TOKEN', 'lan_offline_token');
+      _logger.info('Running in Kyber Outpost LAN mode (offline).');
+    } else {
+      _logger.info('Fetching Maxima auth token...');
+      final authToken = await getAuthToken();
 
-    _logger.info('Fetching Kyber auth token...');
-    try {
-      final kToken = await service.getAuthToken(authToken);
-      Env.set('KYBER_API_TOKEN', kToken);
-    } catch (e) {
-      if (e is GrpcError) {
-        if (e.code == StatusCode.unauthenticated || e.code == StatusCode.permissionDenied) {
-          _logger.err('Kyber Login Error: ${e.message}');
-        } else {
-          _logger.err('Failed to fetch Kyber auth token: ${e.message}');
+      _logger.info('Fetching Kyber auth token...');
+      try {
+        final kToken = await service.getAuthToken(authToken);
+        Env.set('KYBER_API_TOKEN', kToken);
+      } catch (e) {
+        if (e is GrpcError) {
+          if (e.code == StatusCode.unauthenticated || e.code == StatusCode.permissionDenied) {
+            _logger.err('Kyber Login Error: ${e.message}');
+          } else {
+            _logger.err('Failed to fetch Kyber auth token: ${e.message}');
+          }
+
+          return ExitCode.usage.code;
         }
-
-        return ExitCode.usage.code;
       }
-    }
 
-    _logger.success('Kyber auth token fetched');
+      _logger.success('Kyber auth token fetched');
+    }
 
     final rawModsPath = argResults?['raw-mods'] as String?;
     File? collectionFile;
@@ -136,7 +152,21 @@ class StartGameCommand extends Command<int> {
     }
 
     JoinServerRequest? joinServerByIP;
-    if (server != null) {
+    final connectIpArg = argResults?['connect-ip'] as String?;
+    if (connectIpArg != null && connectIpArg.trim().isNotEmpty) {
+      final parts = connectIpArg.trim().split(':');
+      final targetIp = parts.first;
+      final targetPort = parts.length > 1 ? (int.tryParse(parts[1]) ?? 25200) : 25200;
+      joinServerByIP = JoinServerRequest(
+        id: '',
+        ip: targetIp,
+        port: targetPort,
+        spectate: argResults?['spectate'] as bool? ?? false,
+        type: JoinServerType.DIRECT,
+        joinToken: '',
+      );
+      _logger.info('Configured direct LAN connection to $targetIp:$targetPort');
+    } else if (server != null) {
       KyberProxy? proxy;
       if (server.requiresProxy) {
         final proxyId = argResults?['proxy-id'] as String?;
