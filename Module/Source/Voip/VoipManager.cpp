@@ -1,3 +1,6 @@
+// Copyright Armchair Developers / Sean Kahler. Licensed under GPLv3.
+// Modified for Kyber Outpost (LAN Edition) - 2026-11-10.
+
 #include <Base/Pch.h>
 #include <Voip/VoipManager.h>
 #include <Core/Console.h>
@@ -168,6 +171,11 @@ void VoipManager::Init()
 
 void VoipManager::RequestLogin()
 {
+    if (!g_program->m_server->m_onlineMode || g_program->GetAPI()->GetVoip() == nullptr)
+    {
+        return;
+    }
+
     KYBER_LOG(Info, "[VoIP] Requesting vivox login...");
     g_program->GetAPI()->GetVoip()->Login([&](std::optional<const VoipLoginResponse*> response) {
         if (!response)

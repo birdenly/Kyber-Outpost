@@ -1,4 +1,5 @@
 // Copyright Armchair Developers / Sean Kahler. Licensed under GPLv3.
+// Modified for Kyber Outpost (LAN Edition) - 2026-11-10.
 
 #include <cstddef>
 #include <cstdint>
@@ -685,11 +686,79 @@ void JoinServerCommand(ConsoleContext& cc)
 {
     auto stream = cc.stream();
     std::string ip;
-    uint16_t port;
-    stream >> ip >> port;
+    uint16_t port = 25200;
+    stream >> ip;
+    if (!(stream >> port))
+    {
+        port = 25200;
+    }
 
     cc << "Connecting to " << ip << ":" << port << "...";
-    g_program->m_client->JoinServer("", ip, port, "", false);
+    g_program->m_client->JoinServer("", ip, port, false, false);
+}
+
+void HostServerCommand(ConsoleContext& cc)
+{
+    auto stream = cc.stream();
+    std::string level;
+    std::string mode;
+    int32_t maxPlayers = 40;
+    stream >> level >> mode;
+    if (!(stream >> maxPlayers) || maxPlayers <= 0)
+    {
+        maxPlayers = 40;
+    }
+
+    if (level.empty() || mode.empty())
+    {
+        cc << "Usage: Kyber.HostServer <level> <mode> [maxPlayers]";
+        return;
+    }
+
+    ServerCreationInfo info;
+    info.name = "Kyber Outpost LAN Server";
+    info.description = "LAN P2P Server";
+    info.password = "";
+    info.level = level;
+    info.mode = mode;
+    info.maxPlayers = maxPlayers;
+
+    cc << "Starting LAN Host on UDP port 25200 (" << level << " / " << mode << ")...";
+    g_program->m_server->Start(info, true);
+}
+
+void KickByIdCommand(ConsoleContext& cc)
+{
+    if (!g_program->m_server->IsRunning())
+    {
+        cc << "This is a server command, and you aren't running a server!";
+        return;
+    }
+
+    auto stream = cc.stream();
+    uint64_t id = 0;
+    stream >> id;
+
+    std::string reason;
+    std::getline(stream, reason);
+    if (!reason.empty() && reason[0] == ' ')
+    {
+        reason.erase(0, 1);
+    }
+    if (reason.empty())
+    {
+        reason = "Kicked by server host";
+    }
+
+    ServerPlayer* player = g_program->m_server->m_playerManager->GetPlayerOrSpectator(id);
+    if (player == nullptr)
+    {
+        cc << "Couldn't find player " << id;
+        return;
+    }
+
+    g_program->m_server->KickPlayer(player, reason.c_str());
+    cc << "Kicked " << player->m_name;
 }
 
 void FullEntityBusInternalFireEventHk2(void* inst, const DataContainer* data, const EntityEvent* entityEvent)
@@ -774,7 +843,9 @@ Console::Console()
     RegisterConsoleCommand(&SetBattlepointsCommand, "SetBattlepoints", "<player> <amount>");
     RegisterConsoleCommand(&GiveBattlepointsCommand, "GiveBattlepoints", "<player> <amount>");
     RegisterConsoleCommand(&BroadcastCommand, "Broadcast", "<message>");
-    RegisterConsoleCommand(&JoinServerCommand, "JoinServer", "<ip> <port>");
+    RegisterConsoleCommand(&JoinServerCommand, "JoinServer", "<ip> [port]");
+    RegisterConsoleCommand(&HostServerCommand, "HostServer", "<level> <mode> [maxPlayers]");
+    RegisterConsoleCommand(&KickByIdCommand, "KickById", "<playerId> [reason]");
     RegisterConsoleCommand(&HotReloadLuaCommand, "HotReloadLua");
     RegisterConsoleCommand(&TestSetPlayerActiveKit, "TestSetActive", "<player> <gpId> <unknown> <vurId> <skinInfoId>");
     RegisterConsoleCommand(&TestUpdateActiveKit, "TestUpdateActive", "<player> <gpId>");

@@ -1,4 +1,5 @@
 // Copyright Armchair Developers / Sean Kahler. Licensed under GPLv3.
+// Modified for Kyber Outpost (LAN Edition) - 2026-11-10.
 
 #include <Core/Client.h>
 
@@ -43,6 +44,19 @@ void Client::HandleClientServerJoin(NetworkCreatePlayerMessage* message)
 
     if (!g_program->m_server->m_onlineMode)
     {
+        const char* customName = std::getenv("KYBER_PLAYER_NAME");
+        if (customName == nullptr || strlen(customName) == 0)
+        {
+            customName = std::getenv("EALaunchEAID");
+        }
+
+        if (customName != nullptr && strlen(customName) > 0)
+        {
+            message->playerName = StringUtils::CopyWithArena(customName);
+        }
+
+        message->isSpectator = m_spectator;
+        KYBER_LOG(Info, "[Client] [LAN] Joining game as '" << message->playerName << "' (Spectator: " << message->isSpectator << ")");
         return;
     }
 
@@ -58,6 +72,11 @@ void Client::HandleClientServerJoin(NetworkCreatePlayerMessage* message)
 
 void Client::AttemptJoinVoip()
 {
+    if (!g_program->m_server->m_onlineMode || g_program->GetAPI()->GetVoip() == nullptr)
+    {
+        return;
+    }
+
     if (m_voipManager == nullptr || !m_voipManager->IsLoggedIn() ||
         g_program->m_server->m_socketSpawnInfo.serverName.empty() || m_voipManager->IsConnected())
     {
@@ -79,7 +98,7 @@ void Client::AttemptJoinVoip()
 
 void Client::JoinServer(const std::string& id, std::string ip, uint16_t port, bool spectate, bool proxied, bool changeState)
 {
-    if (!id.empty())
+    if (!id.empty() && g_program->m_server->m_onlineMode && g_program->GetAPI()->GetServerBrowser() != nullptr)
     {
         auto server = g_program->GetAPI()->GetServerBrowser()->GetServer(id);
         if (!server)
