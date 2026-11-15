@@ -2,7 +2,7 @@
 
 ## Prerequisites
 
-- Clone the repository with `--recurse-submodules` or run `git submodule --init --recursive`
+- Clone the repository.
 - Download and install [Protoc](https://github.com/protocolbuffers/protobuf/releases) and ensure `protoc` is in your `PATH`
 
 ------
@@ -28,9 +28,10 @@ This installs dependencies, generates proto bindings, and runs code generation.
 
 ### Generating FFI Bindings
 
-First you need to generate the FFI bindings:
+Generate the Rust bridge and the local FFI bindings:
 ```bash
 cd Launcher
+flutter_rust_bridge_codegen generate
 dart run tool/ffigen.dart
 ```
 
@@ -43,10 +44,36 @@ flutter run
 
 ### Build Release Binaries
 
-From the launcher directory, run:
-```bash
-flutter build <platform>
+For Windows, run the build helper from the repository root after bootstrapping:
+
+```powershell
+powershell -NoProfile -ExecutionPolicy Bypass -File .\tool\build_launcher_windows.ps1 -Offline
 ```
+
+The helper builds the Rust bridge with the local Outpost runtime, prepares plugin directory
+junctions for the enabled desktop platforms, and reuses the Visual Studio generator
+and CMake executable from the build cache. This avoids the generator mismatch when
+Visual Studio 2022 and 2026 are both installed. It builds the application and its
+FFI plugins before installing the runtime files into
+`Launcher/build/windows/x64/runner/Release` with an explicit install prefix.
+
+The folder includes the rebuilt `rust_lib.dll`, the previously built
+`Module/bazel-bin/Kyber.dll`, its native
+Vivox DLL dependency, and the local archive libraries. Build the module first if that DLL does not exist or its
+source has changed. `build-manifest.json` records the packaged binary hashes.
+Logs are written to `Launcher/build/logs/windows-release`.
+
+`-Offline` tells Cargo to use its dependency cache. Omit it if Rust dependencies
+need to be downloaded. Flutter dependencies and generated bindings must already
+exist; the helper does not run `pub get` or change the installed Flutter SDK.
+Distribute the complete `Release` folder, including `data`, with the executable.
+For a portable game installation, merge its contents into the game folder,
+preserving the game's existing files. The launcher detects
+`starwarsbattlefrontii.exe` beside itself before checking the Windows registry.
+The launcher uses the offline emulator. Game preparation and a valid local Denuvo activation are
+prerequisites, as described in `LAN_OFFLINE.md`.
+
+Game launch currently supports Windows only.
 
 ### Building the Installer
 
@@ -59,6 +86,7 @@ To build the installer on Windows, you can use [Inno Setup](https://jrsoftware.o
 ```bash
 cd CLI
 flutter pub get
+dart run build_runner build --delete-conflicting-outputs
 flutter_rust_bridge_codegen generate
 dart build cli bin/kyber_cli.dart
 ```
@@ -69,14 +97,9 @@ This will output the binary to `build/cli/<platform>/bundle/bin/`.
 
 To run the CLI, make sure to copy the rust library from `build/cli/<platform>/bundle/lib/` next to the binary.
 
-**Important:** Make sure to build Maxima first. Then depending on your platform, copy the following files next to the binary from the Maxima build output:
-
-#### Windows
-- `maxima-service.exe`
-- `maxima-bootstrap.exe`
-
-#### Linux
-- `maxima-bootstrap`
+The CLI uses `Packages/kyber_runtime`, shared with the Launcher. No Maxima
+bootstrap or background service is required. Game launch currently supports
+Windows and requires a prepared offline game installation and bundled Kyber DLL.
 
 ------
 
@@ -98,7 +121,11 @@ Run `bazel --output_user_root="C:\bz" build --config=release Kyber`. This will t
 
 ### Using the Built Module
 
-Once built, copy `Module/bazel-bin/Kyber.dll` to `C:/ProgramData/Kyber/Module/Kyber.dll` to test your changes with the Launcher or CLI.
+The LAN Launcher loads `Kyber.dll` and `vivoxsdk.dll` beside its executable.
+Run `tool/build_launcher_windows.ps1 -Offline` to package the rebuilt module in
+`Launcher/build/windows/x64/runner/Release`, or copy the module there manually.
+The copy in `C:/ProgramData/Kyber/Module` is only a fallback when no bundled DLL
+exists. See `LAN_OFFLINE.md` for game detection and offline preparation.
 
 ### Code Completion
 
