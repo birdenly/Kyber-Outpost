@@ -7,7 +7,7 @@ import 'package:fluent_ui/fluent_ui.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:kyber_launcher/features/maxima/providers/maxima_rtm_cubit.dart';
 import 'package:kyber_launcher/gen/assets.gen.dart';
-import 'package:kyber_launcher/gen/rust/api/maxima.dart';
+import 'package:kyber_launcher/gen/rust/api/outpost.dart';
 
 class MaximaAvatar extends StatefulWidget {
   const MaximaAvatar({

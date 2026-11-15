@@ -42,11 +42,8 @@ class LightswitchStatus {
   String defaultEnvironment;
 
   bool isEnabled(KyberFeature feature, {required String environment}) {
-    final env =
-        environments.where((e) => e.id == environment).firstOrNull ??
-        environments.where((e) => e.id == defaultEnvironment).firstOrNull;
-
-    return env?.features?[feature.name] ?? true;
+    // Parties, queues and incremental updates require Kyber Cloud.
+    return false;
   }
 
   Map<String, dynamic> toJson() => {

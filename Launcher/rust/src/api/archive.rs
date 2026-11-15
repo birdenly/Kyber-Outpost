@@ -1,4 +1,3 @@
-use crate::api::maxima::RtmPresence;
 use crate::frb_generated::{RustAutoOpaque, StreamSink};
 use anyhow::bail;
 use flutter_rust_bridge::for_generated::futures::SinkExt;

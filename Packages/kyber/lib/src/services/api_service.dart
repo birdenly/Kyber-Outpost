@@ -2,37 +2,34 @@ import 'package:grpc/grpc.dart';
 import 'package:kyber/gen/Proto/kyber_api.pbgrpc.dart';
 import 'package:uuid/uuid.dart';
 
-const _kServicePort = 443;
-
 class KyberGRPCService {
-  factory KyberGRPCService.fromDefaults() => KyberGRPCService(
-        'api-rpc.prod.kyber.gg',
-        _kServicePort,
-        httpHostname: 'api.stage.kyber.gg',
-      );
+  factory KyberGRPCService.fromDefaults() => KyberGRPCService.local();
 
-  KyberGRPCService(this.host, this.port, {required this.httpHostname, bool isInsecure = false}) {
+  KyberGRPCService(
+    this.host,
+    this.port, {
+    required this.httpHostname,
+    bool isInsecure = false,
+  }) {
     _channel = ClientChannel(
       host,
       port: port,
-      options: isInsecure ? const ChannelOptions(credentials: ChannelCredentials.insecure()) : const ChannelOptions(),
+      options: isInsecure
+          ? const ChannelOptions(credentials: ChannelCredentials.insecure())
+          : const ChannelOptions(),
     );
 
     _setChannels();
   }
 
   factory KyberGRPCService.local() => KyberGRPCService(
-        '0.0.0.0',
-        9027,
-        isInsecure: true,
-        httpHostname: 'localhost',
-      );
+    '127.0.0.1',
+    9027,
+    isInsecure: true,
+    httpHostname: 'localhost',
+  );
 
-  factory KyberGRPCService.fromEnv(String env) => KyberGRPCService(
-        'api-rpc.$env.kyber.gg',
-        _kServicePort,
-        httpHostname: 'api.$env.kyber.gg',
-      );
+  factory KyberGRPCService.fromEnv(String env) => KyberGRPCService.local();
 
   final String httpHostname;
 
@@ -50,7 +47,10 @@ class KyberGRPCService {
     statsClient = StatisticsClient(_channel, options: callOptions);
     clientServerClient = ClientServerClient(_channel, options: callOptions);
     serverBrowserClient = ServerBrowserClient(_channel, options: callOptions);
-    serverManagementClient = ServerManagementClient(_channel, options: callOptions);
+    serverManagementClient = ServerManagementClient(
+      _channel,
+      options: callOptions,
+    );
     proxyClient = ProxyClient(_channel, options: callOptions);
     launcherClient = LauncherClient(_channel, options: callOptions);
     reportServiceClient = ReportServiceClient(_channel, options: callOptions);

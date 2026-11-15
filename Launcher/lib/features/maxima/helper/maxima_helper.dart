@@ -3,7 +3,7 @@ import 'dart:async';
 import 'dart:io';
 
 import 'package:fluent_ui/fluent_ui.dart';
-import 'package:flutter_rust_bridge/flutter_rust_bridge.dart';
+import 'package:grpc/grpc.dart' show CallOptions, GrpcError;
 import 'package:kyber/kyber.dart';
 import 'package:kyber_collection/kyber_collection.dart';
 import 'package:kyber_launcher/core/services/app_settings.dart';
@@ -21,7 +21,7 @@ import 'package:kyber_launcher/features/maxima/providers/maxima_cubit.dart';
 import 'package:kyber_launcher/features/maxima/services/maxima_instance_service.dart';
 import 'package:kyber_launcher/features/mod_collections/extensions/mod_collection_extension.dart';
 import 'package:kyber_launcher/features/mods/services/mod_service.dart';
-import 'package:kyber_launcher/gen/rust/api/maxima.dart' as maxima;
+import 'package:kyber_launcher/gen/rust/api/outpost.dart' as outpost;
 import 'package:kyber_launcher/injection_container.dart';
 import 'package:kyber_launcher/shared/ui/dialog/kyber_dialog.dart';
 import 'package:logging/logging.dart';
@@ -29,6 +29,62 @@ import 'package:path/path.dart' as p;
 
 class MaximaHelper {
   static final Logger _logger = Logger('maxima_helper');
+
+  static Future<void> _waitForKyber(
+    ClientGRPCService gameClient, {
+    required bool requireServer,
+  }) async {
+    final elapsed = Stopwatch()..start();
+    final limit = Duration(seconds: requireServer ? 300 : 60);
+    const rpcLimit = Duration(seconds: 60);
+    const attemptTimeout = Duration(seconds: 2);
+    const retryDelay = Duration(milliseconds: 500);
+    var rpcResponded = false;
+
+    while (elapsed.elapsed < limit) {
+      final remaining = limit - elapsed.elapsed;
+      final request = gameClient.commonClient.getInfo(
+        Empty(),
+        options: CallOptions(
+          timeout: remaining < attemptTimeout ? remaining : attemptTimeout,
+        ),
+      );
+      try {
+        final state = await request;
+        rpcResponded = true;
+        if (!requireServer ||
+            (state.hasServer() &&
+                state.server.levelSetup.map.trim().isNotEmpty)) {
+          return;
+        }
+      } on GrpcError {
+        // The DLL may still be initializing its local RPC interface.
+      } finally {
+        await request.cancel();
+      }
+
+      if (!rpcResponded && elapsed.elapsed >= rpcLimit) {
+        break;
+      }
+      final delayRemaining = limit - elapsed.elapsed;
+      if (delayRemaining > Duration.zero) {
+        await Future<void>.delayed(
+          delayRemaining < retryDelay ? delayRemaining : retryDelay,
+        );
+      }
+    }
+
+    if (requireServer && rpcResponded) {
+      throw TimeoutException(
+        'Kyber local RPC responded, but the LAN server did not start a map '
+        'within 300 seconds. Check the game window and the Kyber log.',
+      );
+    }
+    throw TimeoutException(
+      'Kyber.dll was loaded, but its local RPC did not respond within '
+      '60 seconds. Check the game window and the Kyber log.',
+    );
+  }
 
   static Future<void> requestGameLaunch(
     BuildContext context, {
@@ -140,28 +196,54 @@ class MaximaHelper {
       throw Exception('PATH environment variable is not set');
     }
 
+    final moduleDirectory = ModuleVersionService.selectedModuleDirectory;
+    final moduleFile = File(p.join(moduleDirectory.path, 'Kyber.dll'));
+    final vivoxFile = File(p.join(moduleDirectory.path, 'vivoxsdk.dll'));
+    if (!moduleFile.existsSync() || !vivoxFile.existsSync()) {
+      throw FileSystemException(
+        'The local Kyber module is incomplete. Kyber.dll and vivoxsdk.dll '
+        'must be present before starting the game.',
+        moduleDirectory.path,
+      );
+    }
+    _logger.info('Using local Kyber module: ${moduleFile.path}');
+    final hasMods = initializeRequest?.modData.modPaths.isNotEmpty ?? false;
+    if (hasMods) {
+      final aggregation = File(
+        p.join(moduleDirectory.path, 'VanillaBundleAggregation.kb'),
+      );
+      if (!aggregation.existsSync()) {
+        throw FileSystemException(
+          'VanillaBundleAggregation.kb is required to load mods.',
+          aggregation.path,
+        );
+      }
+      ProcessEnv.delete('KYBER_DISABLE_MODLOADER');
+    } else {
+      ProcessEnv.set('KYBER_DISABLE_MODLOADER', '1');
+    }
+    ProcessEnv.set('KYBER_MODULE_PATH', moduleFile.path);
+
     final grpcDebug = Preferences.debug.grpcDebugLogs;
     final moduleDebug = Preferences.debug.moduleDebugLogs;
-    final newPath = '$path;${FileHelper.getModuleDirectory().path}';
+    final newPath = '${moduleFile.parent.path};$path';
     final interfacePort = await KyberNetworkHelper.findAvailablePort();
     String? cubitPlayerName;
     try {
       if (sl.isRegistered<MaximaCubit>()) {
-        cubitPlayerName =
-            sl.get<MaximaCubit>().state.servicePlayer?.displayName;
+        cubitPlayerName = sl
+            .get<MaximaCubit>()
+            .state
+            .servicePlayer
+            ?.displayName;
       }
     } catch (_) {}
-    final playerName = cubitPlayerName ??
-        Platform.environment['KYBER_PLAYER_NAME'] ??
-        'OutpostPlayer${InstanceManager.nameSuffix}';
-    final userLicenseId =
-        Platform.environment['KYBER_USER_ID'] ?? '2842339971';
+    final playerName =
+        cubitPlayerName ?? 'OutpostPlayer${InstanceManager.nameSuffix}';
+    await outpost.getLocalProfile(name: playerName);
     ProcessEnv.set('KYBER_ONLINE_MODE', '0');
     ProcessEnv.set('KYBER_SERVER_PORT', InstanceManager.gamePort.toString());
     ProcessEnv.set('KYBER_API_TOKEN', 'lan_offline_token');
-    ProcessEnv.set('KYBER_PLAYER_NAME', playerName);
-    ProcessEnv.set('KYBER_USER_ID', userLicenseId);
-    ProcessEnv.set('EASecureLaunchTokenTemp', userLicenseId);
     ProcessEnv.set('EALaunchEAID', playerName);
     ProcessEnv.set('EALaunchUserAuthToken', 'lan_offline_token');
     ProcessEnv.set(
@@ -202,24 +284,22 @@ class MaximaHelper {
       ProcessEnv.delete('KYBER_EXPERIMENTAL_DISABLE_FORCE_NOHDR');
     }
 
-    final gameClient = ClientGRPCService('127.0.0.1', interfacePort);
-    final gamePID = await maxima.startGame(
+    sl.get<KyberGRPCServer>().setInitializeRequest(
+      initializeRequest ?? InitializeRequest(),
+    );
+    final gamePID = await outpost.startGame(
       gameSlug: gameSlug ?? 'star-wars-battlefront-2',
       gamePathOverride: gamePath,
     );
-    _logger.info('Started game with PID: $gamePID');
+    _logger.info(
+      'Offline game process started with PID: $gamePID',
+    );
 
-    if (sl.isRegistered<MaximaGameInstance>()) {
-      _logger.warning(
-        'ClientGRPCService was already registered, unregistering...',
-      );
-
-      try {
-        Process.killPid(sl.get<MaximaGameInstance>().pid);
-      } catch (_) {}
-
-      sl.unregister<MaximaGameInstance>();
-    }
+    final gameClient = ClientGRPCService(
+      '127.0.0.1',
+      interfacePort,
+      connectTimeout: const Duration(seconds: 2),
+    );
 
     final instance = MaximaGameInstance(
       pid: gamePID,
@@ -229,25 +309,46 @@ class MaximaHelper {
     );
 
     try {
-      sl.get<KyberGRPCServer>().setInitializeRequest(
-        initializeRequest ?? InitializeRequest(),
+      _logger.info(
+        'Waiting for the offline emulator to load: ${moduleFile.path}',
       );
-      await maxima
-          .lsxGetEventStream(pid: gamePID, isStartup: true)
-          .firstWhere((e) => e == 'RequestLicense');
-      await maxima.injectKyber(
-        pid: gamePID,
-        path: p.join(FileHelper.getModuleDirectory().path, 'Kyber.dll'),
+      await outpost.waitForKyberModule(pid: gamePID, path: moduleFile.path);
+      await _waitForKyber(
+        gameClient,
+        requireServer: initializeRequest?.hasStartServer() ?? false,
       );
-    } catch (e) {
-      if (e is AnyhowException) {
-        _logger.severe('Failed to inject Kyber into game: ${e.message}');
+    } on Object catch (error, stackTrace) {
+      _logger.severe('Game startup failed for PID $gamePID', error, stackTrace);
+      try {
+        await outpost.stopGame(pid: gamePID);
+      } on Object catch (cleanupError, cleanupStack) {
+        _logger.warning(
+          'Could not terminate failed game PID $gamePID',
+          cleanupError,
+          cleanupStack,
+        );
+      }
+      try {
+        await gameClient.channel.shutdown();
+        await instance.closeStream();
+      } on Object catch (cleanupError, cleanupStack) {
+        _logger.warning(
+          'Could not release failed game resources for PID $gamePID',
+          cleanupError,
+          cleanupStack,
+        );
       }
       rethrow;
     }
 
+    if (sl.isRegistered<MaximaGameInstance>()) {
+      await sl.unregister<MaximaGameInstance>();
+    }
     sl.registerSingleton<MaximaGameInstance>(instance);
     sl.get<MaximaInstanceService>().addInstance(instance);
+    _logger.info(
+      'Kyber is ready with PID: $gamePID and local RPC port $interfacePort',
+    );
 
     return instance;
   }

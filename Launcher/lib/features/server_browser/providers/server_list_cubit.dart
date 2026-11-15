@@ -12,7 +12,7 @@ import 'package:kyber_launcher/features/server_browser/models/server_entry.dart'
 import 'package:kyber_launcher/features/server_browser/models/server_filter.dart';
 import 'package:kyber_launcher/features/server_browser/models/server_list_state.dart';
 import 'package:kyber_launcher/features/server_moderation/providers/moderation_servers_cubit.dart';
-import 'package:kyber_launcher/gen/rust/api/maxima.dart';
+import 'package:kyber_launcher/gen/rust/api/outpost.dart';
 import 'package:kyber_launcher/injection_container.dart';
 
 List<ServicePlayer> _friends = [];

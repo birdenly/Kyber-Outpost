@@ -2,6 +2,7 @@ import 'dart:async';
 
 import 'package:background_downloader/background_downloader.dart';
 import 'package:fluent_ui/fluent_ui.dart' hide Button;
+import 'package:kyber_launcher/features/lan/dialogs/lan_nickname_dialog.dart';
 import 'package:flutter/material.dart' as mt;
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:kyber/kyber.dart';
@@ -159,7 +160,7 @@ class _UserBar extends StatelessWidget {
     return ButtonBuilder(
       onClick: () => showKyberDialog(
         context: context,
-        builder: (_) => const MaximaFriendsDialog(),
+        builder: (_) => LanNicknameDialog(initialName: currentUser.displayName),
       ),
       builder: (context, hovered) {
         final color = switch (hovered) {

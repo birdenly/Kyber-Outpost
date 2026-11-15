@@ -12,16 +12,20 @@ import 'package:kyber_launcher/core/services/app_settings.dart';
 import 'package:kyber_launcher/core/services/module_version_service.dart';
 import 'package:kyber_launcher/core/services/notification_service.dart';
 import 'package:kyber_launcher/features/download_manager/providers/download_manager_cubit.dart';
+import 'package:kyber_launcher/features/lan/dialogs/lan_nickname_dialog.dart';
 import 'package:kyber_launcher/features/maxima/providers/maxima_cubit.dart';
 import 'package:kyber_launcher/features/mods/services/mod_service.dart';
 import 'package:kyber_launcher/features/navigation_bar/providers/status_cubit.dart';
 import 'package:kyber_launcher/features/navigation_bar/widgets/action_bar.dart';
-import 'package:kyber_launcher/features/navigation_bar/widgets/title_bar.dart' as kl;
+import 'package:kyber_launcher/features/navigation_bar/widgets/title_bar.dart'
+    as kl;
 import 'package:kyber_launcher/features/setup/widgets/setup_container.dart';
 import 'package:kyber_launcher/gen/assets.gen.dart';
 import 'package:kyber_launcher/gen/fonts.gen.dart';
 import 'package:kyber_launcher/injection_container.dart';
+import 'package:kyber_launcher/main.dart' show box;
 import 'package:kyber_launcher/shared/ui/buttons/button.dart';
+import 'package:kyber_launcher/shared/ui/dialog/kyber_dialog.dart';
 import 'package:kyber_launcher/shared/ui/utils/background_blur.dart';
 
 class WalkThroughSetup extends StatefulWidget {
@@ -32,7 +36,7 @@ class WalkThroughSetup extends StatefulWidget {
 }
 
 class _WalkThroughSetupState extends State<WalkThroughSetup> {
-  bool disabled = false;
+  bool _initializingPlayer = false;
   bool showNexusLogin = false;
 
   int setupPage = 0;
@@ -96,7 +100,7 @@ class _WalkThroughSetupState extends State<WalkThroughSetup> {
                     Expanded(
                       child: BlocConsumer<MaximaCubit, MaximaState>(
                         listener: (context, state) {
-                          if (state.loggedIn) {
+                          if (state.loggedIn && setupPage == 0) {
                             setState(() => setupPage = 1);
                           }
                         },
@@ -104,6 +108,8 @@ class _WalkThroughSetupState extends State<WalkThroughSetup> {
                           return SetupContainer(
                             showWebView: showNexusLogin,
                             page: setupPage,
+                            onLocalPlayerSetup: _initializeLocalPlayer,
+                            localPlayerBusy: _initializingPlayer,
                             onNexusSuccess: _finishSetup,
                             onNexusLogin: () =>
                                 setState(() => showNexusLogin = true),
@@ -142,7 +148,7 @@ class _WalkThroughSetupState extends State<WalkThroughSetup> {
                                 children: [
                                   ProgressItem(
                                     iconPath: Assets.logos.eaPlay.path,
-                                    text: 'EA Account',
+                                    text: 'Local player',
                                     done: setupPage > 0,
                                     active: setupPage == 0,
                                   ),
@@ -164,9 +170,13 @@ class _WalkThroughSetupState extends State<WalkThroughSetup> {
                               ),
                               const SizedBox(width: 60),
                               KyberButton(
-                                text: setupPage == 1 ? 'FINISH' : 'SKIP',
+                                text: setupPage == 1 ? 'FINISH' : 'NEXT',
                                 icon: const Icon(FluentIcons.game),
-                                onPressed: _finishSetup,
+                                onPressed: _initializingPlayer
+                                    ? null
+                                    : setupPage == 0
+                                    ? _initializeLocalPlayer
+                                    : _finishSetup,
                               ),
                             ],
                           ),
@@ -181,6 +191,31 @@ class _WalkThroughSetupState extends State<WalkThroughSetup> {
         ),
       ),
     );
+  }
+
+  Future<void> _initializeLocalPlayer() async {
+    if (_initializingPlayer) return;
+    setState(() => _initializingPlayer = true);
+    try {
+      final player = context.read<MaximaCubit>();
+      final nickname = await showKyberDialog<String>(
+        context: context,
+        builder: (_) => LanNicknameDialog(
+          initialName:
+              player.getUsername() ??
+              (box.get('lanPlayerName') as String?) ??
+              'OutpostPlayer',
+        ),
+      );
+      if (!mounted || nickname == null) return;
+      await player.init(skipSetupCheck: true);
+    } on Object catch (error) {
+      if (mounted) {
+        NotificationService.error(message: error.toString());
+      }
+    } finally {
+      if (mounted) setState(() => _initializingPlayer = false);
+    }
   }
 
   void _finishSetup() {

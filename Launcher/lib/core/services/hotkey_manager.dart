@@ -17,7 +17,7 @@ class HotKeyService {
   static HotKey? _ingameHotKey;
 
   static Future<void> registerIngameHotKey() async {
-    if (!Preferences.general.ingameHotkeyEnabled) {
+    if (!Preferences.general.ingameHotkeyEnabled || _ingameHotKey != null) {
       return;
     }
 
@@ -28,6 +28,11 @@ class HotKeyService {
         onPressed: _onIngameHotKey,
       );
     } catch (e, s) {
+      if (e is PlatformException &&
+          (e.message ?? '').toLowerCase().contains('0x80070581')) {
+        _logger.info('Insert hotkey is already registered by another instance.');
+        return;
+      }
       var errorMessage = 'Unknown error';
 
       if (e is PlatformException) {
@@ -42,6 +47,7 @@ class HotKeyService {
   static void unregisterIngameHotKey() {
     _logger.info('Unregistering ingame hotkey');
     _ingameHotKey?.dispose();
+    _ingameHotKey = null;
   }
 
   static Future<void> _onIngameHotKey() async {

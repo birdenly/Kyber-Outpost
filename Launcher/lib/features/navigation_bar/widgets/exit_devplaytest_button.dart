@@ -7,7 +7,7 @@ import 'package:kyber_launcher/core/services/app_settings.dart';
 import 'package:kyber_launcher/core/services/module_version_service.dart';
 import 'package:kyber_launcher/core/services/notification_service.dart';
 import 'package:kyber_launcher/features/settings/dialogs/update_dialog.dart';
-import 'package:kyber_launcher/gen/rust/api/maxima.dart';
+import 'package:kyber_launcher/gen/rust/api/outpost.dart';
 import 'package:kyber_launcher/main.dart';
 import 'package:kyber_launcher/shared/ui/buttons/normal_button.dart';
 import 'package:kyber_launcher/shared/ui/dialog/kyber_dialog.dart';

@@ -3,20 +3,14 @@ import 'dart:io';
 import 'package:args/args.dart';
 import 'package:args/command_runner.dart';
 import 'package:cli_completion/cli_completion.dart';
-import 'package:dio/dio.dart';
 import 'package:get_it/get_it.dart';
 import 'package:kyber/kyber.dart';
-import 'package:kyber_cli/commands/download_game.dart';
-import 'package:kyber_cli/commands/get_ea_token.dart';
-import 'package:kyber_cli/commands/get_token.dart';
 import 'package:kyber_cli/commands/start_game.dart';
 import 'package:kyber_cli/commands/start_server_command.dart';
-import 'package:kyber_cli/gen/api/archive.dart';
-import 'package:kyber_cli/gen/api/maxima.dart' as mx;
+import 'package:kyber_cli/gen/api/outpost.dart' as mx;
 import 'package:kyber_cli/utils/windows_env.dart';
 import 'package:kyber_collection/kyber_collection.dart';
 import 'package:mason_logger/mason_logger.dart';
-import 'package:path/path.dart';
 
 final sl = GetIt.instance;
 const version = '2.0.0-beta9+1';
@@ -56,13 +50,10 @@ class KyberCliCommandRunner extends CompletionCommandRunner<int> {
         abbr: 'v',
         help: 'Noisy logging, including all shell commands executed.',
       )
-      ..addFlag('debug', help: 'Enable debug mode. Logs all maxima events.');
+      ..addFlag('debug', help: 'Enable local runtime debug logs.');
 
-    addCommand(StartServerCommand(logger: _logger, logStream: mxLogs));
+    addCommand(StartServerCommand(logger: _logger));
     addCommand(StartGameCommand(logger: _logger));
-    addCommand(GetTokenCommand(logger: _logger));
-    addCommand(GetEATokenCommand(logger: _logger));
-    addCommand(SetupServerCommand(logger: _logger));
   }
 
   @override
@@ -104,90 +95,12 @@ class KyberCliCommandRunner extends CompletionCommandRunner<int> {
 
       final apiEnv = Platform.environment['KYBER_API_ENV'] ?? 'prod';
 
-      const skipCommands = ['get_token', 'get_ea_token'];
-      if (!skipCommands.contains(topLevelResults.command?.name)) {
-        Env.set('MAXIMA_DISABLE_QRC', '1');
-      }
-
       Env.set('KYBER_ENVIRONMENT', apiEnv);
-      sl.registerSingleton(KyberGRPCService.fromEnv(apiEnv));
+      sl.registerSingleton(KyberGRPCService.local());
 
       if (topLevelResults.command != null &&
           !topLevelResults.arguments.contains('--help')) {
-        if (!topLevelResults.arguments.contains('--skip-updates') &&
-            !Platform.isLinux &&
-            [
-              'start_server',
-              'start_game',
-            ].contains(topLevelResults.command!.name)) {
-          final userBranch =
-              (Platform.environment['KYBER_MODULE_CHANNEL'] ??
-                      topLevelResults.command!['module-branch'])
-                  as String?;
-          _logger.info('Checking for updates...');
-
-          final rq = ServiceVersionsRequest(
-            id: 'kyber-module',
-            channel: userBranch ?? 'stable',
-          );
-          final versions = await sl
-              .get<KyberGRPCService>()
-              .launcherClient
-              .versions(rq);
-          final latestVersion = versions.versions.firstWhere((x) => x.isLatest);
-          final currentVersionFile = File(
-            join(FileHelper.getModuleDirectory().path, 'VERSION'),
-          );
-
-          var needsUpdate = false;
-          if (!currentVersionFile.existsSync()) {
-            needsUpdate = true;
-          } else {
-            final currentVersion = currentVersionFile.readAsStringSync();
-            needsUpdate = currentVersion != latestVersion.version;
-          }
-
-          if (needsUpdate) {
-            _logger.info(
-              'Updating "kyber-module" to version ${latestVersion.version}',
-            );
-
-            final download = await sl
-                .get<KyberGRPCService>()
-                .launcherClient
-                .downloadUrl(
-                  ServiceVersionDownloadUrlRequest(
-                    id: 'kyber-module',
-                    version: latestVersion.version,
-                    channel: userBranch ?? 'stable',
-                  ),
-                );
-
-            final filename = basename(download.url).split('?').first;
-            final downloadDir = FileHelper.getModuleDirectory().path;
-            final downloadPath = join(downloadDir, filename);
-            _logger.info('Downloading to $downloadPath');
-            await Dio().download(download.url, downloadPath);
-
-            if (!Directory(downloadDir).existsSync()) {
-              Directory(downloadDir).createSync();
-            }
-
-            _logger.info('Extracting...');
-            await extract(filePath: downloadPath, targetDir: downloadDir);
-            File(downloadPath).deleteSync();
-
-            currentVersionFile.writeAsStringSync(latestVersion.version);
-            _logger.info(
-              'Updated "kyber-module" to version ${latestVersion.version}',
-            );
-          }
-        }
-
-        final command = topLevelResults.command!;
-        final isDummy =
-            command.name == 'start_server' && command['credentials'] != null;
-        await mx.startMaxima(dummyAuthStorage: isDummy);
+        await mx.initializeRuntime();
       }
 
       return await runCommand(topLevelResults) ?? ExitCode.success.code;

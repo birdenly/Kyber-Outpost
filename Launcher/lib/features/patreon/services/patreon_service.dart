@@ -7,7 +7,7 @@ import 'package:kyber_launcher/core/services/app_settings.dart';
 import 'package:kyber_launcher/features/patreon/models/patreon_identity_response.dart';
 import 'package:kyber_launcher/features/patreon/models/patreon_oauth_client.dart';
 import 'package:kyber_launcher/features/patreon/constants/oauth_landing_page.dart';
-import 'package:kyber_launcher/gen/rust/api/maxima.dart';
+import 'package:kyber_launcher/gen/rust/api/outpost.dart';
 import 'package:kyber_launcher/injection_container.dart';
 import 'package:oauth2_client/access_token_response.dart';
 import 'package:oauth2_client/oauth2_helper.dart';

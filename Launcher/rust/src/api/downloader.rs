@@ -5,7 +5,7 @@ use tokio_util::sync::CancellationToken;
 
 use crate::frb_generated::{RustAutoOpaque, StreamSink};
 
-use maxima::content::{
+use crate::mod_download::{
     downloader::ZipDownloader,
     zip::{CompressionType, ZipFileEntry},
 };

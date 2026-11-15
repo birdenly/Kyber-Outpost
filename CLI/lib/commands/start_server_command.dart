@@ -4,12 +4,11 @@ import 'dart:convert';
 import 'dart:io';
 
 import 'package:args/command_runner.dart';
-import 'package:dio/dio.dart';
 import 'package:flutter_rust_bridge/flutter_rust_bridge.dart';
 import 'package:grpc/grpc.dart';
 import 'package:kyber/kyber.dart';
 import 'package:kyber_cli/command_runner.dart';
-import 'package:kyber_cli/gen/api/maxima.dart';
+import 'package:kyber_cli/gen/api/outpost.dart';
 import 'package:kyber_cli/models/maxima_instance.dart';
 import 'package:kyber_cli/utils/collection_helper.dart';
 import 'package:kyber_cli/utils/env_helper.dart';
@@ -23,11 +22,8 @@ import 'package:kyber_collection/kyber_collection.dart';
 import 'package:mason_logger/mason_logger.dart';
 import 'package:path/path.dart';
 
-const _denuvoLogPrefix = 'Got Denuvo Token: ';
-
 class StartServerCommand extends Command<int> {
-  StartServerCommand({required Logger logger, required this.logStream})
-    : _logger = logger {
+  StartServerCommand({required Logger logger}) : _logger = logger {
     argParser
       ..addFlag('show-console', help: 'Shows the Kyber console window.')
       ..addFlag(
@@ -80,14 +76,12 @@ class StartServerCommand extends Command<int> {
         help: 'Specify the game arguments',
         valueHelp: '[arg1, arg2, ...]',
       )
-      ..addSeparator('Maxima Options')
+      ..addSeparator('Local player and module')
       ..addOption(
-        'credentials',
-        abbr: 'c',
-        help: 'Specify the credentials to use for EA login',
-        valueHelp: 'persona:password',
+        'name',
+        help: 'Local player nickname',
+        valueHelp: 'OutpostPlayer',
       )
-      ..addOption('token', help: 'Specify the Kyber auth token')
       ..addOption(
         'module-path',
         help: 'Specify a custom directory to use for the Kyber module',
@@ -98,7 +92,6 @@ class StartServerCommand extends Command<int> {
         help: 'Specify the branch to use for the Kyber module',
         valueHelp: 'branch',
       )
-      ..addOption('offer-id', help: 'Specify the offer ID')
       ..addOption('interface-port', valueHelp: '9000');
   }
 
@@ -110,7 +103,6 @@ class StartServerCommand extends Command<int> {
   String get name => 'start_server';
 
   final Logger _logger;
-  final Stream<LogEntry> logStream;
 
   @override
   Future<int> run() async {
@@ -122,22 +114,18 @@ class StartServerCommand extends Command<int> {
 
     final modulePath = argResults?['module-path'] as String?;
     EnvHelper.setPath(modulePath);
+    Env.set(
+      'KYBER_MODULE_PATH',
+      join(modulePath ?? FileHelper.getModuleDirectory().path, 'Kyber.dll'),
+    );
 
-    _logger.info('Starting login flow...');
+    _logger.info('Initializing the local player profile...');
     late String playerName;
-    final loginCredentials = argResults?['credentials'] as String?;
     try {
-      if (loginCredentials == null) {
-        final player = await loginFlow();
-        playerName = player.displayName;
-      } else {
-        playerName = 'ServerUser';
-        final split = loginCredentials.split(':');
-        if (split.length != 2) {
-          _logger.err('Invalid credentials format. Use persona:password');
-          return ExitCode.usage.code;
-        }
-      }
+      final player = await getLocalProfile(
+        name: argResults?['name'] as String? ?? 'OutpostPlayer',
+      );
+      playerName = player.displayName;
     } catch (e) {
       if (e is PanicException || e is AnyhowException) {
         final err = e is PanicException
@@ -156,7 +144,7 @@ class StartServerCommand extends Command<int> {
     }
 
     _logger
-      ..success('Logged in as $playerName.')
+      ..success('Ready as $playerName.')
       ..info('Starting game...');
 
     final mapRotation = <LevelSetup>[];
@@ -232,25 +220,10 @@ class StartServerCommand extends Command<int> {
       await CollectionHelper().useCollection(collectionFile);
     }
 
-    late String kToken;
-    if (argResults?['token'] != null) {
-      kToken = argResults?['token'] as String;
-    } else {
-      kToken = 'lan_offline_token';
-    }
+    const kToken = 'lan_offline_token';
 
     Env.set('KYBER_ONLINE_MODE', '0');
     sl.get<KyberGRPCService>().token = kToken;
-
-    final userId = _stableStringHash(loginCredentials?.split(':').first ?? '');
-    final licenseId = '${userId}_file';
-    final denuvoId = '${userId}_denuvo';
-
-    final existingToken = await _fetchLicense(id: denuvoId);
-    if (existingToken != null) {
-      _logger.info('Found existing Denuvo token, using it...');
-      Env.set('MAXIMA_DENUVO_TOKEN', existingToken);
-    }
 
     Env.delete('KYBER_HIDE_CONSOLE');
     final showConsole = argResults?['show-console'] as bool?;
@@ -272,16 +245,6 @@ class StartServerCommand extends Command<int> {
     Env.set('KYBER_INTERFACE_PORT', kyberPort);
     Env.set('KYBER_API_HOSTNAME', sl.get<KyberGRPCService>().host);
     Env.set('KYBER_HTTP_HOSTNAME', sl.get<KyberGRPCService>().httpHostname);
-
-    await _fetchLicense(id: licenseId, isFile: true);
-
-    logStream.listen((event) {
-      switch (event.msg) {
-        case final String msg when event.msg.startsWith(_denuvoLogPrefix):
-          final token = msg.substring(_denuvoLogPrefix.length);
-          _uploadLicense(id: denuvoId, data: token);
-      }
-    });
 
     final rawModsPath = argResults?['raw-mods'] as String?;
     ModData? modData;
@@ -446,24 +409,11 @@ class StartServerCommand extends Command<int> {
       ),
     );
 
-    late int pid;
-    if (loginCredentials == null) {
-      pid = await startGame(
-        gameSlug: 'star-wars-battlefront-2',
-        gamePathOverride: argResults?['game-path'] as String?,
-        gameArgs: [],
-      );
-    } else {
-      final split = loginCredentials.split(':');
-
-      pid = await startGame(
-        gameSlug: 'star-wars-battlefront-2',
-        gamePathOverride: argResults?['game-path'] as String?,
-        gameArgs: [],
-        user: split[0],
-        pass: split[1],
-      );
-    }
+    final pid = await startGame(
+      gameSlug: 'star-wars-battlefront-2',
+      gamePathOverride: argResults?['game-path'] as String?,
+      gameArgs: [],
+    );
 
     final moduleDir = modulePath ?? FileHelper.getModuleDirectory().path;
     final moduleFile = join(moduleDir, 'Kyber.dll');
@@ -471,23 +421,22 @@ class StartServerCommand extends Command<int> {
       ..info('Game started with PID: $pid')
       ..info('Injecting Kyber from $moduleFile');
 
-    await injectKyber(pid: pid, path: moduleFile);
+    await waitForKyberModule(pid: pid, path: moduleFile);
 
     sl.registerSingleton<MaximaGameInstance>(
       MaximaGameInstance(
         pid: pid,
         isDedicated: true,
-        clientService: .new('', 0),
+        clientService: ClientGRPCService('', 0),
         mods: gameplayMods,
       ),
     );
 
     final completion = Completer<void>();
-    lsxGetEventStream(pid: pid).listen(
+    gameEvents(pid: pid).distinct().listen(
       (event) async {
-        if (event == 'RequestLicense') {
+        if (event == 'GameRunning') {
           _logger.success('Kyber started');
-          _uploadLicense(id: licenseId);
         }
       },
       onDone: completion.complete,
@@ -497,156 +446,5 @@ class StartServerCommand extends Command<int> {
     await completion.future;
 
     return ExitCode.success.code;
-  }
-
-  Future<String?> _fetchLicense({
-    required String id,
-    bool isFile = false,
-  }) async {
-    final endpoint = Platform.environment['KYBER_LICENSE_ENDPOINT'];
-    final authToken = Platform.environment['KYBER_LICENSE_AUTH_TOKEN'];
-    if (endpoint == null || authToken == null) {
-      return null;
-    }
-
-    _logger.info('Fetching license from $endpoint');
-
-    final dio = Dio();
-    dio.options.headers['Authorization'] = 'Bearer $authToken';
-
-    final metaData = Platform.environment['KYBER_SERVER_META'];
-    final regionId = switch (metaData) {
-      final String m when m.isNotEmpty => '?region=${_getServerRegion()}',
-      _ => '',
-    };
-
-    try {
-      final response = await dio.get<List<int>>(
-        '$endpoint/$id$regionId',
-        options: Options(responseType: ResponseType.bytes),
-      );
-
-      if (response.statusCode == 200) {
-        final licenseData = response.data!;
-
-        if (!isFile) {
-          final licenseString = utf8.decode(licenseData);
-          _logger.success('License fetched successfully');
-          return licenseString;
-        }
-
-        const licensePath =
-            '~/.local/share/maxima/wine/prefix/drive_c/ProgramData/Electronic Arts/EA Services/License/1035052.dlf';
-        File(licensePath.replaceFirst('~', Platform.environment['HOME']!))
-          ..createSync(recursive: true)
-          ..writeAsBytesSync(licenseData);
-        _logger.success('License fetched and saved to $licensePath');
-      } else {
-        _logger.err(
-          'Failed to fetch license: ${response.statusCode} ${response.statusMessage}',
-        );
-      }
-    } on DioException catch (e) {
-      if (e.response?.statusCode == 404) {
-        _logger.err('License not found on server');
-        return null;
-      }
-
-      rethrow;
-    } catch (e) {
-      _logger.err('Error fetching license: $e');
-    }
-  }
-
-  Future<void> _uploadLicense({required String id, String? data}) async {
-    final endpoint = Platform.environment['KYBER_LICENSE_ENDPOINT'];
-    final authToken = Platform.environment['KYBER_LICENSE_AUTH_TOKEN'];
-    if (endpoint == null || authToken == null) {
-      return;
-    }
-
-    _logger.info('Uploading Denuvo token to license server...');
-
-    final dio = Dio();
-    dio.options.headers['Authorization'] = 'Bearer $authToken';
-
-    final licenseData = switch (data) {
-      final String d when d.isNotEmpty => utf8.encode(d),
-      _ => () {
-        if (!Platform.isLinux) {
-          return [];
-        }
-
-        const licensePath =
-            '~/.local/share/maxima/wine/prefix/drive_c/ProgramData/Electronic Arts/EA Services/License/1035052.dlf';
-        final licenseFile = File(
-          licensePath.replaceFirst('~', Platform.environment['HOME']!),
-        );
-        if (!licenseFile.existsSync()) {
-          throw Exception('License file not found at $licensePath');
-        }
-
-        return licenseFile.readAsBytesSync();
-      }(),
-    };
-
-    if (licenseData.isEmpty) {
-      _logger.err('No license data to upload');
-      return;
-    }
-
-    final metaData = Platform.environment['KYBER_SERVER_META'];
-    final regionId = switch (metaData) {
-      final String m when m.isNotEmpty => '?region=${_getServerRegion()}',
-      _ => '',
-    };
-    try {
-      final response = await dio.put(
-        '$endpoint/$id$regionId',
-        data: licenseData,
-        options: Options(
-          headers: {
-            Headers.contentTypeHeader: 'application/octet-stream',
-            Headers.contentLengthHeader: licenseData.length,
-          },
-        ),
-      );
-
-      if (response.statusCode == 200) {
-        _logger.success('License uploaded successfully');
-      } else {
-        _logger.err(
-          'Failed to upload license: ${response.statusCode} ${response.statusMessage}',
-        );
-      }
-    } catch (e) {
-      _logger.err('Error uploading license: $e');
-    }
-  }
-
-  String _getServerRegion() {
-    final metaData = Platform.environment['KYBER_SERVER_METADATA'];
-    if (metaData == null || metaData.isEmpty) {
-      return 'unknown';
-    }
-
-    try {
-      final data = metaData.split(',').map((e) => MapEntry(e.split('=').first, e.split('=').last));
-      final map = Map<String, String>.fromEntries(data);
-
-      return map['pinned_proxy_id'] ?? 'unknown';
-    } catch (e) {
-      return 'unknown';
-    }
-  }
-
-  int _stableStringHash(String s) {
-    var hash = 0;
-
-    for (final codeUnit in s.codeUnits) {
-      hash = 31 * hash + codeUnit;
-    }
-
-    return hash & 0x7fffffff;
   }
 }

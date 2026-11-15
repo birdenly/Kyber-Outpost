@@ -4,7 +4,7 @@ import 'package:kyber_launcher/core/services/hotkey_manager.dart';
 import 'package:kyber_launcher/core/services/voip_service.dart';
 import 'package:kyber_launcher/features/maxima/models/maxima_game_instance.dart';
 import 'package:kyber_launcher/features/session/providers/session_cubit.dart';
-import 'package:kyber_launcher/gen/rust/api/maxima.dart';
+import 'package:kyber_launcher/gen/rust/api/outpost.dart';
 import 'package:kyber_launcher/injection_container.dart';
 import 'package:logging/logging.dart';
 
@@ -43,7 +43,7 @@ class MaximaInstanceService {
     _instances.add(instance);
     _logger.info('Instance ${instance.pid} added');
     HotKeyService.registerIngameHotKey();
-    lsxGetEventStream(pid: instance.pid).listen(
+    gameEvents(pid: instance.pid).listen(
       (event) => instance.addEvent(event),
       onDone: () => removeInstance(instance),
       onError: (e) => removeInstance(instance),

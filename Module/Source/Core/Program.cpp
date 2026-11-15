@@ -676,12 +676,6 @@ void GameSimulationInitHk(GameSimulation* inst, void* createInfo)
 
 const char* GetHostIdHk(__int64 inst)
 {
-    const char* playerName = std::getenv("KYBER_PLAYER_NAME");
-    if (playerName != nullptr && strlen(playerName) > 0)
-    {
-        return playerName;
-    }
-
     const char* eaId = std::getenv("EALaunchEAID");
     if (eaId != nullptr && strlen(eaId) > 0)
     {

@@ -20,6 +20,19 @@ namespace Kyber
 {
 static uint8_t s_proxifyBuffer[3072];
 
+static bool IsLanAddress(const sockaddr_in& address)
+{
+    const uint32_t ip = ntohl(address.sin_addr.s_addr);
+    return (ip & 0xFF000000) == 0x7F000000 || // Loopback
+        (ip & 0xFF000000) == 0x0A000000 || // 10.0.0.0/8
+        (ip & 0xFF000000) == 0x19000000 || // Hamachi: 25.0.0.0/8
+        (ip & 0xFF000000) == 0x1A000000 || // Radmin VPN: 26.0.0.0/8
+        (ip & 0xFFF00000) == 0xAC100000 || // 172.16.0.0/12
+        (ip & 0xFFFF0000) == 0xC0A80000 || // 192.168.0.0/16
+        (ip & 0xFFFF0000) == 0xA9FE0000 || // Link local
+        (ip & 0xFFC00000) == 0x64400000; // Shared address space used by VPNs
+}
+
 std::string DirectionToString(ProtocolDirection direction)
 {
     switch (direction)
@@ -43,6 +56,7 @@ UDPSocket::UDPSocket(SocketCreator* creator, ProtocolDirection direction, Socket
     , m_direction(direction)
     , m_info(info)
 {
+    m_info.isProxied = false;
     m_proxyQueue = std::make_shared<WebSocket::ReceiveQueue>();
 }
 
@@ -75,6 +89,10 @@ uint8_t* ProxifyBuffer(uint8_t* buffer, int& bufferSize, sockaddr* addr)
 bool UDPSocket::Send(uint8_t* buffer, int bufferSize, unsigned int flags)
 {
     sockaddr* addr = (sockaddr*)m_peerAddress.Data();
+    if (!IsLanAddress(*reinterpret_cast<sockaddr_in*>(addr)))
+    {
+        return false;
+    }
 
     // KYBER_LOG(Info, "[" << DirectionToString(m_direction) << "] Sending " << bufferSize << " bytes to "
     //                     << inet_ntoa(((sockaddr_in*)addr)->sin_addr) << ":" << ntohs(((sockaddr_in*)addr)->sin_port));
@@ -170,6 +188,11 @@ int UDPSocket::ReceiveFromWhen(uint8_t* buffer, int bufferSize, unsigned int& wh
             }
 
             return recvSize;
+        }
+
+        if (!IsLanAddress(addr))
+        {
+            return 0;
         }
     }
     else

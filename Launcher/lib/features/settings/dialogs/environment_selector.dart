@@ -11,7 +11,7 @@ import 'package:kyber_launcher/features/kyber/providers/kyber_api_status_cubit.d
 import 'package:kyber_launcher/features/maxima/providers/maxima_cubit.dart';
 import 'package:kyber_launcher/features/settings/dialogs/update_dialog.dart';
 import 'package:kyber_launcher/gen/fonts.gen.dart';
-import 'package:kyber_launcher/gen/rust/api/maxima.dart';
+import 'package:kyber_launcher/gen/rust/api/outpost.dart';
 import 'package:kyber_launcher/main.dart';
 import 'package:kyber_launcher/shared/ui/dialog/kyber_dialog.dart';
 import 'package:kyber_launcher/shared/ui/elements/dropdown/kyber_dropdown.dart';

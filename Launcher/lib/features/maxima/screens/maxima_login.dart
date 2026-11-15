@@ -107,7 +107,7 @@ class _MaximaLoginState extends State<MaximaLogin> {
     if (errorBlock != null) return errorBlock;
 
     return switch (state.status) {
-      .starting => const _StatusRow(text: 'Maxima is starting...'),
+      .starting => const _StatusRow(text: 'Outpost is starting...'),
       .loading => const _StatusRow(text: 'Fetching data...'),
       _ => _LoginIntro(onLogin: () => _requestLogin(context)),
     };
@@ -312,14 +312,14 @@ class _LoginIntro extends StatelessWidget {
       crossAxisAlignment: .start,
       children: [
         Text(
-          'In order to use this launcher, you need to login to Maxima. This is required to launch and interact with Battlefront 2.\nYou will be redirected to the EA login page and after logging in, you will be redirected back to the launcher.',
+          'Initialize your local player profile to play on LAN. The game needs an existing valid activation on this computer.',
           style: FluentTheme.of(context).typography.body,
         ),
         const SizedBox(height: 16),
         Row(
           children: [
             KyberButton(
-              text: 'Login with EA',
+              text: 'CONTINUE',
               onPressed: onLogin,
             ),
           ],

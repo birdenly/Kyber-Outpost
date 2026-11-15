@@ -19,10 +19,6 @@ dependencies:
   cached_network_image: ^3.3.1
   collection: ^1.19.1
   crypto: ^3.0.6
-  dart_discord_rpc:
-    git:
-      url: https://github.com/alexmercerind/dart_discord_rpc.git
-      ref: harmonoid
   dio: ^5.4.0
   dio_cache_interceptor: ^4.0.5
   http_cache_hive_store: ^5.0.1
@@ -90,9 +86,7 @@ dependencies:
   replay_bloc: ^0.3.0
   rxdart: ^0.28.0
   screen_retriever: ^0.2.0
-  sentry_dio: ^9.5.0
   sentry_flutter: ^9.5.0
-  sentry_logging: ^9.5.0
   slugify: ^2.0.0
   stream_transform: ^2.1.0
   super_drag_and_drop: ^0.10.0-dev.2

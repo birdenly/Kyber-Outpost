@@ -4,3 +4,19 @@ CLI/lib/src/version.dart
 pubspec.lock
 pubspec_overrides.yaml
 .sentry-native/
+
+# Local caches, diagnostics and editor settings.
+/.dart_tool/
+/.vscode/
+
+# Generated Dart and bridge sources are rebuilt during bootstrap.
+**/*.g.dart
+**/*.freezed.dart
+/CLI/lib/gen/
+/CLI/frb_generated.h
+/CLI/rust/Cargo.lock
+
+# Local reference checkouts; no longer project dependencies.
+/ThirdParty/Maxima/
+/CLI/ThirdParty/Maxima/
+/Kyber-LAN/

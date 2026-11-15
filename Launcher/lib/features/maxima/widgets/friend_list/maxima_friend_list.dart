@@ -6,7 +6,7 @@ import 'package:kyber_launcher/features/maxima/providers/maxima_rtm_cubit.dart';
 import 'package:kyber_launcher/features/maxima/widgets/maxima_avatar.dart';
 import 'package:kyber_launcher/features/session/providers/session_cubit.dart';
 import 'package:kyber_launcher/gen/fonts.gen.dart';
-import 'package:kyber_launcher/gen/rust/api/maxima.dart';
+import 'package:kyber_launcher/gen/rust/api/outpost.dart';
 import 'package:kyber_launcher/shared/ui/ui.dart';
 import 'package:super_sliver_list/super_sliver_list.dart';
 

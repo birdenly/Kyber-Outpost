@@ -1,6 +1,7 @@
 // Copyright Armchair Developers / Sean Kahler. Licensed under GPLv3.
 // Modified for Kyber Outpost (LAN Edition) - 2026-11-10.
 
+#include <chrono>
 #include <optional>
 #define _WINSOCKAPI_
 #include <RPC/API/Launcher.h>
@@ -23,6 +24,7 @@ void LauncherInterface::Initialize() const
     KYBER_LOG(Info, "[RPC] Asking launcher for initialization...");
 
     ClientContext context;
+    context.set_deadline(std::chrono::system_clock::now() + std::chrono::seconds(30));
 
     kyber_common::Empty empty;
 
@@ -69,9 +71,11 @@ void LauncherInterface::Initialize() const
             info.loadCommands.push_back(command);
         }
 
-        auto* event = new MainLoopInitStartServerEvent();
-        event->info = info;
-        g_program->m_server->m_eventManager->QueueEvent(event);
+        // The game can enter ClientState_Startup while MainLoop::Init is
+        // running. Its startup handler needs this intent before that call;
+        // engine settings are still applied on the game thread.
+        g_program->m_server->m_creationInfo = info;
+        KYBER_LOG(Info, "[RPC] Prepared server startup: " << info.level << " (" << info.mode << ")");
         break;
     }
     case kyber_interface::InitializeRequest::kJoinServer: {

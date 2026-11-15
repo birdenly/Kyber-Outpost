@@ -13,7 +13,7 @@ import 'package:kyber_launcher/features/reports/dialogs/report_player_dialog.dar
 import 'package:kyber_launcher/features/server_browser/widgets/server_list/server_list_header.dart';
 import 'package:kyber_launcher/gen/assets.gen.dart';
 import 'package:kyber_launcher/gen/fonts.gen.dart';
-import 'package:kyber_launcher/gen/rust/api/maxima.dart';
+import 'package:kyber_launcher/gen/rust/api/outpost.dart';
 import 'package:kyber_launcher/injection_container.dart';
 import 'package:kyber_launcher/shared/ui/buttons/custom_icon_button.dart';
 import 'package:kyber_launcher/shared/ui/cards/kyber_container.dart';

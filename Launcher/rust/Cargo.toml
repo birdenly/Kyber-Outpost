@@ -10,17 +10,25 @@ crate-type = ["cdylib", "staticlib"]
 [dependencies]
 flutter_rust_bridge = { version = "=2.11.1", default-features = false, features = ["anyhow", "user-utils", "dart-opaque", "backtrace", "thread-pool", "rust-async", "uuid"] }
 tokio = { version = "1.36.0", features = ["full", "rt", "rt-multi-thread", "time", "net"] }
-tokio-util = "0.7"
+tokio-util = { version = "0.7", features = ["compat"] }
 log = "0.4.20"
-maxima-lib = { path = "../../ThirdParty/Maxima/maxima-lib" }
-lazy_static = "1.4.0"
-regex = { version = "1.10.2", features = [] }
+kyber-local-runtime = { path = "../../Packages/kyber_runtime" }
 anyhow = "1.0.79"
 flutter_logger = "0.6.1"
 tar = "0.4.43"
 zip = { version = "=2.4.2", features = ["deflate"], default-features = false }
+async-compression = { version = "0.4.5", features = ["tokio", "deflate"] }
+flate2 = { version = "=1.0.28", default-features = false, features = ["zlib-default"] }
+reqwest = { version = "0.11.18", features = ["stream", "rustls-tls"], default-features = false }
+async-trait = "0.1"
+bytes = "1"
+bytebuffer = "2.2"
+derive-getters = "0.3"
+encoding = "0.2"
+futures = "0.3"
+strum_macros = "0.25"
+thiserror = "2"
 
 [patch.crates-io]
-pelite = { git = 'https://github.com/lifegpc/pelite.git' }
 async-compression = { git = 'https://github.com/ArmchairDevelopers/async-compression.git' }
 flate2 = { git = 'https://github.com/ArmchairDevelopers/flate2-rs.git' }

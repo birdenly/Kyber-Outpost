@@ -27,7 +27,7 @@ void initializeDependencies() {
 
   sl
     ..registerSingleton<KyberGRPCService>(
-      KyberGRPCService.fromEnv(Preferences.admin.apiEnv),
+      KyberGRPCService.local(),
     )
     ..registerSingleton<LanModServerService>(LanModServerService())
     ..registerSingleton<LanDiscoveryService>(lanDiscoveryService)

@@ -1,7 +1,6 @@
 import 'package:fluent_ui/fluent_ui.dart';
 import 'package:kyber/gen/Proto/kyber_interface.pb.dart';
 import 'package:kyber_launcher/core/services/app_settings.dart';
-import 'package:kyber_launcher/core/services/vivox_sdk_service.dart';
 import 'package:kyber_launcher/features/maxima/models/maxima_game_instance.dart';
 import 'package:kyber_launcher/features/settings/widgets/voip_key_picker.dart';
 import 'package:kyber_launcher/injection_container.dart';
@@ -44,7 +43,7 @@ class VoipService with ChangeNotifier {
     _pushToTalkKey = Preferences.general.pushToTalkKey;
     _isPushToTalkEnabled = Preferences.general.pushToTalk;
 
-    _isEnabled = Preferences.general.voiceChatEnabled;
+    _isEnabled = false;
 
     return this;
   }
@@ -71,8 +70,8 @@ class VoipService with ChangeNotifier {
   }
 
   Future<void> setVoiceChat({required bool enabled}) async {
-    _isEnabled = enabled;
-    Preferences.general.voiceChatEnabled = enabled;
+    _isEnabled = false;
+    Preferences.general.voiceChatEnabled = false;
     notifyListeners();
     await setGameVoipSettings();
   }
@@ -82,7 +81,9 @@ class VoipService with ChangeNotifier {
       (e) => e.id.contains('Default System Device'),
       orElse: () => devices.first,
     );
-    devices.move(devices.indexOf(defaultDevice), 0);
+    devices
+      ..remove(defaultDevice)
+      ..insert(0, defaultDevice);
 
     if (_selectedInputDevice.isEmpty ||
         !devices.any((e) => e.id == _selectedInputDevice)) {
@@ -100,7 +101,9 @@ class VoipService with ChangeNotifier {
       (e) => e.id.contains('Default System Device'),
       orElse: () => devices.first,
     );
-    devices.move(devices.indexOf(defaultDevice), 0);
+    devices
+      ..remove(defaultDevice)
+      ..insert(0, defaultDevice);
 
     if (_selectedOutputDevice.isEmpty ||
         !devices.any((e) => e.id.contains(_selectedOutputDevice))) {
@@ -115,7 +118,7 @@ class VoipService with ChangeNotifier {
   Future<void> setGameVoipSettings() async {
     notifyListeners();
 
-    if (!sl.isRegistered<MaximaGameInstance>()) {
+    if (!_isEnabled || !sl.isRegistered<MaximaGameInstance>()) {
       return;
     }
 

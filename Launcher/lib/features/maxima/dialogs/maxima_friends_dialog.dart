@@ -14,7 +14,7 @@ import 'package:kyber_launcher/features/maxima/widgets/maxima_avatar.dart';
 import 'package:kyber_launcher/features/reports/dialogs/report_player_dialog.dart';
 import 'package:kyber_launcher/features/session/providers/session_cubit.dart';
 import 'package:kyber_launcher/gen/fonts.gen.dart';
-import 'package:kyber_launcher/gen/rust/api/maxima.dart';
+import 'package:kyber_launcher/gen/rust/api/outpost.dart';
 import 'package:kyber_launcher/injection_container.dart';
 import 'package:kyber_launcher/shared/ui/ui.dart';
 import 'package:rxdart/rxdart.dart';

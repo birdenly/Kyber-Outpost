@@ -23,6 +23,8 @@ class SetupContainer extends StatefulWidget {
   const SetupContainer({
     required this.showWebView,
     required this.page,
+    required this.onLocalPlayerSetup,
+    required this.localPlayerBusy,
     required this.onNexusLogin,
     required this.onNexusCancel,
     required this.onNexusSuccess,
@@ -30,6 +32,8 @@ class SetupContainer extends StatefulWidget {
   });
 
   final int page;
+  final VoidCallback onLocalPlayerSetup;
+  final bool localPlayerBusy;
   final VoidCallback onNexusLogin;
   final VoidCallback onNexusCancel;
   final VoidCallback onNexusSuccess;
@@ -171,7 +175,7 @@ class _SetupContainerState extends State<SetupContainer> {
                             children: [
                               Text(
                                 widget.page == 0
-                                    ? 'SIGN IN: EA'
+                                    ? 'LOCAL PLAYER'
                                     : 'SIGN IN: NEXUS MODS',
                                 style: TextStyle(
                                   fontFamily: FontFamily.battlefrontUI,
@@ -181,7 +185,7 @@ class _SetupContainerState extends State<SetupContainer> {
                               ),
                               Text(
                                 widget.page == 0
-                                    ? 'VALIDATE GAME OWNERSHIP AND ACCESS ONLINE FEATURES IN-GAME.'
+                                    ? 'CREATE YOUR PLAYER PROFILE FOR LAN GAMES.'
                                     : 'LINK ACCOUNT AND ACCESS INTEGRATED NEXUS MODS FUNCTIONALITY.',
                                 style: const TextStyle(
                                   fontFamily: FontFamily.battlefrontUI,
@@ -431,7 +435,7 @@ class _SetupContainerState extends State<SetupContainer> {
                                   children: [
                                     Text(
                                       widget.page == 0
-                                          ? 'Open the official EA Sign In page:'
+                                          ? 'Choose your player name to continue:'
                                           : 'Open the official Nexus Mods sign in page:',
                                       style: const TextStyle(
                                         fontFamily: FontFamily.battlefrontUI,
@@ -477,12 +481,11 @@ class _SetupContainerState extends State<SetupContainer> {
                                                     child: Row(
                                                       children: [
                                                         if (widget.page == 0)
-                                                          Assets.logos.eaPlay
-                                                              .svg(
-                                                                color:
-                                                                    kWhiteColor,
-                                                                height: 30,
-                                                              )
+                                                          const Icon(
+                                                            mt.Icons.person,
+                                                            color: kWhiteColor,
+                                                            size: 30,
+                                                          )
                                                         else
                                                           Assets.logos.nexusMods
                                                               .svg(
@@ -493,8 +496,10 @@ class _SetupContainerState extends State<SetupContainer> {
                                                         const SizedBox(
                                                           width: 10,
                                                         ),
-                                                        const Text(
-                                                          'SIGN IN',
+                                                        Text(
+                                                          widget.page == 0
+                                                              ? 'CHOOSE NAME'
+                                                              : 'SIGN IN',
                                                           style: TextStyle(
                                                             fontFamily: FontFamily
                                                                 .battlefrontUI,
@@ -510,7 +515,9 @@ class _SetupContainerState extends State<SetupContainer> {
                                                   color: decoColor,
                                                 ),
                                                 const SizedBox(width: 8),
-                                                if (loading)
+                                                if (loading ||
+                                                    (widget.page == 0 &&
+                                                        widget.localPlayerBusy))
                                                   Container(
                                                     width: 30,
                                                     padding:
@@ -534,27 +541,18 @@ class _SetupContainerState extends State<SetupContainer> {
                                           ),
                                         );
                                       },
-                                      onClick: () async {
-                                        try {
-                                          setState(() => loading = true);
-                                          if (widget.page == 0) {
-                                            await context
-                                                .read<MaximaCubit>()
-                                                .requestLogin();
-                                          } else {
-                                            widget.onNexusLogin();
-                                          }
-                                        } finally {
-                                          setState(() => loading = false);
-                                        }
-                                      },
+                                      onClick: widget.page == 0
+                                          ? widget.localPlayerBusy
+                                                ? null
+                                                : widget.onLocalPlayerSetup
+                                          : widget.onNexusLogin,
                                     ),
                                     Expanded(
                                       child: Align(
                                         alignment: Alignment.bottomLeft,
                                         child: Text(
                                           widget.page == 0
-                                              ? 'The official EA Sign In page will open in an external browser. This step is required to proceed.'
+                                              ? 'Your player profile is stored locally. Outpost does not require an EA sign-in.'
                                               : 'The official Nexus Mods sign in page will open in this window. Skipping this step will disable all integrated Nexus Mods functionality.',
                                           style: const TextStyle(
                                             fontFamily:
@@ -597,7 +595,7 @@ class _SetupContainerState extends State<SetupContainer> {
                                 ),
                               ),
                               Text(
-                                'Maxima authentication service'.toUpperCase(),
+                                'Outpost local profile'.toUpperCase(),
                                 style: const TextStyle(
                                   fontFamily: FontFamily.battlefrontUI,
                                   fontSize: 17,
@@ -619,7 +617,7 @@ class _SetupContainerState extends State<SetupContainer> {
                                 text: TextSpan(
                                   children: [
                                     const TextSpan(
-                                      text: 'MAXIMA\n\n',
+                                      text: 'OUTPOST\n\n',
                                       style: TextStyle(
                                         fontFamily: FontFamily.battlefrontUI,
                                         fontSize: 20,
@@ -627,21 +625,21 @@ class _SetupContainerState extends State<SetupContainer> {
                                     ),
                                     const TextSpan(
                                       text:
-                                          'EA Sign In utilises Maxima - an in-development third-party replacement for the EA App. Maxima is developed and operated by Armchair Developers - the team behind KYBER for STAR WARS: Battlefront II.',
+                                          'Outpost uses a local player profile for LAN games. No account sign-in is required inside the launcher.',
                                     ),
                                     const TextSpan(
                                       text:
-                                          '\n\nIn the interest of maintaining transparency the entirety of Maxima’s source code is publicly available for viewing.\n\n',
+                                          '\n\nThe game must already have a valid activation from its official store. Outpost reuses that local activation for offline play.\n\n',
                                     ),
                                     TextSpan(
-                                      text: 'VIEW SOURCE CODE - MAXIMA',
+                                      text: 'VIEW SOURCE CODE - OUTPOST',
                                       style: TextStyle(
                                         color: kActiveColor,
                                       ),
                                       recognizer: TapGestureRecognizer()
                                         ..onTap = () {
                                           launchUrlString(
-                                            'https://github.com/ArmchairDevelopers/Maxima',
+                                            'https://github.com/birdenly/Kyber-Outpost',
                                           );
                                         },
                                     ),

@@ -86,7 +86,7 @@ class LanDiscoveryService {
       'httpPort': httpPort ?? InstanceManager.httpPort,
       'requiresPassword': requiresPassword,
       'maxPlayers': maxPlayers,
-      'playerCount': 1,
+      'playerCount': 0,
       'map': levelSetup.map,
       'mode': levelSetup.mode,
       'mapName': levelSetup.mapName,
@@ -118,6 +118,20 @@ class LanDiscoveryService {
     _hostedPayload = null;
   }
 
+  /// Publish the live human roster returned by the game's local RPC service.
+  void updateHostedState(ServerState state) {
+    final payload = _hostedPayload;
+    if (payload == null) return;
+    final changed =
+        payload['playerCount'] != state.playerList.length ||
+        payload['map'] != state.levelSetup.map ||
+        payload['mode'] != state.levelSetup.mode;
+    payload['playerCount'] = state.playerList.length;
+    payload['map'] = state.levelSetup.map;
+    payload['mode'] = state.levelSetup.mode;
+    if (changed) _sendBroadcastPacket(payload);
+  }
+
   void sendDiscoveryProbe() {
     if (_socket == null) {
       unawaited(startListening());
@@ -140,6 +154,32 @@ class LanDiscoveryService {
       server: server,
       lastSeen: DateTime.now().add(const Duration(minutes: 30)),
     );
+  }
+
+  Future<List<String>> getConnectedPlayerNames(Server server) async {
+    final host = server.ip.isEmpty ? '127.0.0.1' : server.ip;
+    final gamePort = server.port > 0
+        ? server.port
+        : InstanceManager.baseGamePort;
+    final httpPort =
+        int.tryParse(server.meta['lan_http_port'] ?? '') ??
+        InstanceManager.httpPortForGamePort(gamePort);
+    final dio = Dio(
+      BaseOptions(
+        connectTimeout: const Duration(seconds: 3),
+        receiveTimeout: const Duration(seconds: 3),
+      ),
+    );
+    final response = await dio.get<Map<String, dynamic>>(
+      Uri(
+        scheme: 'http',
+        host: host,
+        port: httpPort,
+        path: '/lan/info',
+      ).toString(),
+    );
+    final players = response.data?['players'];
+    return players is List ? players.whereType<String>().toList() : <String>[];
   }
 
   Future<Server> queryServerByIp(

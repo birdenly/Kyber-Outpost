@@ -24,6 +24,22 @@ ServerUnaryReactor* CommonInterfaceService::GetInfo(
 {
     ServerUnaryReactor* reactor = context->DefaultReactor();
 
+    if (g_program == nullptr)
+    {
+        reactor->Finish(Status(StatusCode::UNAVAILABLE, "Kyber is still initializing"));
+        return reactor;
+    }
+    {
+        // The interface starts before the client/server are constructed. The
+        // startup flag publishes their initialization under this same mutex.
+        std::lock_guard<std::mutex> lock(g_program->m_startupMutex);
+        if (!g_program->m_startupInitialized || g_program->m_server == nullptr || g_program->m_client == nullptr)
+        {
+            reactor->Finish(Status(StatusCode::UNAVAILABLE, "Kyber is still initializing"));
+            return reactor;
+        }
+    }
+
     if (g_program->m_server->IsRunning() && g_program->m_server->m_serverInstance != nullptr)
     {
         kyber_interface::ServerState* server = response->mutable_server();

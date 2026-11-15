@@ -50,12 +50,6 @@ namespace Kyber
 {
 static bool IsOnlineMode()
 {
-    const char* onlineMode = std::getenv("KYBER_ONLINE_MODE");
-    if (onlineMode != nullptr)
-    {
-        return std::string(onlineMode) == "1";
-    }
-
     return false;
 }
 
@@ -391,6 +385,16 @@ __int64 ServerCtorHk(void* inst, ServerSpawnInfo& info, SocketManager* socketMan
 
     g_program->m_server->m_playerManager = info.playerManager;
     g_program->m_server->m_serverInstance = inst;
+    // Initial hosted starts select the level through GameSettings rather than
+    // LoadNextLevel; publish the level actually being constructed as well.
+    if (info.levelSetup.Name != nullptr)
+    {
+        g_program->m_server->m_currentLevel = info.levelSetup.Name;
+    }
+    if (const char* mode = info.levelSetup.GetInclusionOption("GameMode"))
+    {
+        g_program->m_server->m_currentMode = mode;
+    }
     KYBER_LOG(Info, "[Server] Constructing a " << info.tickFrequency << "hz server " << info.levelSetup.Name);
     
     if (g_program->m_scriptManager != nullptr)
@@ -565,7 +569,7 @@ void* CreatePresenceBackendHk(__int64* a1, __int64 a2, int backend, __int64 a4, 
     // The game crashes without this, presumably trying to use a
     // Blaze presence backend for dedicated servers or something
     // which has been cooked out
-    if (g_program->m_isDedicatedServer)
+    if (g_program->m_isDedicatedServer || !g_program->m_server->m_onlineMode)
     {
         backend = 0xB8566ABC; // OnlineBackend_Local
         // backend = 0xDEBD4193; // OnlineBackend_Peer
@@ -670,16 +674,40 @@ bool ServerConnectionOnCreatePlayerMessageHk(ServerConnection* inst, NetworkCrea
 
     if (!g_program->m_server->m_onlineMode)
     {
+        // Verify again on the authoritative server after the Launcher preflight.
+        if (message->playerName == nullptr || strlen(message->playerName) == 0)
+        {
+            inst->SafeDisconnect("Choose a nickname in the Launcher before joining.");
+            return false;
+        }
+        auto* manager = g_program->m_server->m_playerManager;
+        auto* currentPlayer = inst->GetPlayer(LocalPlayerId_0, true);
+        const auto duplicateName = [&](const auto& players) {
+            for (auto* player : players)
+            {
+                if (player != nullptr && player != currentPlayer && !player->IsAIPlayer() && player->m_name != nullptr &&
+                    _stricmp(player->m_name, message->playerName) == 0)
+                {
+                    return true;
+                }
+            }
+            return false;
+        };
+        if (manager != nullptr && (duplicateName(manager->m_players) || duplicateName(manager->m_spectators)))
+        {
+            inst->SafeDisconnect("This nickname is already in use. Change your nickname in the Launcher and reconnect.");
+            return false;
+        }
         KYBER_LOG(Info, "[Server] [LAN] " << message->playerName << " joined (Spectator: " << message->isSpectator << ")");
         bool result = trampoline(inst, message);
 
         ServerPlayer* player = inst->GetPlayer();
         if (player != nullptr)
         {
-            uint64_t lanUserId = std::hash<std::string>{}(std::string(message->playerName));
-            player->m_onlineId.m_nativeData = lanUserId;
-            memset(player->m_onlineId.m_id, 0, sizeof(OnlineId::m_id));
-            strncpy(player->m_onlineId.m_id, player->m_name, sizeof(OnlineId::m_id) - 1);
+            // Keep the native ID already replicated to both clients. Replacing
+            // it with a hash here desynchronizes the team roster and scoreboard.
+            KYBER_LOG(Info, "[Server] [LAN] Native player ID for " << player->m_name
+                << ": " << player->m_onlineId.m_nativeData);
 
             g_program->m_server->InitializePlayer(player);
 

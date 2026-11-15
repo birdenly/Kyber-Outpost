@@ -61,7 +61,7 @@ Future<void> _onTaskDone(
     return;
   }
 
-  await MaximaLib.init();
+  await OutpostLib.init();
   await DownloadOrchestrator._processCompletedDownloadInIsolate(
     taskStatusUpdate,
     (count, total) {

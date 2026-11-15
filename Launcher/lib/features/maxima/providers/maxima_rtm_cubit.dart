@@ -3,7 +3,7 @@ import 'dart:async';
 
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:kyber/kyber.dart';
-import 'package:kyber_launcher/gen/rust/api/maxima.dart';
+import 'package:kyber_launcher/gen/rust/api/outpost.dart';
 import 'package:logging/logging.dart';
 
 class MaximaRtmCubit extends Cubit<MaximaRtmState> {

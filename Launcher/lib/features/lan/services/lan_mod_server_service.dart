@@ -163,7 +163,8 @@ class LanModServerService {
       'httpPort': _activePort,
       'requiresPassword': requiresPassword,
       'maxPlayers': maxPlayers,
-      'playerCount': 1,
+      'playerCount': 0,
+      'players': <String>[],
       'map': levelSetup.map,
       'mode': levelSetup.mode,
       'mapName': levelSetup.mapName,
@@ -174,6 +175,20 @@ class LanModServerService {
     _logger.info(
       'Configured LAN HTTP mod allowlist with ${_allowedMods.length} .fbmod files',
     );
+  }
+
+  void updateHostedState(ServerState state) {
+    if (_hostedServerMetadata.isEmpty) return;
+    _hostedServerMetadata['playerCount'] = state.playerList.length;
+    _hostedServerMetadata['players'] = state.playerList
+        .map((p) => p.name)
+        .toList();
+    _hostedServerMetadata['map'] = state.levelSetup.map;
+    _hostedServerMetadata['mode'] = state.levelSetup.mode;
+  }
+
+  void clearHostedServer() {
+    _hostedServerMetadata = <String, dynamic>{};
   }
 
   /// Enables Peer Seed Mode so a player on the LAN who already downloaded
@@ -396,9 +411,7 @@ class LanModServerService {
     required ServerMod mod,
     int? index,
   }) {
-    final safeName = mod.name
-        .replaceAll(RegExp(r'[<>:"/\\|?*]'), '_')
-        .trim();
+    final safeName = mod.name.replaceAll(RegExp(r'[<>:"/\\|?*]'), '_').trim();
     final safeVersion = mod.version
         .replaceAll(RegExp(r'[<>:"/\\|?*]'), '_')
         .trim();

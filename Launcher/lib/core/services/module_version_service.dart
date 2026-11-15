@@ -30,10 +30,12 @@ extension VersionModuleExtension on VersionModule {
   Future<String?> getCurrentVersion() async {
     switch (this) {
       case VersionModule.module:
-        final x = File(join(FileHelper.getModuleDirectory().path, 'VERSION'));
+        final x = File(
+          join(ModuleVersionService.selectedModuleDirectory.path, 'VERSION'),
+        );
 
         if (!x.existsSync()) {
-          return null;
+          return _kCloudUpdatesEnabled ? null : _bundledModuleVersion;
         }
 
         return x.readAsStringSync();
@@ -71,7 +73,7 @@ extension VersionModuleExtension on VersionModule {
       case VersionModule.installer:
         return [];
       case VersionModule.module:
-        final modulePath = FileHelper.getModuleDirectory().path;
+        final modulePath = ModuleVersionService.selectedModuleDirectory.path;
         return [
           '$modulePath/vivoxsdk.dll',
           '$modulePath/VanillaBundleAggregation.kb',
@@ -91,9 +93,19 @@ extension VersionModuleExtension on VersionModule {
 }
 
 const bool _kCloudUpdatesEnabled = false;
+const _bundledModuleVersion = '2.0.0-outpost-lan';
 
 class ModuleVersionService {
   final _logger = Logger('version_service');
+
+  static Directory get selectedModuleDirectory {
+    final bundleDirectory = Directory(dirname(Platform.resolvedExecutable));
+    if (File(join(bundleDirectory.path, 'Kyber.dll')).existsSync()) {
+      return bundleDirectory;
+    }
+
+    return FileHelper.getModuleDirectory();
+  }
 
   bool isStandalone() {
     // TODO: find a fix for this
@@ -134,31 +146,7 @@ class ModuleVersionService {
     String? channel,
     KyberGRPCService? service,
   }) async {
-    if (module == VersionModule.module) {
-      final moduleDir = FileHelper.getModuleDirectory();
-      if (!moduleDir.existsSync()) {
-        moduleDir.createSync(recursive: true);
-      }
-
-      final exeDir = dirname(Platform.resolvedExecutable);
-      final bundledDll = File(join(exeDir, 'Kyber.dll'));
-      final targetDll = File(join(moduleDir.path, 'Kyber.dll'));
-      if (bundledDll.existsSync() && !targetDll.existsSync()) {
-        bundledDll.copySync(targetDll.path);
-      }
-
-      final bundledVivox = File(join(exeDir, 'vivoxsdk.dll'));
-      final targetVivox = File(join(moduleDir.path, 'vivoxsdk.dll'));
-      if (bundledVivox.existsSync() && !targetVivox.existsSync()) {
-        bundledVivox.copySync(targetVivox.path);
-      }
-
-      final versionFile = File(join(moduleDir.path, 'VERSION'));
-      if (!versionFile.existsSync()) {
-        versionFile.writeAsStringSync('2.0.0-outpost-lan');
-      }
-    }
-
+    // LAN builds load the bundled DLL directly, without installing to ProgramData.
     return false;
   }
 
@@ -174,9 +162,7 @@ class ModuleVersionService {
     }
 
     // Kyber Outpost (LAN Edition): never contact Kyber Cloud for updates.
-    // Only make sure the bundled module files are in place.
     if (!_kCloudUpdatesEnabled) {
-      await updateAvailable(module: module);
       return;
     }
 
@@ -276,14 +262,6 @@ class ModuleVersionService {
   }
 
   Future<String?> getLatestLauncherVersion([String? releaseChannel]) async {
-    try {
-      final rawVersion = await Rhttp.getText(
-        'https://s3.kyber.gg/artifacts/launcher-versions/${releaseChannel ?? VersionModule.installer.releaseChannel}/latest-version',
-      );
-
-      return rawVersion.body.split(Platform.lineTerminator).first;
-    } catch (e) {
-      return null;
-    }
+    return null;
   }
 }

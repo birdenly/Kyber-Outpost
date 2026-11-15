@@ -8,14 +8,13 @@ import 'package:flutter_rust_bridge/flutter_rust_bridge.dart';
 import 'package:grpc/grpc.dart' hide Server;
 import 'package:kyber/kyber.dart' hide ProxyList;
 import 'package:kyber_cli/command_runner.dart';
-import 'package:kyber_cli/gen/api/maxima.dart';
+import 'package:kyber_cli/gen/api/outpost.dart';
 import 'package:kyber_cli/models/maxima_instance.dart';
 import 'package:kyber_cli/utils/collection_helper.dart';
 import 'package:kyber_cli/utils/env_helper.dart';
 import 'package:kyber_cli/utils/extensions/server_mod_extension.dart';
 import 'package:kyber_cli/utils/kyber_grpc_server.dart';
 import 'package:kyber_cli/utils/mod_helper.dart';
-import 'package:kyber_cli/utils/proxy_helper.dart';
 import 'package:kyber_cli/utils/services/level_declaration_service.dart';
 import 'package:kyber_cli/utils/types/raw_mods.dart';
 import 'package:kyber_cli/utils/windows_env.dart';
@@ -26,21 +25,55 @@ import 'package:path/path.dart';
 class StartGameCommand extends Command<int> {
   StartGameCommand({required Logger logger}) : _logger = logger {
     argParser
-      ..addFlag('lan', defaultsTo: true, help: 'Starts the game in LAN/Offline mode')
-      ..addOption('name', abbr: 'n', help: 'Player nickname for LAN mode', valueHelp: 'OutpostPlayer')
-      ..addOption('connect-ip', help: 'Connect directly to a LAN server IP[:port]', valueHelp: '192.168.1.10:25200')
+      ..addFlag(
+        'lan',
+        defaultsTo: true,
+        help: 'Starts the game in LAN/Offline mode',
+      )
+      ..addOption(
+        'name',
+        abbr: 'n',
+        help: 'Player nickname for LAN mode',
+        valueHelp: 'OutpostPlayer',
+      )
+      ..addOption(
+        'connect-ip',
+        help: 'Connect directly to a LAN server IP[:port]',
+        valueHelp: '192.168.1.10:25200',
+      )
       ..addFlag('spectate', help: 'Starts the game in spectate mode')
-      ..addOption('credentials', abbr: 'c', help: 'Specify the credentials to use for EA login', valueHelp: 'persona:password')
-      ..addOption('raw-mods', help: 'Specify a list of mods to use', valueHelp: 'path/to/mod_file.json')
-      ..addOption('collection-file', help: 'Specify the Mod Collection file to use', valueHelp: 'path/to/collection.kmodcollection')
-      ..addOption('server-id', help: 'Specify the server id to connect to')
-      ..addOption('proxy-id', help: 'Specify the proxy id to use')
-      ..addOption('token', abbr: 't')
+      ..addOption(
+        'raw-mods',
+        help: 'Specify a list of mods to use',
+        valueHelp: 'path/to/mod_file.json',
+      )
+      ..addOption(
+        'collection-file',
+        help: 'Specify the Mod Collection file to use',
+        valueHelp: 'path/to/collection.kmodcollection',
+      )
       ..addOption('game-path', help: 'Specify the game path')
-      ..addMultiOption('game-args', help: 'Specify the game arguments', valueHelp: '[arg1, arg2, ...]')
-      ..addOption('game-data-path', help: 'Specify the game data path', valueHelp: 'path', callback: (p0) => p0 is String ? Directory(p0) : null)
-      ..addOption('module-branch', help: 'Specify the branch to use for the Kyber module', valueHelp: 'branch')
-      ..addOption('module-path', help: 'Specify a custom directory to use for the Kyber module', valueHelp: 'path/to/module')
+      ..addMultiOption(
+        'game-args',
+        help: 'Specify the game arguments',
+        valueHelp: '[arg1, arg2, ...]',
+      )
+      ..addOption(
+        'game-data-path',
+        help: 'Specify the game data path',
+        valueHelp: 'path',
+        callback: (p0) => p0 is String ? Directory(p0) : null,
+      )
+      ..addOption(
+        'module-branch',
+        help: 'Specify the branch to use for the Kyber module',
+        valueHelp: 'branch',
+      )
+      ..addOption(
+        'module-path',
+        help: 'Specify a custom directory to use for the Kyber module',
+        valueHelp: 'path/to/module',
+      )
       ..addOption('interface-port', valueHelp: '9000');
   }
 
@@ -54,29 +87,27 @@ class StartGameCommand extends Command<int> {
 
   @override
   Future<int> run() async {
-    final service = sl.get<KyberGRPCService>();
     final modulePath = argResults?['module-path'] as String?;
     EnvHelper.setPath(modulePath);
+    Env.set(
+      'KYBER_MODULE_PATH',
+      join(modulePath ?? FileHelper.getModuleDirectory().path, 'Kyber.dll'),
+    );
 
-    final isLanMode = argResults?['lan'] as bool? ?? true;
-    final customName = argResults?['name'] as String?;
-    if (customName != null && customName.trim().isNotEmpty) {
-      Env.set('KYBER_PLAYER_NAME', customName.trim());
-      Env.set('EALaunchEAID', customName.trim());
+    if (argResults?['lan'] == false) {
+      _logger.err('This build only supports LAN. Use --connect-ip and --name.');
+      return ExitCode.usage.code;
     }
-
-    _logger.info('Starting login flow...');
+    final customName = argResults?['name'] as String?;
+    _logger.info('Initializing the local player profile...');
     late ServicePlayer player;
     try {
-      var loginCredentials = argResults?['credentials'] as String?;
-      if (loginCredentials != null && loginCredentials.startsWith('=')) {
-        loginCredentials = loginCredentials.substring(1);
-      }
-
-      player = await loginFlow(loginOverride: loginCredentials);
+      player = await getLocalProfile(name: customName ?? 'OutpostPlayer');
     } catch (e) {
       if (e is PanicException || e is AnyhowException) {
-        final err = e is PanicException ? e.message : (e as AnyhowException).message;
+        final err = e is PanicException
+            ? e.message
+            : (e as AnyhowException).message;
         if (err.contains('unknown variant `NO_SUCH_USER`')) {
           _logger.err('Login failed: The specified user does not exist');
         } else {
@@ -91,32 +122,9 @@ class StartGameCommand extends Command<int> {
 
     _logger.success('Ready as ${customName ?? player.displayName}.');
 
-    if (isLanMode) {
-      Env.set('KYBER_ONLINE_MODE', '0');
-      Env.set('KYBER_API_TOKEN', 'lan_offline_token');
-      _logger.info('Running in Kyber Outpost LAN mode (offline).');
-    } else {
-      _logger.info('Fetching Maxima auth token...');
-      final authToken = await getAuthToken();
-
-      _logger.info('Fetching Kyber auth token...');
-      try {
-        final kToken = await service.getAuthToken(authToken);
-        Env.set('KYBER_API_TOKEN', kToken);
-      } catch (e) {
-        if (e is GrpcError) {
-          if (e.code == StatusCode.unauthenticated || e.code == StatusCode.permissionDenied) {
-            _logger.err('Kyber Login Error: ${e.message}');
-          } else {
-            _logger.err('Failed to fetch Kyber auth token: ${e.message}');
-          }
-
-          return ExitCode.usage.code;
-        }
-      }
-
-      _logger.success('Kyber auth token fetched');
-    }
+    Env.set('KYBER_ONLINE_MODE', '0');
+    Env.set('KYBER_API_TOKEN', 'lan_offline_token');
+    _logger.info('Running in Kyber Outpost LAN mode (offline).');
 
     final rawModsPath = argResults?['raw-mods'] as String?;
     File? collectionFile;
@@ -130,33 +138,14 @@ class StartGameCommand extends Command<int> {
       await CollectionHelper().useCollection(collectionFile);
     }
 
-    Server? server;
-    if (argResults?['server-id'] != null) {
-      try {
-        _logger.info("Joining server with id: ${argResults!['server-id']}");
-        server = await service.serverBrowserClient.getServer(ServerRequest(id: argResults!['server-id']! as String));
-
-        final currentIp = await KyberNetworkHelper.getCurrentIpAddress();
-        if (server.ip == currentIp) {
-          server.ip = '127.0.0.1';
-        }
-      } catch (e) {
-        if (e is GrpcError) {
-          if (e.code == StatusCode.notFound) {
-            _logger.err('Server with id "${argResults!['server-id']}" not found');
-          } else {
-            _logger.err('Failed to fetch server: ${e.message}');
-          }
-        }
-      }
-    }
-
     JoinServerRequest? joinServerByIP;
     final connectIpArg = argResults?['connect-ip'] as String?;
     if (connectIpArg != null && connectIpArg.trim().isNotEmpty) {
       final parts = connectIpArg.trim().split(':');
       final targetIp = parts.first;
-      final targetPort = parts.length > 1 ? (int.tryParse(parts[1]) ?? 25200) : 25200;
+      final targetPort = parts.length > 1
+          ? (int.tryParse(parts[1]) ?? 25200)
+          : 25200;
       joinServerByIP = JoinServerRequest(
         id: '',
         ip: targetIp,
@@ -166,40 +155,11 @@ class StartGameCommand extends Command<int> {
         joinToken: '',
       );
       _logger.info('Configured direct LAN connection to $targetIp:$targetPort');
-    } else if (server != null) {
-      KyberProxy? proxy;
-      if (server.requiresProxy) {
-        final proxyId = argResults?['proxy-id'] as String?;
-        if (proxyId != null) {
-          final proxies = await ProxyHelper.getProxies();
-          final tmpProxy = proxies.where((x) => x.proxyInfo.id == proxyId).firstOrNull;
-          if (tmpProxy == null) {
-            _logger.err('Proxy with id $proxyId not found');
-            return ExitCode.usage.code;
-          }
-
-          proxy = tmpProxy;
-        } else {
-          proxy = await ProxyHelper.getOptimalProxy();
-        }
-      }
-
-      final tokenResp = await service.clientServerClient.createJoinToken(.new(
-        server: server.id,
-        password: Platform.environment['KYBER_SERVER_PASSWORD'],
-      ));
-
-      joinServerByIP = JoinServerRequest(
-        id: server.id,
-        ip: server.requiresProxy ? proxy!.proxyInfo.ip : server.ip,
-        port: server.requiresProxy ? null : server.port,
-        spectate: argResults?['spectate'] as bool? ?? false,
-        type: server.requiresProxy ? JoinServerType.PROXIED : JoinServerType.DIRECT,
-        joinToken: tokenResp.token,
-      );
     }
 
-    final kyberPort = argResults?['interface-port'] as String? ?? (await KyberNetworkHelper.findAvailablePort()).toString();
+    final kyberPort =
+        argResults?['interface-port'] as String? ??
+        (await KyberNetworkHelper.findAvailablePort()).toString();
     Env.set('KYBER_INTERFACE_PORT', kyberPort);
     Env.set('KYBER_API_HOSTNAME', sl.get<KyberGRPCService>().host);
     Env.set('KYBER_HTTP_HOSTNAME', sl.get<KyberGRPCService>().httpHostname);
@@ -210,7 +170,9 @@ class StartGameCommand extends Command<int> {
       final metaData = await ModCollection.readCollection(collectionFile);
       final dir = CollectionHelper().getModsDirectory();
       final mods = CollectionHelper().getModsList(metaData);
-      final fbMods = ModHelper.readFrostyMods(mods.map((e) => join(dir, e)).toList());
+      final fbMods = ModHelper.readFrostyMods(
+        mods.map((e) => join(dir, e)).toList(),
+      );
 
       gameplayMods = ModHelper.filterGameplayMods(fbMods);
 
@@ -218,7 +180,9 @@ class StartGameCommand extends Command<int> {
         basePath: normalize(dir),
         modPaths: mods,
         mods: gameplayMods.map((e) => e.toServerMod()),
-        explodedMods: ModHelper.expandMods(gameplayMods).map((e) => e.toServerMod()),
+        explodedMods: ModHelper.expandMods(
+          gameplayMods,
+        ).map((e) => e.toServerMod()),
       );
     } else if (rawModsPath != null) {
       final rawModsFile = File(rawModsPath);
@@ -228,8 +192,12 @@ class StartGameCommand extends Command<int> {
       }
 
       final data = rawModsFile.readAsStringSync();
-      final rawMods = RawMods.fromJson(jsonDecode(data) as Map<String, dynamic>);
-      final fbMods = ModHelper.readFrostyMods(rawMods.modPaths.map((e) => join(rawMods.basePath, e)).toList());
+      final rawMods = RawMods.fromJson(
+        jsonDecode(data) as Map<String, dynamic>,
+      );
+      final fbMods = ModHelper.readFrostyMods(
+        rawMods.modPaths.map((e) => join(rawMods.basePath, e)).toList(),
+      );
 
       gameplayMods = ModHelper.filterGameplayMods(fbMods);
 
@@ -237,16 +205,47 @@ class StartGameCommand extends Command<int> {
         basePath: rawMods.basePath,
         modPaths: rawMods.modPaths,
         mods: gameplayMods.map((e) => e.toServerMod()),
-        explodedMods: ModHelper.expandMods(gameplayMods).map((e) => e.toServerMod()),
+        explodedMods: ModHelper.expandMods(
+          gameplayMods,
+        ).map((e) => e.toServerMod()),
       );
     }
 
     final modEntries = <String, ModEntry>{};
-    for (final mod in gameplayMods.where((element) => kRequiredCategories.contains(element.details.category.toLowerCase()) && element.customFrostyData != null)) {
-      final modes = mod.customFrostyData!.modes.map((e) => CustomMode(e.name, e.id, e.maxPlayers ?? -1, base64.decode(e.image))).toList();
-      final maps = mod.customFrostyData!.maps.map((e) => CustomMap(e.name, e.id, e.supportedModes ?? [], base64.decode(e.image))).toList();
+    for (final mod in gameplayMods.where(
+      (element) =>
+          kRequiredCategories.contains(
+            element.details.category.toLowerCase(),
+          ) &&
+          element.customFrostyData != null,
+    )) {
+      final modes = mod.customFrostyData!.modes
+          .map(
+            (e) => CustomMode(
+              e.name,
+              e.id,
+              e.maxPlayers ?? -1,
+              base64.decode(e.image),
+            ),
+          )
+          .toList();
+      final maps = mod.customFrostyData!.maps
+          .map(
+            (e) => CustomMap(
+              e.name,
+              e.id,
+              e.supportedModes ?? [],
+              base64.decode(e.image),
+            ),
+          )
+          .toList();
 
-      modEntries[mod.filename] = ModEntry(maps, modes, mod.customFrostyData!.modeMappings ?? {}, mod.customFrostyData!.modeNameOverrides ?? {});
+      modEntries[mod.filename] = ModEntry(
+        maps,
+        modes,
+        mod.customFrostyData!.modeMappings ?? {},
+        mod.customFrostyData!.modeNameOverrides ?? {},
+      );
     }
 
     sl
@@ -255,13 +254,24 @@ class StartGameCommand extends Command<int> {
 
     final grpcServer = KyberGRPCServer();
     await grpcServer.start();
-    grpcServer.setInitializeRequest(InitializeRequest(joinServer: joinServerByIP, modData: modData));
+    grpcServer.setInitializeRequest(
+      InitializeRequest(joinServer: joinServerByIP, modData: modData),
+    );
 
     _logger.info('Kyber will listen on port $kyberPort');
-    final pid = await startGame(gameSlug: 'star-wars-battlefront-2', gamePathOverride: argResults?['game-path'] as String?, gameArgs: []);
+    final pid = await startGame(
+      gameSlug: 'star-wars-battlefront-2',
+      gamePathOverride: argResults?['game-path'] as String?,
+      gameArgs: [],
+    );
 
-    _logger.info('Injecting Kyber from ${FileHelper.getModuleDirectory().path}/Kyber.dll...');
-    injectKyber(pid: pid, path: FileHelper.getModuleDirectory().path + "\\Kyber.dll");
+    _logger.info(
+      'Injecting Kyber from ${FileHelper.getModuleDirectory().path}/Kyber.dll...',
+    );
+    await waitForKyberModule(
+      pid: pid,
+      path: FileHelper.getModuleDirectory().path + "\\Kyber.dll",
+    );
 
     sl.registerSingleton<MaximaGameInstance>(
       MaximaGameInstance(
@@ -274,9 +284,9 @@ class StartGameCommand extends Command<int> {
 
     _logger.info('Waiting for Kyber (PID: $pid)');
     final completion = Completer<void>();
-    lsxGetEventStream(pid: pid).listen(
+    gameEvents(pid: pid).distinct().listen(
       (event) async {
-        if (event != 'RequestLicense') {
+        if (event != 'GameRunning') {
           return;
         }
 

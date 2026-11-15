@@ -9,12 +9,14 @@ import 'package:kyber_launcher/core/services/instance_manager.dart';
 import 'package:kyber_launcher/core/services/rich_presence.dart';
 import 'package:kyber_launcher/core/services/voip_service.dart';
 import 'package:kyber_launcher/features/lan/services/lan_discovery_service.dart';
+import 'package:kyber_launcher/features/lan/services/lan_mod_server_service.dart';
 import 'package:kyber_launcher/features/maxima/models/maxima_game_instance.dart';
 import 'package:kyber_launcher/injection_container.dart';
 import 'package:logging/logging.dart';
 
 class KyberStatusCubit extends Cubit<KyberStatusState> {
   bool joined = false;
+  bool _wasHosting = false;
 
   KyberStatusCubit() : super(KyberStatusInitial()) {
     _statusTimer = Timer.periodic(
@@ -98,6 +100,7 @@ class KyberStatusCubit extends Cubit<KyberStatusState> {
   Future<void> onTick() async {
     final isRegistered = sl.isRegistered<MaximaGameInstance>();
     if (!isRegistered) {
+      _clearHostedServer();
       final rp = sl.get<RichPresence>();
       if (state is! KyberStatusInitial || rp.started != null) {
         sl.get<RichPresence>().clearPresence();
@@ -111,6 +114,13 @@ class KyberStatusCubit extends Cubit<KyberStatusState> {
     try {
       final client = sl.get<MaximaGameInstance>();
       final data = await client.clientService.commonClient.getInfo(Empty());
+      if (data.hasServer()) {
+        _wasHosting = true;
+        sl.get<LanDiscoveryService>().updateHostedState(data.server);
+        sl.get<LanModServerService>().updateHostedState(data.server);
+      } else {
+        _clearHostedServer();
+      }
       if (data.vivoxInitialized && client.voipSettings == null) {
         sl.get<VoipService>().setGameVoipSettings();
       }
@@ -156,6 +166,13 @@ class KyberStatusCubit extends Cubit<KyberStatusState> {
   }
 
   final _logger = Logger('status_cubit');
+
+  void _clearHostedServer() {
+    if (!_wasHosting) return;
+    _wasHosting = false;
+    sl.get<LanDiscoveryService>().stopBroadcasting();
+    sl.get<LanModServerService>().clearHostedServer();
+  }
 
   @override
   Future<void> close() {

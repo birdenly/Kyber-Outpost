@@ -24,7 +24,7 @@ class LightswitchCubit extends Cubit<LightswitchStatus> {
       navigatorKey.currentContext?.read<LightswitchCubit>().isEnabled(
         feature,
       ) ??
-      true;
+      false;
 
   LightswitchCubit() : super(LightswitchStatus.defaultStatus()) {
     _refresh();

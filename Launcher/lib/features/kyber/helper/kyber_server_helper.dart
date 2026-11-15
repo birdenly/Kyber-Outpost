@@ -10,6 +10,10 @@ import 'package:kyber_launcher/core/services/app_settings.dart';
 import 'package:kyber_launcher/core/services/notification_service.dart';
 import 'package:kyber_launcher/features/kyber/providers/kyber_api_status_cubit.dart';
 import 'package:kyber_launcher/features/kyber/providers/kyber_proxy_cubit.dart';
+import 'package:kyber_launcher/features/lan/dialogs/lan_nickname_dialog.dart';
+import 'package:kyber_launcher/features/lan/models/lan_nickname.dart';
+import 'package:kyber_launcher/features/lan/services/lan_discovery_service.dart';
+import 'package:kyber_launcher/features/maxima/providers/maxima_cubit.dart';
 import 'package:kyber_launcher/features/maxima/dialogs/maxima_start_game_dialog.dart';
 import 'package:kyber_launcher/features/maxima/models/maxima_game_instance.dart';
 import 'package:kyber_launcher/features/mod_collections/extensions/mod_collection_extension.dart';
@@ -30,6 +34,7 @@ class KyberServerHelper {
     String? password,
     bool queueIfFull = false,
   }) async {
+    if (!await _ensureUniqueNickname(server)) return;
     final localMods = sl.get<ModService>().mods;
     final mods = server.mods.map((e) {
       final matches = localMods
@@ -76,8 +81,8 @@ class KyberServerHelper {
     );
 
     var serverIp = server.ip;
-    final currentIp = await KyberNetworkHelper.getCurrentIpAddress();
-    if (serverIp.isEmpty || serverIp == currentIp) {
+    if (serverIp.isEmpty ||
+        await KyberNetworkHelper.isLocalIpAddress(serverIp)) {
       serverIp = '127.0.0.1';
     }
 
@@ -124,6 +129,34 @@ class KyberServerHelper {
       NotificationService.error(
         message: 'Failed to join server: $e',
       );
+    }
+  }
+
+  static Future<bool> _ensureUniqueNickname(Server server) async {
+    while (true) {
+      final nickname = sl.get<MaximaCubit>().getUsername() ?? '';
+      var names = <String>[];
+      try {
+        names = await sl.get<LanDiscoveryService>().getConnectedPlayerNames(
+          server,
+        );
+      } on Object catch (error) {
+        // Older hosts may not expose names. The native server repeats the check.
+        _logger.fine('Could not fetch the live LAN roster: $error');
+      }
+      final duplicate = isLanNicknameInUse(nickname, names);
+      if (validateLanNickname(nickname) == null && !duplicate) return true;
+      final context = navigatorKey.currentContext;
+      if (context == null) return false;
+      final changed = await showKyberDialog<String>(
+        context: context,
+        builder: (_) => LanNicknameDialog(
+          initialName: nickname,
+          duplicate: duplicate,
+          connectedNames: names,
+        ),
+      );
+      if (changed == null) return false;
     }
   }
 

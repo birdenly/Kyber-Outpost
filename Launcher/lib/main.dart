@@ -1,7 +1,6 @@
 import 'dart:async';
 import 'dart:io';
 
-import 'package:dio/dio.dart';
 import 'package:fluent_ui/fluent_ui.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart' as mt;
@@ -12,8 +11,8 @@ import 'package:flutter_js/flutter_js.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:form_builder_validators/localization/l10n.dart';
-import 'package:grpc/grpc.dart';
 import 'package:hive_ce_flutter/hive_flutter.dart';
+import 'package:kyber/kyber.dart';
 import 'package:kyber_collection/kyber_collection.dart';
 import 'package:kyber_launcher/core/core.dart';
 import 'package:kyber_launcher/core/services/instance_manager.dart';
@@ -49,11 +48,8 @@ import 'package:logging/logging.dart';
 import 'package:media_kit/media_kit.dart';
 import 'package:package_info_plus/package_info_plus.dart';
 import 'package:path/path.dart';
-import 'package:rhttp/rhttp.dart';
 import 'package:sentry_flutter/sentry_flutter.dart';
-import 'package:sentry_logging/sentry_logging.dart';
 import 'package:toastification/toastification.dart';
-import 'package:web_socket_channel/web_socket_channel.dart';
 import 'package:window_manager/window_manager.dart';
 
 const kMaximaDebugLevel = 'debug';
@@ -72,54 +68,6 @@ Box<ModCollectionMetaData> collectionBox = Hive.box<ModCollectionMetaData>(
 );
 String applicationDocumentsDirectory = '';
 
-Future<void> initSentry(String currentVersion) async => SentryFlutter.init(
-  (options) {
-    options
-      ..autoSessionTrackingInterval = const Duration(minutes: 1)
-      ..dsn = 'https://7331e76d0ced674d8855b0fb3032fe33@o4510921032859648.ingest.de.sentry.io/4510937360826448'
-      ..tracesSampleRate = 1.0
-      ..attachThreads = true
-      ..enableAppHangTracking = true
-      ..enableTimeToFullDisplayTracing = true
-      ..release = 'kyber-launcher@$currentVersion'
-      ..debug = false
-      ..beforeSend = (SentryEvent event, Hint? hint) {
-        final exception = event.exceptions?.firstOrNull?.throwable;
-
-        if (exception is SocketException ||
-            exception is WebSocketException ||
-            exception is WebSocketChannelException ||
-            exception is HttpException ||
-            exception is DioException ||
-            exception is TimeoutException) {
-          return null;
-        }
-
-        if (exception is GrpcError && exception.code == StatusCode.unknown) {
-          return null;
-        }
-
-        if (exception is FlutterError &&
-            exception.message.contains('RenderFlex')) {
-          return null;
-        }
-
-        if (kDebugMode) {
-          return null;
-        }
-
-        if (exception.toString().contains('Invalid image data')) {
-          return null;
-        }
-
-        return event;
-      }
-      ..addIntegration(
-        LoggingIntegration(),
-      );
-  },
-);
-
 Future<void> loadCerts() async {
   for (final ca in Assets.ca.values) {
     final data = await PlatformAssetBundle().load(ca);
@@ -132,6 +80,7 @@ Future<void> loadCerts() async {
 String? launcherVersion;
 
 void main() async {
+  LanNetworkPolicy.install();
   await InstanceManager.initialize();
   if (Platform.isWindows && !kDebugMode) {
     final exeDir = dirname(Platform.resolvedExecutable);
@@ -142,8 +91,7 @@ void main() async {
     }
   }
 
-  await Rhttp.init();
-  await MaximaLib.init();
+  await OutpostLib.init();
 
   await runZonedGuarded(
     () async {
@@ -166,7 +114,6 @@ void main() async {
 
       Logger('bootstrap').info('Loading Certificates');
       await loadCerts();
-      await initSentry(info.version);
       if (defaultTargetPlatform == .windows) {
         final availableVersion = await WebViewEnvironment.getAvailableVersion();
         if (availableVersion == null) {
@@ -220,13 +167,6 @@ class _AppState extends State<App> {
       flutterJs = getJavascriptRuntime();
       bbCodeJs = await rootBundle.loadString('assets/js/bundle.js');
       flutterJs!.evaluate(bbCodeJs!);
-
-      await Sentry.configureScope((scope) async {
-        await scope.setTag(
-          'release-channel',
-          VersionModule.installer.releaseChannel,
-        );
-      });
 
       router.routeInformationProvider.addListener(
         () => onUriChanged(router.routeInformationProvider.value.uri),

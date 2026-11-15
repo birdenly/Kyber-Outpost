@@ -7,7 +7,7 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter_inappwebview/flutter_inappwebview.dart';
 import 'package:kyber_launcher/core/services/app_settings.dart';
 import 'package:kyber_launcher/core/services/notification_service.dart';
-import 'package:kyber_launcher/gen/rust/api/maxima.dart' as mx;
+import 'package:kyber_launcher/gen/rust/api/outpost.dart' as mx;
 import 'package:kyber_launcher/main.dart';
 import 'package:logging/logging.dart';
 import 'package:path/path.dart';

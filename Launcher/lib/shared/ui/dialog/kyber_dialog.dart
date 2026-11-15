@@ -113,7 +113,11 @@ class _KyberContentDialogState extends State<KyberContentDialog>
     );
     Future.delayed(
       const Duration(milliseconds: 50),
-      () => _animationController.forward(),
+      () {
+        if (mounted) {
+          _animationController.forward();
+        }
+      },
     );
     super.initState();
   }

@@ -579,6 +579,11 @@ class SessionCubit extends Cubit<SessionState> {
   }
 
   Future<void> connect() async {
+    if (!LightswitchCubit.isFeatureEnabled(.parties) &&
+        !LightswitchCubit.isFeatureEnabled(.queues)) {
+      return;
+    }
+
     final userId = _userId;
     if (userId == null) {
       _logger.warning('User ID is null, cannot connect to session');

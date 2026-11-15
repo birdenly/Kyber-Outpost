@@ -230,36 +230,6 @@ static sentry_value_t OnCrash(const sentry_ucontext_t* uctx, sentry_value_t even
 
 void Sentry::Initialize()
 {
-#if defined(_DEBUG)
-    KYBER_LOG(Info, "Sentry disabled in debug builds");
-    return;
-#endif
-
-    sentry_options_t* options = sentry_options_new();
-    sentry_options_set_dsn(options, "https://0e9433cdc24aa998ae3944ebe424a313@o4510921032859648.ingest.de.sentry.io/4510937325699152");
-
-    sentry_options_set_database_pathw(options, (PlatformUtils::GetProgramDataPath() / "ModuleData/Sentry").c_str());
-
-    std::string moduleVersion = PlatformUtils::GetEnv("KYBER_MODULE_VERSION", "unknown");
-    sentry_options_set_release(options, ("kyber-module@" + moduleVersion).c_str());
-    sentry_options_set_debug(options, PlatformUtils::GetEnv("KYBER_SENTRY_DEBUG", "0") == "1");
-    sentry_options_set_sample_rate(options, 1.0);
-    
-    sentry_init(options);
-
-    sentry_value_t user = sentry_value_new_object();
-    sentry_value_set_by_key(user, "id", sentry_value_new_string(PlatformUtils::GetEnv("EASecureLaunchTokenTemp", "unknown").c_str()));
-    sentry_value_set_by_key(user, "username", sentry_value_new_string(PlatformUtils::GetEnv("EALaunchEAID", "unknown").c_str()));
-    sentry_set_user(user);
-
-    sentry_options_set_on_crash(options, OnCrash, nullptr);
-
-    if (std::getenv("KYBER_DEV_MODE") == nullptr)
-    {
-        HookManager::CreateHook(HOOK_OFFSET(0x1401FFC30), WriteMiniDumpHk);
-        Hook::ApplyQueuedActions();
-    
-        KYBER_LOG(Info, "Sentry initialized");
-    }
+    KYBER_LOG(Info, "Crash uploads are disabled in the LAN build");
 }
 } // namespace Kyber
