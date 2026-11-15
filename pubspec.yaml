@@ -38,21 +38,10 @@ melos:
       run: melos exec --scope="kyber_launcher" flutter_rust_bridge_codegen generate
     build_launcher:
       run: melos exec --scope="kyber_launcher" flutter build windows
-    update_modules:
-      run: git submodule update --recursive --remote
-    build_cli:
-      steps:
-        - melos exec --scope="kyber_cli" dart --enable-experiment=native-assets build "bin/kyber_cli.dart"
-        #- cp CLI\.cache\maxima-service.exe CLI\bin\kyber_cli\maxima-service.exe
-        #- cp CLI\.cache\maxima-bootstrap.exe CLI\bin\kyber_cli\maxima-bootstrap.exe
-        - copy CLI\.cache\maxima-service.exe CLI\bin\kyber_cli\maxima-service.exe
-        - copy CLI\.cache\maxima-bootstrap.exe CLI\bin\kyber_cli\maxima-bootstrap.exe
-        - copy CLI\rust\target\release\rust_lib.dll CLI\bin\kyber_cli\rust_lib.dll
     install_deps:
       steps:
         - mkdir "./Packages/kyber/lib/gen"
         - mkdir "./Launcher/lib/gen/rust"
-        - mkdir "./CLI/lib/src/gen"
         - dart pub global activate protoc_plugin 25.0.0
         - cargo install flutter_rust_bridge_codegen@2.11.1
         - flutter pub global activate index_generator

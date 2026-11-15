@@ -5,7 +5,6 @@
 list(APPEND FLUTTER_PLUGIN_LIST
   audioplayers_windows
   connectivity_plus
-  dart_discord_rpc
   desktop_webview_window
   file_selector_windows
   flutter_inappwebview_windows

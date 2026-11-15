@@ -52,6 +52,17 @@ add_subdirectory("runner")
 # them to the application.
 include(flutter/generated_plugins.cmake)
 
+# INSTALL can run without ALL_BUILD when it is included in the default VS
+# build. FFI libraries still need to be built before they can be bundled.
+foreach(ffi_plugin IN LISTS FLUTTER_FFI_PLUGIN_LIST)
+  if(TARGET ${ffi_plugin})
+    add_dependencies(${BINARY_NAME} ${ffi_plugin})
+  endif()
+  if(TARGET ${ffi_plugin}_cargokit)
+    add_dependencies(${BINARY_NAME} ${ffi_plugin}_cargokit)
+  endif()
+endforeach()
+
 
 # === Installation ===
 # Support files are copied into place next to the executable, so that it can
