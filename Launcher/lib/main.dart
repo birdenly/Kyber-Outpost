@@ -17,9 +17,6 @@ import 'package:kyber_collection/kyber_collection.dart';
 import 'package:kyber_launcher/core/core.dart';
 import 'package:kyber_launcher/core/services/instance_manager.dart';
 import 'package:kyber_launcher/features/download_manager/providers/download_manager_cubit.dart';
-import 'package:kyber_launcher/features/events/providers/event_cubic.dart';
-import 'package:kyber_launcher/features/kyber/providers/kyber_api_status_cubit.dart';
-import 'package:kyber_launcher/features/kyber/providers/kyber_proxy_cubit.dart';
 import 'package:kyber_launcher/features/kyber/providers/kyber_status_cubit.dart';
 import 'package:kyber_launcher/features/map_rotation/providers/map_rotation_cubit.dart';
 import 'package:kyber_launcher/features/maxima/providers/maxima_cubit.dart';
@@ -34,8 +31,6 @@ import 'package:kyber_launcher/features/server_browser/providers/server_browser_
 import 'package:kyber_launcher/features/server_browser/providers/server_list_cubit.dart';
 import 'package:kyber_launcher/features/server_moderation/providers/moderation_cubit.dart';
 import 'package:kyber_launcher/features/server_moderation/providers/moderation_servers_cubit.dart';
-import 'package:kyber_launcher/features/session/providers/session_cubit.dart';
-import 'package:kyber_launcher/features/stats/providers/stats_cubit.dart';
 import 'package:kyber_launcher/features/tutorial/providers/tutorial_cubit.dart';
 import 'package:kyber_launcher/gen/assets.gen.dart';
 import 'package:kyber_launcher/gen/fonts.gen.dart';
@@ -48,7 +43,6 @@ import 'package:logging/logging.dart';
 import 'package:media_kit/media_kit.dart';
 import 'package:package_info_plus/package_info_plus.dart';
 import 'package:path/path.dart';
-import 'package:sentry_flutter/sentry_flutter.dart';
 import 'package:toastification/toastification.dart';
 import 'package:window_manager/window_manager.dart';
 
@@ -145,7 +139,6 @@ void main() async {
     },
     (exception, stackTrace) async {
       Logger.root.severe('Uncaught exception:', exception, stackTrace);
-      await Sentry.captureException(exception, stackTrace: stackTrace);
     },
   );
 }
@@ -293,17 +286,9 @@ class _AppState extends State<App> {
                       BlocProvider(create: (_) => ModerationServersCubit()),
                       BlocProvider(create: (_) => ModerationCubit()),
                       BlocProvider(create: (_) => ServerBrowserCubit()),
-                      BlocProvider(create: (_) => EventCubit()),
-                      BlocProvider(create: (_) => KyberProxyCubit()),
                       BlocProvider(create: (_) => ModsListCubit()),
-                      BlocProvider(create: (_) => StatsCubit()),
-                      BlocProvider(create: (_) => SessionCubit()),
                       BlocProvider(create: (_) => IngameViewCubit()),
                       BlocProvider(create: (_) => DownloadCubit(), lazy: false),
-                      BlocProvider(
-                        create: (_) => LightswitchCubit(),
-                        lazy: false,
-                      ),
                     ],
                     child: KyberBackground(
                       child: child,

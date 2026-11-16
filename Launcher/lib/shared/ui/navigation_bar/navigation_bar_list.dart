@@ -40,7 +40,6 @@ class _NavigationBarListState extends State<NavigationBarList> {
   List<NavigationBarEntry> getItems() => [
     NavigationBarEntry('HOME', 'home'),
     NavigationBarEntry('HOST', 'server_host'),
-    NavigationBarEntry('STATS', 'stats'),
     NavigationBarEntry('MODS', 'mods'),
     //NavigationBarEntry('SETTINGS', 'settings'),
   ];

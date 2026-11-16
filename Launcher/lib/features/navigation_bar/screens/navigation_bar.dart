@@ -7,12 +7,8 @@ import 'package:kyber_launcher/core/routing/app_router.dart';
 import 'package:kyber_launcher/core/services/notification_service.dart';
 import 'package:kyber_launcher/features/download_manager/models/download_request.dart';
 import 'package:kyber_launcher/features/download_manager/services/download_orchestrator.dart';
-import 'package:kyber_launcher/features/kyber/helper/kyber_status_helper.dart';
-import 'package:kyber_launcher/features/kyber/providers/kyber_api_status_cubit.dart';
 import 'package:kyber_launcher/features/kyber/providers/kyber_status_cubit.dart';
 import 'package:kyber_launcher/features/kyber/services/kyber_grpc_service.dart';
-import 'package:kyber_launcher/features/kyber/widgets/api_status_box.dart';
-import 'package:kyber_launcher/features/lightswitch/models/status.dart';
 import 'package:kyber_launcher/features/maxima/models/maxima_game_instance.dart';
 import 'package:kyber_launcher/features/maxima/providers/maxima_cubit.dart';
 import 'package:kyber_launcher/features/navigation_bar/dialogs/confirm_close_dialog.dart';
@@ -121,34 +117,11 @@ class _NavigationBarState extends State<NavigationBar>
   }
 
   Widget _buildContent(ApplicationStatus state) {
-    return BlocConsumer<LightswitchCubit, LightswitchStatus>(
-      listener: _handleApiStatusChange,
-      listenWhen: (prev, state) =>
-          prev.status == .down && state.status != .down,
-      builder: (context, apiState) {
-        if (apiState.status == .down) {
-          return const ApiStatusBox();
-        }
-
-        if (!state.initialized) {
-          return const WalkThroughSetup();
-        }
-
-        return _buildMainContent();
-      },
-    );
-  }
-
-  void _handleApiStatusChange(
-    BuildContext context,
-    LightswitchStatus apiState,
-  ) {
-    if (apiState.status == .down) return;
-
-    final state = context.read<StatusCubit>().state;
-    if (state.initialized) {
-      context.read<MaximaCubit>().requestLogin();
+    if (!state.initialized) {
+      return const WalkThroughSetup();
     }
+
+    return _buildMainContent();
   }
 
   Widget _buildMainContent() {

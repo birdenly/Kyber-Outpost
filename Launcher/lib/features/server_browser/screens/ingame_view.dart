@@ -4,7 +4,6 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:kyber_launcher/core/config/colors.dart';
 import 'package:kyber_launcher/core/routing/app_router.dart';
 import 'package:kyber_launcher/features/mod_browser/screens/mod_details.dart';
-import 'package:kyber_launcher/features/reports/dialogs/report_player_dialog.dart';
 import 'package:kyber_launcher/features/server_browser/providers/ingame_view_cubit.dart';
 import 'package:kyber_launcher/gen/fonts.gen.dart';
 import 'package:kyber_launcher/shared/ui/layout/bordered_content.dart';
@@ -237,34 +236,6 @@ class _TeamContainerState extends State<_TeamContainer> {
                             fontFamily: FontFamily.battlefrontUI,
                             fontSize: 18,
                           ),
-                        ),
-                        Row(
-                          children: [
-                            AnimatedOpacity(
-                              opacity: hovered ? 1 : 0,
-                              duration: const Duration(milliseconds: 100),
-                              curve: Curves.easeOut,
-                              child: Row(
-                                children: [
-                                  KyberTooltip(
-                                    message: 'Report Player'.toUpperCase(),
-                                    child: CustomIconButton(
-                                      onPressed: () => showKyberDialog(
-                                        context: context,
-                                        builder: (_) => ReportPlayerDialog(
-                                          targetPlayer: player,
-                                        ),
-                                      ),
-                                      iconData: mt.Icons.report,
-                                      hoverColor: Colors.black,
-                                      color: hovered ? kButtonBorder : null,
-                                      size: 19,
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            ),
-                          ],
                         ),
                       ],
                     ),

@@ -12,7 +12,6 @@ import 'package:kyber_launcher/main.dart';
 import 'package:logging/logging.dart';
 import 'package:path/path.dart';
 import 'package:path_provider/path_provider.dart';
-import 'package:sentry_flutter/sentry_flutter.dart';
 
 class CustomLogger {
   static late File _logFile;
@@ -52,7 +51,6 @@ class CustomLogger {
       Logger.root.severe(
         'Uncaught exception: ${details.exception}\n${details.stack}',
       );
-      Sentry.captureException(details.exception, stackTrace: details.stack);
     };
   }
 

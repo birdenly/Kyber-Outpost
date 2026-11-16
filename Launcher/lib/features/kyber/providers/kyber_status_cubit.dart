@@ -6,7 +6,6 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:grpc/grpc.dart' hide Server;
 import 'package:kyber/kyber.dart';
 import 'package:kyber_launcher/core/services/instance_manager.dart';
-import 'package:kyber_launcher/core/services/rich_presence.dart';
 import 'package:kyber_launcher/core/services/voip_service.dart';
 import 'package:kyber_launcher/features/lan/services/lan_discovery_service.dart';
 import 'package:kyber_launcher/features/lan/services/lan_mod_server_service.dart';
@@ -35,7 +34,6 @@ class KyberStatusCubit extends Cubit<KyberStatusState> {
           .commonClient
           .getInfo(Empty());
       if (!state.hasServer() && !state.client.hasServerId()) {
-        sl.get<RichPresence>().clearPresence();
         return;
       }
 
@@ -59,8 +57,6 @@ class KyberStatusCubit extends Cubit<KyberStatusState> {
       } else {
         emit(KyberStatusNormal());
       }
-
-      sl.get<RichPresence>().updatePresenceKyber(state, server);
     });
   }
 
@@ -101,11 +97,6 @@ class KyberStatusCubit extends Cubit<KyberStatusState> {
     final isRegistered = sl.isRegistered<MaximaGameInstance>();
     if (!isRegistered) {
       _clearHostedServer();
-      final rp = sl.get<RichPresence>();
-      if (state is! KyberStatusInitial || rp.started != null) {
-        sl.get<RichPresence>().clearPresence();
-      }
-
       joined = false;
 
       return emit(KyberStatusInitial());
@@ -135,7 +126,6 @@ class KyberStatusCubit extends Cubit<KyberStatusState> {
                   (state as dynamic).server == null))) {
         final id = data.hasServer() ? data.server.id : data.client.serverId;
         server = _resolveLanServer(id, data);
-        sl.get<RichPresence>().updatePresenceKyber(data, server);
       }
 
       if (data.hasClient()) {

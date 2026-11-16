@@ -51,7 +51,6 @@ cc_binary(
         "//ThirdParty/FastDelegate",
         "//ThirdParty/json",
         "//ThirdParty/vivox",
-        "//ThirdParty/sentry",
         "//ThirdParty/lua",
         "//ThirdParty/safetyhook",
         "@grpc//:grpc++",

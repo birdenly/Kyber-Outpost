@@ -13,7 +13,6 @@ import 'package:kyber_launcher/core/services/app_settings.dart';
 import 'package:kyber_launcher/core/services/notification_service.dart';
 import 'package:kyber_launcher/features/download_manager/models/download_state.dart';
 import 'package:kyber_launcher/features/download_manager/providers/download_manager_cubit.dart';
-import 'package:kyber_launcher/features/kyber/providers/kyber_proxy_cubit.dart';
 import 'package:kyber_launcher/features/kyber/services/map_helper.dart';
 import 'package:kyber_launcher/features/mod_collections/extensions/mod_collection_extension.dart';
 import 'package:kyber_launcher/features/mods/helper/mod_helper.dart';
@@ -188,8 +187,7 @@ class _ServerInfoBoxState extends State<ServerInfoBox> {
 
   @override
   Widget build(BuildContext context) {
-    final proxiesLoading = context.watch<KyberProxyCubit>().state.loading;
-    if (!proxiesLoading && !_regionResolved) {
+    if (!_regionResolved) {
       _regionResolved = true;
       setPreferredRegion(widget.server);
     }

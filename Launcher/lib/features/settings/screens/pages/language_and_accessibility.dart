@@ -3,7 +3,6 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:kyber_launcher/core/config/colors.dart';
 import 'package:kyber_launcher/core/routing/app_router.dart';
 import 'package:kyber_launcher/core/services/app_settings.dart';
-import 'package:kyber_launcher/features/kyber/providers/kyber_proxy_cubit.dart';
 import 'package:kyber_launcher/features/maxima/providers/maxima_cubit.dart';
 import 'package:kyber_launcher/features/settings/dialogs/settings_reset_dialog.dart';
 import 'package:kyber_launcher/features/settings/screens/settings.dart';
@@ -73,37 +72,33 @@ class LanguageAndAccessibility extends StatelessWidget {
         HiveListener(
           keys: const ['rememberWindowPosition', 'groupServersByRegion'],
           box: box,
-          builder: (context) {
-            return BlocBuilder<KyberProxyCubit, KyberProxyState>(
-              builder: (context, state) {
-                return KyberTable(
-                  items: [
-                    KyberTableItem.button(
-                      title: 'RESET SETTINGS',
-                      onClick: () => showKyberDialog(
-                        context: context,
-                        builder: (_) => const SettingsResetDialog(),
-                      ),
-                      text: 'Reset',
-                    ),
-                    KyberTableItem.switchButton(
-                      title: 'Remember Window Position',
-                      value: Preferences.customization.rememberWindowPosition,
-                      onChange: (value) async {
-                        Preferences.customization.rememberWindowPosition =
-                            value;
-                      },
-                    ),
-                    KyberTableItem.switchButton(
-                      title: 'Group Servers by Region',
-                      value: Preferences.general.groupServersByRegion,
-                      onChange: (value) async {
-                        Preferences.general.groupServersByRegion = value;
-                      },
-                    ),
-                  ],
-                );
-              },
+          builder: (_) {
+            return KyberTable(
+              items: [
+                KyberTableItem.button(
+                  title: 'RESET SETTINGS',
+                  onClick: () => showKyberDialog(
+                    context: context,
+                    builder: (_) => const SettingsResetDialog(),
+                  ),
+                  text: 'Reset',
+                ),
+                KyberTableItem.switchButton(
+                  title: 'Remember Window Position',
+                  value: Preferences.customization.rememberWindowPosition,
+                  onChange: (value) async {
+                    Preferences.customization.rememberWindowPosition =
+                        value;
+                  },
+                ),
+                KyberTableItem.switchButton(
+                  title: 'Group Servers by Region',
+                  value: Preferences.general.groupServersByRegion,
+                  onChange: (value) async {
+                    Preferences.general.groupServersByRegion = value;
+                  },
+                ),
+              ],
             );
           },
         ),

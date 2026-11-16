@@ -13,7 +13,6 @@ import 'package:kyber_launcher/injection_container.dart';
 import 'package:kyber_launcher/main.dart';
 import 'package:logging/logging.dart';
 import 'package:path/path.dart';
-import 'package:sentry_flutter/sentry_flutter.dart';
 
 class StorageHelper {
   static String getCacheDir() {
@@ -31,11 +30,6 @@ class StorageHelper {
       ..registerAdapter(CollectionModAdapter(), override: true);
 
     box = await _openBox('data');
-    try {
-      if (Preferences.general.sentryOptedOut) {
-        await Sentry.close();
-      }
-    } catch (e) {}
 
     mapRotationBox = await _openBox('mapRotation');
     collectionBox = await _openBox<ModCollectionMetaData>('collections');

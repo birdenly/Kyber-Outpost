@@ -16,7 +16,6 @@ import 'package:kyber_launcher/gen/fonts.gen.dart';
 import 'package:kyber_launcher/shared/ui/buttons/button.dart';
 import 'package:kyber_launcher/shared/ui/dialog/kyber_dialog.dart';
 import 'package:logging/logging.dart';
-import 'package:sentry_flutter/sentry_flutter.dart';
 
 class MaximaStartGameDialog extends StatefulWidget {
   const MaximaStartGameDialog({
@@ -100,7 +99,6 @@ class _MaximaStartGameDialogState extends State<MaximaStartGameDialog> {
 
   Future<void> _handleLaunchError(Object error, StackTrace stackTrace) async {
     Logger.root.severe('Failed to start game', error, stackTrace);
-    unawaited(Sentry.captureException(error, stackTrace: stackTrace));
     if (!mounted) {
       return;
     }

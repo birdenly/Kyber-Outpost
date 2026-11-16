@@ -10,12 +10,10 @@ import 'package:kyber_launcher/core/core.dart';
 import 'package:kyber_launcher/features/download_manager/models/download_state.dart';
 import 'package:kyber_launcher/features/download_manager/providers/download_manager_cubit.dart';
 import 'package:kyber_launcher/features/kyber/providers/kyber_status_cubit.dart';
-import 'package:kyber_launcher/features/maxima/dialogs/maxima_friends_dialog.dart';
 import 'package:kyber_launcher/features/maxima/providers/maxima_cubit.dart';
 import 'package:kyber_launcher/features/maxima/providers/maxima_rtm_cubit.dart';
 import 'package:kyber_launcher/features/maxima/widgets/maxima_avatar.dart';
 import 'package:kyber_launcher/features/navigation_bar/widgets/exit_devplaytest_button.dart';
-import 'package:kyber_launcher/features/session/providers/session_cubit.dart';
 import 'package:kyber_launcher/features/settings/dialogs/chromium_download_dialog.dart';
 import 'package:kyber_launcher/gen/fonts.gen.dart';
 import 'package:kyber_launcher/injection_container.dart';
@@ -34,7 +32,6 @@ class _SocialBarState extends State<SocialBar> {
   Widget build(BuildContext context) {
     final kyberState = context.watch<KyberStatusCubit>().state;
     final maximaState = context.watch<MaximaCubit>().state;
-    final sessionState = context.watch<SessionCubit>().state;
 
     return SizedBox(
       height: 50,
@@ -52,20 +49,6 @@ class _SocialBarState extends State<SocialBar> {
             const ExitDevPlaytestButton(),
             const VCardSection(),
             const _UserBar(),
-            if (sessionState is InParty) ...[
-              const SizedBox(width: 0),
-              Flexible(
-                child: Container(
-                  constraints: const .new(
-                    maxWidth: 300,
-                    minWidth: 100,
-                  ),
-                  child: const _FriendsBar(),
-                ),
-              ),
-            ] else ...[
-              const _FriendsBar(reduced: true),
-            ],
             Row(
               children: [
                 if (kyberState is KyberStatusPlaying) ...[
@@ -73,13 +56,6 @@ class _SocialBarState extends State<SocialBar> {
                   _NavigationBarItem(
                     icon: const Icon(mt.Icons.games_outlined),
                     onClick: () => router.push('/ingame'),
-                  ),
-                ],
-                if (maximaState.isEntitled(.staff)) ...[
-                  const VCardSection(),
-                  _NavigationBarItem(
-                    icon: const _Reports(),
-                    onClick: () => router.push('/staff/reports'),
                   ),
                 ],
                 const VCardSection(),
@@ -339,125 +315,6 @@ class _DownloadInfo extends StatelessWidget {
           child: text,
         ),
       ],
-    );
-  }
-}
-
-class _FriendsBar extends StatelessWidget {
-  const _FriendsBar({this.reduced = false, super.key});
-
-  final bool reduced;
-
-  @override
-  Widget build(BuildContext context) {
-    return BlocBuilder<MaximaRtmCubit, MaximaRtmState>(
-      builder: (context, state) {
-        final friends = state.getSortedPlayers();
-
-        return ButtonBuilder(
-          onClick: () => showKyberDialog(
-            context: context,
-            builder: (_) => const MaximaFriendsDialog(),
-          ),
-          builder: (context, _) {
-            return LayoutBuilder(
-              builder: (context, constraints) {
-                final maxItems = !constraints.hasBoundedWidth
-                    ? 0
-                    : ((constraints.maxWidth - 20) / 40).floor();
-                final sessionState = context.watch<SessionCubit>().state;
-                var members = <KyberPlayer>[];
-                if (sessionState is InParty) {
-                  members = sessionState.party.members
-                      .where((m) => friends.any((f) => f.id == m.player.id))
-                      .take(maxItems)
-                      .map((m) => m.player)
-                      .toList();
-                }
-
-                return Row(
-                  mainAxisSize: .min,
-                  spacing: 10,
-                  children: [
-                    if (!reduced)
-                      for (final member in members)
-                        MaximaAvatar(pd: member.id, height: 28, width: 28),
-                    if (friends.length > maxItems)
-                      Text(
-                        '+${friends.length - maxItems}',
-                        style: const TextStyle(
-                          fontSize: 12,
-                          color: kInactiveColor,
-                        ),
-                      ),
-                  ],
-                );
-              },
-            );
-          },
-        );
-      },
-    );
-  }
-}
-
-class _Reports extends StatefulWidget {
-  const _Reports({super.key});
-
-  @override
-  State<_Reports> createState() => _ReportsState();
-}
-
-class _ReportsState extends State<_Reports> {
-  late Timer _timer;
-  int reports = 0;
-
-  @override
-  void initState() {
-    loadReports();
-    _timer = Timer.periodic(
-      const Duration(minutes: 15),
-      (timer) async => loadReports(),
-    );
-    super.initState();
-  }
-
-  Future<void> loadReports() async {
-    try {
-      final req = await sl
-          .get<KyberGRPCService>()
-          .reportServiceClient
-          .listReports(Empty());
-
-      reports = req.reports.where((e) => e.state == ReportState.OPEN).length;
-    } catch (e, s) {
-      Logger.root.severe('Failed to request reports', e, s);
-      reports = -1;
-    } finally {
-      if (mounted) {
-        setState(() {});
-      }
-    }
-  }
-
-  @override
-  void dispose() {
-    _timer.cancel();
-    super.dispose();
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    const icon = Icon(mt.Icons.shield);
-
-    if (reports <= 0) {
-      return icon;
-    }
-
-    return mt.Badge(
-      backgroundColor: kActiveColor,
-      label: Text(reports.toString()),
-      child: icon,
     );
   }
 }

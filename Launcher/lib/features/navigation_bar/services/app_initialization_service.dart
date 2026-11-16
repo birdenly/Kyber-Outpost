@@ -9,12 +9,9 @@ import 'package:kyber_launcher/core/services/app_settings.dart';
 import 'package:kyber_launcher/core/services/module_version_service.dart';
 import 'package:kyber_launcher/core/services/notification_service.dart';
 import 'package:kyber_launcher/core/services/process_info.dart';
-import 'package:kyber_launcher/core/services/rich_presence.dart';
 import 'package:kyber_launcher/core/services/storage_helper.dart';
 import 'package:kyber_launcher/core/services/taskbar_icon_helper.dart';
 import 'package:kyber_launcher/core/services/windows_utils.dart';
-import 'package:kyber_launcher/features/events/providers/event_cubic.dart';
-import 'package:kyber_launcher/features/kyber/providers/kyber_proxy_cubit.dart';
 import 'package:kyber_launcher/features/kyber/providers/kyber_status_cubit.dart';
 import 'package:kyber_launcher/features/maxima/providers/maxima_cubit.dart';
 import 'package:kyber_launcher/features/maxima/providers/maxima_rtm_cubit.dart';
@@ -24,11 +21,8 @@ import 'package:kyber_launcher/features/navigation_bar/dialogs/disable_comp_mode
 import 'package:kyber_launcher/features/navigation_bar/helper/protocol_helper.dart';
 import 'package:kyber_launcher/features/nexusmods/widgets/graphql_provider.dart';
 import 'package:kyber_launcher/features/server_moderation/providers/moderation_servers_cubit.dart';
-import 'package:kyber_launcher/features/session/providers/session_cubit.dart';
-import 'package:kyber_launcher/features/settings/dialogs/update_dialog.dart';
 import 'package:kyber_launcher/features/setup/dialogs/open_beta_dialog.dart';
 import 'package:kyber_launcher/features/setup/dialogs/rules_dialog.dart';
-import 'package:kyber_launcher/features/stats/providers/stats_cubit.dart';
 import 'package:kyber_launcher/injection_container.dart';
 import 'package:kyber_launcher/main.dart';
 import 'package:kyber_launcher/shared/ui/dialog/kyber_dialog.dart';
@@ -43,10 +37,7 @@ class AppInitializationService {
 
     context
       ..read<MaximaCubit>()
-      ..read<KyberStatusCubit>()
-      ..read<KyberProxyCubit>();
-
-    sl.get<RichPresence>().start();
+      ..read<KyberStatusCubit>();
   }
 
   static void _connectToSessionService(BuildContext context) async {
@@ -73,9 +64,6 @@ class AppInitializationService {
 
     if (context.mounted) {
       context.read<MaximaRtmCubit>().startPresenceStream();
-      context
-        ..read<StatsCubit>()
-        ..read<EventCubit>();
     }
 
     await ProtocolHelper.initialize();
@@ -83,7 +71,6 @@ class AppInitializationService {
     _connectToSessionService(context);
 
     await _checkCompatibilityMode(context);
-    await _checkForUpdates(context);
     await showOpenBetaDialog(context);
     await showRulesDialog(context);
     await _showPlatformWarnings();
@@ -100,18 +87,6 @@ class AppInitializationService {
         builder: (_) => const DisableCompModeDialog(),
       );
       exit(0);
-    }
-  }
-
-  static Future<void> _checkForUpdates(BuildContext context) async {
-    final update = await ModuleVersionService().updateAvailable(
-      module: VersionModule.installer,
-    );
-    if (update && context.mounted) {
-      await showKyberDialog(
-        context: context,
-        builder: (_) => const UpdateDialog(),
-      );
     }
   }
 

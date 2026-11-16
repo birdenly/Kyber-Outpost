@@ -17,9 +17,6 @@ import 'package:kyber_launcher/features/mods/providers/collection_editor_cubit.d
 import 'package:kyber_launcher/features/mods/screens/mods.dart';
 import 'package:kyber_launcher/features/mods/services/mod_service.dart';
 import 'package:kyber_launcher/features/navigation_bar/screens/navigation_bar.dart';
-import 'package:kyber_launcher/features/reports/providers/report_list_cubit.dart';
-import 'package:kyber_launcher/features/reports/screens/report_view.dart';
-import 'package:kyber_launcher/features/reports/screens/reports.dart';
 import 'package:kyber_launcher/features/server_browser/providers/server_list_cubit.dart';
 import 'package:kyber_launcher/features/server_browser/screens/ingame_view.dart';
 import 'package:kyber_launcher/features/server_browser/screens/server_browser.dart';
@@ -28,13 +25,8 @@ import 'package:kyber_launcher/features/server_host/providers/host_search_cubit.
 import 'package:kyber_launcher/features/server_host/screens/server_host.dart';
 import 'package:kyber_launcher/features/settings/screens/background_selector.dart';
 import 'package:kyber_launcher/features/settings/screens/settings_list.dart';
-import 'package:kyber_launcher/features/social/screens/social_home.dart';
-import 'package:kyber_launcher/features/stats/providers/stats_cubit.dart';
-import 'package:kyber_launcher/features/stats/screens/personal/stats_overview.dart';
-import 'package:kyber_launcher/features/stats/screens/stats.dart';
 import 'package:kyber_launcher/injection_container.dart';
 import 'package:kyber_launcher/main.dart';
-import 'package:sentry_flutter/sentry_flutter.dart';
 import 'package:uuid/uuid.dart';
 
 final GlobalKey<NavigatorState> navigatorKey = GlobalKey<NavigatorState>();
@@ -188,7 +180,6 @@ Page<void> buildCustomPage({
 final router = GoRouter(
   navigatorKey: navigatorKey,
   initialLocation: '/home',
-  observers: [SentryNavigatorObserver()],
   errorBuilder: (context, state) {
     return SafeArea(
       child: Center(
@@ -227,52 +218,6 @@ final router = GoRouter(
         GoRoute(
           path: '/',
           redirect: (context, state) => '/home',
-        ),
-        GoRoute(
-          path: '/staff',
-          name: 'staff',
-          redirect: (context, state) {
-            final user = context.read<MaximaCubit>().state;
-            if (!user.isEntitled(UserEntitlement.staff)) {
-              return '/home';
-            }
-
-            if (state.fullPath == '/staff') {
-              return '/staff/reports';
-            }
-
-            return null;
-          },
-          routes: [
-            GoRoute(
-              path: '/reports',
-              name: 'reports',
-              pageBuilder: (context, state) => buildCustomSubPage(
-                state: state,
-                pageKey: state.pageKey,
-                child: BlocProvider(
-                  create: (_) => ReportsCubit(),
-                  child: const Reports(),
-                ),
-              ),
-              routes: [
-                GoRoute(
-                  path: ':id',
-                  name: 'report',
-                  pageBuilder: (context, state) => buildCustomSubPage(
-                    state: state,
-                    pageKey: state.pageKey,
-                    child: ReportView(playerId: state.pathParameters['id']!),
-                  ),
-                ),
-              ],
-            ),
-          ],
-        ),
-        GoRoute(
-          path: '/social',
-          pageBuilder: (_, state) =>
-              buildCustomPage(child: const SocialHome(), state: state),
         ),
         GoRoute(
           path: '/home',
@@ -323,31 +268,6 @@ final router = GoRouter(
               ),
             );
           },
-        ),
-        GoRoute(
-          path: '/stats',
-          name: 'stats',
-          pageBuilder: (context, state) => buildCustomPage(
-            state: state,
-            child: const StatsView(),
-          ),
-          routes: [
-            GoRoute(
-              parentNavigatorKey: shellNavigatorKey,
-              path: ':id',
-              name: 'user-stats',
-              pageBuilder: (context, state) => buildCustomSubPage(
-                pageKey: state.pageKey,
-                state: state,
-                child: BlocProvider(
-                  create: (_) => StatsCubit(
-                    username: state.pathParameters['id'],
-                  ),
-                  child: const UserStats(),
-                ),
-              ),
-            ),
-          ],
         ),
         GoRoute(
           path: '/downloads',
