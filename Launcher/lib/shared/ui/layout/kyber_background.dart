@@ -7,7 +7,6 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:kyber_collection/kyber_collection.dart';
 import 'package:kyber_launcher/core/services/app_settings.dart';
 import 'package:kyber_launcher/features/maxima/providers/maxima_cubit.dart';
-import 'package:kyber_launcher/gen/assets.gen.dart';
 import 'package:kyber_launcher/gen/fonts.gen.dart';
 import 'package:kyber_launcher/main.dart';
 import 'package:kyber_launcher/shared/ui/utils/hive_listener.dart';
@@ -47,23 +46,54 @@ class KyberBackground extends StatelessWidget {
               } else {
                 imageProvider = AssetImage(imagePath);
               }
-            } else {
-              imageProvider = Assets.images.background.provider();
+            }
+
+            if (Preferences.admin.removeBackground) {
+              return Container(color: Colors.black);
+            }
+
+            if (imageProvider != null) {
+              return Container(
+                decoration: BoxDecoration(
+                  image: DecorationImage(
+                    image: imageProvider,
+                    fit: BoxFit.cover,
+                    colorFilter: ColorFilter.mode(
+                      Colors.black.withValues(alpha: 0.2),
+                      BlendMode.darken,
+                    ),
+                  ),
+                ),
+              );
             }
 
             return Container(
-              decoration: BoxDecoration(
-                image: Preferences.admin.removeBackground
-                    ? null
-                    : DecorationImage(
-                        image: imageProvider,
-                        fit: BoxFit.cover,
-                        colorFilter: ColorFilter.mode(
-                          Colors.black.withValues(alpha: 0.2),
-                          BlendMode.darken,
-                        ),
-                      ),
-                color: Preferences.admin.removeBackground ? Colors.black : null,
+              decoration: const BoxDecoration(
+                gradient: LinearGradient(
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
+                  colors: [
+                    Color(0xFF04070B),
+                    Color(0xFF0A1420),
+                    Color(0xFF132538),
+                    Color(0xFF080F18),
+                  ],
+                  stops: [0.0, 0.42, 0.76, 1.0],
+                ),
+              ),
+              child: Container(
+                decoration: const BoxDecoration(
+                  gradient: RadialGradient(
+                    center: Alignment(0.55, 0.15),
+                    radius: 0.95,
+                    colors: [
+                      Color(0x40213D58),
+                      Color(0x1813263A),
+                      Color(0x0004070B),
+                    ],
+                    stops: [0.0, 0.5, 1.0],
+                  ),
+                ),
               ),
             );
           },

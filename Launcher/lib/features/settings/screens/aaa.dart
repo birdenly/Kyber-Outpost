@@ -184,35 +184,35 @@ class _CreditsState extends State<Credits> {
                   color: kWhiteColor,
                   height: 140,
                 ),
-                const SizedBox(height: 28),
+                const SizedBox(height: 18),
                 Row(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
                     Container(
                       padding: const EdgeInsets.symmetric(
-                        horizontal: 12,
-                        vertical: 6,
+                        horizontal: 9,
+                        vertical: 4,
                       ),
                       decoration: BoxDecoration(
-                        borderRadius: BorderRadius.circular(4),
-                        border: Border.all(color: kWhiteColor, width: 1.5),
+                        borderRadius: BorderRadius.circular(3),
+                        border: Border.all(color: kWhiteColor, width: 1.2),
                       ),
                       child: Row(
                         mainAxisSize: MainAxisSize.min,
                         children: [
                           Image.asset(
                             'assets/logos/outpost_icon.png',
-                            height: 20,
+                            height: 13,
                             fit: BoxFit.contain,
                           ),
-                          const SizedBox(width: 8),
+                          const SizedBox(width: 6),
                           const Text(
                             'KYBER OUTPOST',
                             style: TextStyle(
                               fontFamily: FontFamily.battlefrontUI,
-                              fontSize: 20,
+                              fontSize: 14,
                               fontWeight: FontWeight.bold,
-                              letterSpacing: 1.5,
+                              letterSpacing: 1.2,
                               color: kWhiteColor,
                             ),
                           ),
@@ -220,25 +220,25 @@ class _CreditsState extends State<Credits> {
                       ),
                     ),
                     const Padding(
-                      padding: EdgeInsets.symmetric(horizontal: 14),
+                      padding: EdgeInsets.symmetric(horizontal: 10),
                       child: Text(
                         'BY',
                         style: TextStyle(
                           fontFamily: FontFamily.battlefrontUI,
-                          fontSize: 13,
+                          fontSize: 10,
                           color: kWhiteColor,
-                          letterSpacing: 1.2,
+                          letterSpacing: 1.0,
                         ),
                       ),
                     ),
-                    Text(
+                    const Text(
                       'BIRDEN',
                       style: TextStyle(
                         fontFamily: FontFamily.battlefrontUI,
-                        fontSize: 20,
+                        fontSize: 14,
                         fontWeight: FontWeight.bold,
-                        letterSpacing: 1.5,
-                        color: kActiveColor,
+                        letterSpacing: 1.2,
+                        color: kWhiteColor,
                       ),
                     ),
                   ],
