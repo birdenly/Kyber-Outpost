@@ -96,18 +96,31 @@ class _NexusLoginScreenState extends State<NexusLoginScreen> {
             uri.startsWith(
               'https://www.nexusmods.com/starwarsbattlefront22017',
             )) {
-          await sl.get<NexusModsService>().requestApiToken(
-            onUrl: (url) => controller.loadUrl(
-              urlRequest: URLRequest(url: WebUri(url)),
-            ),
-          );
-          widget.onSuccess();
+          try {
+            await sl.get<NexusModsService>().requestApiToken(
+              onUrl: (url) => controller.loadUrl(
+                urlRequest: URLRequest(url: WebUri(url)),
+              ),
+            );
+            if (mounted) {
+              widget.onSuccess();
+            }
+          } catch (e, s) {
+            Logger.root.severe('Failed NexusMods SSO flow', e, s);
+            if (mounted) {
+              widget.onShowOverlay(false);
+              NotificationService.error(
+                message: 'Failed to authorize with NexusMods: $e',
+              );
+            }
+          }
+          return;
         }
 
         if (uri.startsWith('https://www.nexusmods.com/sso')) {
           await controller.evaluateJavascript(
             source:
-                '''document.getElementsByClassName('hero-overlay')[0].scrollIntoView();''',
+                '''document.getElementsByClassName('hero-overlay')[0]?.scrollIntoView();''',
           );
           widget.onShowOverlay(false);
           return;

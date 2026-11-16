@@ -30,37 +30,38 @@ class NexusModsService {
 
   final _logger = Logger('nexus_mods_service');
 
-  Future<NexusModsService> getInstance() async {
-    if (apiToken != null) {
-      final info = await PackageInfo.fromPlatform();
-      final osInfo = Platform.operatingSystemVersion;
+  Future<Dio> _createDio() async {
+    final info = await PackageInfo.fromPlatform();
+    final osInfo = Platform.operatingSystemVersion.replaceAll(
+      RegExp(r'[^\x20-\x7E]'),
+      '',
+    );
+    final dartVersion = Platform.version.replaceAll(
+      RegExp(r'[^\x20-\x7E]'),
+      '',
+    );
 
+    return Dio(
+      BaseOptions(
+        headers: {
+          'User-Agent':
+              'KyberLauncher/v${info.version}-#${info.buildNumber} ($osInfo) Dart/$dartVersion',
+        },
+      ),
+    )..interceptors.add(DioCacheInterceptor(options: _cacheOptions));
+  }
+
+  Future<NexusModsService> getInstance() async {
+    final dio = await _createDio();
+
+    if (apiToken != null) {
       _nexusBridge = await NexusBridge.getInstance(
         apiToken: apiToken,
-        dio: Dio(
-          BaseOptions(
-            headers: {
-              'User-Agent':
-                  'KyberLauncher/v${info.version}-#${info.buildNumber} ($osInfo) Dart/${Platform.version}',
-            },
-          ),
-        )..interceptors.add(DioCacheInterceptor(options: _cacheOptions)),
+        dio: dio,
       );
       await fetchUser();
     } else {
-      final info = await PackageInfo.fromPlatform();
-      final osInfo = Platform.operatingSystemVersion;
-
-      _nexusBridge = await NexusBridge.getInstance(
-        dio: Dio(
-          BaseOptions(
-            headers: {
-              'User-Agent':
-              'KyberLauncher/v${info.version}-#${info.buildNumber} ($osInfo) Dart/${Platform.version}',
-            },
-          ),
-        )..interceptors.add(DioCacheInterceptor(options: _cacheOptions)),
-      );
+      _nexusBridge = await NexusBridge.getInstance(dio: dio);
     }
 
     return this;
@@ -196,7 +197,7 @@ class NexusModsService {
   Future<void> setApiToken(String token) async {
     _nexusBridge = await NexusBridge.getInstance(
       apiToken: token,
-      dio: Dio()..interceptors.add(DioCacheInterceptor(options: _cacheOptions)),
+      dio: await _createDio(),
     );
     Preferences.nexusMods.apiToken = token;
   }

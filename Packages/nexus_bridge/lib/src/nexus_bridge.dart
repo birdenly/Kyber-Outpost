@@ -13,7 +13,11 @@ class NexusBridge {
     _dio = dio;
 
     final apiDio = dio;
-    apiDio.options.headers['apikey'] = apiToken;
+    if (apiToken != null && apiToken.isNotEmpty) {
+      apiDio.options.headers['apikey'] = apiToken;
+    } else {
+      apiDio.options.headers.remove('apikey');
+    }
     apiClient = NxsApiClient(apiDio);
   }
 
@@ -59,15 +63,26 @@ class NexusBridge {
       return;
     }
 
-    final resp = await _dio.get<String>(
-      'https://staticstats.nexusmods.com/live_download_counts/mods/2229.csv',
-    );
+    try {
+      final resp = await _dio.get<String>(
+        'https://staticstats.nexusmods.com/live_download_counts/mods/2229.csv',
+      );
 
-    final stats = Csv(lineDelimiter: '\n', dynamicTyping: true)
-        .decode(resp.data!.substring(0, resp.data!.lastIndexOf('\n')));
+      final data = resp.data;
+      if (data == null || !data.contains('\n')) {
+        return;
+      }
 
-    for (final stat in stats) {
-      _modStatistics[stat.first as int] = List<int>.from(stat.sublist(1));
+      final stats = Csv(lineDelimiter: '\n', dynamicTyping: true)
+          .decode(data.substring(0, data.lastIndexOf('\n')));
+
+      for (final stat in stats) {
+        if (stat.isNotEmpty && stat.first is int) {
+          _modStatistics[stat.first as int] = List<int>.from(stat.sublist(1));
+        }
+      }
+    } catch (_) {
+      // Optional view-count statistics; never block NexusBridge initialization.
     }
   }
 
