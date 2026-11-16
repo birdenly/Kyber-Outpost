@@ -3,17 +3,13 @@ import 'package:fluent_ui/fluent_ui.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:kyber/kyber.dart';
 import 'package:kyber_launcher/core/config/colors.dart';
-import 'package:kyber_launcher/features/kyber/helper/kyber_status_helper.dart';
-import 'package:kyber_launcher/features/kyber/providers/kyber_api_status_cubit.dart';
 import 'package:kyber_launcher/features/lan/dialogs/lan_direct_connect_dialog.dart';
-import 'package:kyber_launcher/features/lightswitch/models/status.dart';
 import 'package:kyber_launcher/features/server_browser/constants/modes.dart';
 import 'package:kyber_launcher/features/server_browser/models/server_entry.dart';
 import 'package:kyber_launcher/features/server_browser/models/server_filter.dart';
 import 'package:kyber_launcher/features/server_browser/models/server_list_state.dart';
 import 'package:kyber_launcher/features/server_browser/providers/server_browser_cubit.dart';
 import 'package:kyber_launcher/features/server_browser/providers/server_list_cubit.dart';
-import 'package:kyber_launcher/features/server_browser/widgets/event_list.dart';
 import 'package:kyber_launcher/features/server_browser/widgets/server_info_box/server_info_box.dart';
 import 'package:kyber_launcher/features/server_browser/widgets/server_list/server_list.dart';
 import 'package:kyber_launcher/gen/assets.gen.dart';
@@ -87,7 +83,6 @@ class _ServerBrowserState extends State<ServerBrowser> {
           flex: 3,
           child: Column(
             children: [
-              const _StatusWidget(),
               BlocBuilder<ServerBrowserCubit, ServerBrowserState>(
                 builder: (context, state) {
                   if (state.selectedServer != null) {
@@ -98,7 +93,7 @@ class _ServerBrowserState extends State<ServerBrowser> {
                     );
                   }
 
-                  return const HomeEventList();
+                  return const SizedBox.shrink();
                 },
               ),
             ],
@@ -252,85 +247,6 @@ class _FilterDropdown extends StatelessWidget {
           );
         },
       ),
-    );
-  }
-}
-
-class _StatusWidget extends StatelessWidget {
-  const _StatusWidget({super.key});
-
-  @override
-  Widget build(BuildContext context) {
-    return BlocBuilder<LightswitchCubit, LightswitchStatus>(
-      builder: (context, apiState) {
-        if (apiState.status != KyberStatusEnum.warning) {
-          return const SizedBox.shrink();
-        }
-
-        return Padding(
-          padding: const .only(bottom: 20),
-          child: KyberCard(
-            padding: .zero,
-            child: Column(
-              crossAxisAlignment: .stretch,
-              children: [
-                SizedBox(
-                  height: 45,
-                  child: Padding(
-                    padding: const .symmetric(
-                      horizontal: 20,
-                      vertical: 12,
-                    ),
-                    child: Column(
-                      crossAxisAlignment: .start,
-                      mainAxisAlignment: .center,
-                      children: [
-                        Text(
-                          'WARNING',
-                          style: .new(
-                            fontFamily: FontFamily.battlefrontUI,
-                            fontSize: 21,
-                            color: kDefaultActiveColor,
-                            shadows: [
-                              Shadow(
-                                color: kDefaultActiveColor.withOpacity(0.55),
-                                offset: const Offset(0, 1),
-                                blurRadius: 20,
-                              ),
-                            ],
-                            height: 1,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                ),
-                const CardSection(),
-                Padding(
-                  padding: const .symmetric(
-                    horizontal: 20,
-                    vertical: 12,
-                  ),
-                  child: Row(
-                    children: [
-                      Flexible(
-                        child: Text(
-                          apiState.message ?? 'Warning message not available.',
-                          style: const TextStyle(
-                            fontFamily: FontFamily.battlefrontUI,
-                            fontSize: 15,
-                            height: 1,
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ],
-            ),
-          ),
-        );
-      },
     );
   }
 }

@@ -8,8 +8,6 @@ import 'package:kyber_collection/kyber_collection.dart';
 import 'package:kyber_launcher/core/routing/app_router.dart';
 import 'package:kyber_launcher/core/services/app_settings.dart';
 import 'package:kyber_launcher/core/services/notification_service.dart';
-import 'package:kyber_launcher/features/kyber/providers/kyber_api_status_cubit.dart';
-import 'package:kyber_launcher/features/kyber/providers/kyber_proxy_cubit.dart';
 import 'package:kyber_launcher/features/lan/dialogs/lan_nickname_dialog.dart';
 import 'package:kyber_launcher/features/lan/models/lan_nickname.dart';
 import 'package:kyber_launcher/features/lan/services/lan_discovery_service.dart';
@@ -19,7 +17,6 @@ import 'package:kyber_launcher/features/maxima/models/maxima_game_instance.dart'
 import 'package:kyber_launcher/features/mod_collections/extensions/mod_collection_extension.dart';
 import 'package:kyber_launcher/features/mods/extensions/frosty_collection_extension.dart';
 import 'package:kyber_launcher/features/mods/services/mod_service.dart';
-import 'package:kyber_launcher/features/session/providers/session_cubit.dart';
 import 'package:kyber_launcher/injection_container.dart';
 import 'package:kyber_launcher/shared/ui/dialog/kyber_dialog.dart';
 import 'package:logging/logging.dart';
@@ -166,41 +163,8 @@ class KyberServerHelper {
     bool? spectator,
     String? password,
   }) async {
-    final sessionCubit = navigatorKey.currentContext?.read<SessionCubit>();
-    if (sessionCubit == null) {
-      return;
-    }
-
-    try {
-      await sessionCubit.joinQueue(
-        server,
-        password: password ?? '',
-        spectator: spectator ?? false,
-        selectedCollection: selectedCollection,
-      );
-
-      NotificationService.info(
-        message: 'Server is full. You joined the queue.',
-      );
-    } on GrpcError catch (e) {
-      if (e.code == StatusCode.failedPrecondition &&
-          (e.message?.contains('not full') ?? false)) {
-        NotificationService.info(
-          message: 'Joining server...',
-        );
-        await joinServer(
-          server,
-          selectedCollection: selectedCollection,
-          spectator: spectator,
-          password: password,
-        );
-        return;
-      }
-
-      _logger.severe('Failed to join server queue: ${e.message}', e);
-      NotificationService.error(
-        message: 'Failed to join server queue: ${e.message}',
-      );
-    }
+    NotificationService.info(
+      message: 'Server is full.',
+    );
   }
 }

@@ -3,13 +3,11 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
 import 'package:kyber_launcher/features/maxima/providers/maxima_cubit.dart';
 import 'package:kyber_launcher/features/maxima/providers/maxima_rtm_cubit.dart';
-import 'package:kyber_launcher/features/maxima/screens/maxima_login.dart';
 import 'package:kyber_launcher/features/navigation_bar/providers/status_cubit.dart';
 import 'package:kyber_launcher/features/navigation_bar/widgets/action_bar.dart';
 import 'package:kyber_launcher/features/navigation_bar/widgets/social_bar.dart';
 import 'package:kyber_launcher/features/navigation_bar/widgets/title_bar.dart'
     as kl;
-import 'package:kyber_launcher/features/session/screens/party_overlay.dart';
 import 'package:kyber_launcher/shared/ui/navigation_bar/navigation_bar_list.dart';
 import 'package:window_manager/window_manager.dart';
 
@@ -50,12 +48,7 @@ class NavigationContent extends StatelessWidget {
           }
         },
         builder: (context, maximaState) {
-          if (!maximaState.loggedIn) {
-            return const MaximaLogin();
-          }
-
-          return PartyOverlay(
-            child: BlocBuilder<StatusCubit, ApplicationStatus>(
+          return BlocBuilder<StatusCubit, ApplicationStatus>(
               builder: (_, state) => Stack(
                 children: [
                   Positioned.fill(
@@ -82,7 +75,6 @@ class NavigationContent extends StatelessWidget {
                   //),
                 ],
               ),
-            ),
           );
         },
       ),

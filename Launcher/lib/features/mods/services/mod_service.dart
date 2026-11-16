@@ -11,7 +11,6 @@ import 'package:kyber_launcher/features/mods/services/level_declaration_service.
 import 'package:kyber_launcher/injection_container.dart';
 import 'package:logging/logging.dart';
 import 'package:path/path.dart';
-import 'package:sentry_flutter/sentry_flutter.dart';
 import 'package:stream_transform/stream_transform.dart';
 
 class ModService with ChangeNotifier {
@@ -175,7 +174,6 @@ class ModService with ChangeNotifier {
           });
     } catch (e, s) {
       _logger.severe('Failed to watch directory:', e, s);
-      Sentry.captureException(e, stackTrace: s);
       NotificationService.error(message: 'Failed to watch mods directory');
     }
   }

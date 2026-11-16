@@ -17,7 +17,6 @@ import 'package:kyber_launcher/features/mods/providers/collection_editor_cubit.d
 import 'package:kyber_launcher/features/mods/services/mod_service.dart';
 import 'package:kyber_launcher/features/mods/widgets/collection_list/collection_icon.dart';
 import 'package:kyber_launcher/features/plugin_manager/services/plugin_manager.dart';
-import 'package:kyber_launcher/features/session/providers/session_cubit.dart';
 import 'package:kyber_launcher/gen/assets.gen.dart';
 import 'package:kyber_launcher/gen/fonts.gen.dart';
 import 'package:kyber_launcher/injection_container.dart';
@@ -234,17 +233,6 @@ class _CollectionBoxState extends State<CollectionBox> {
                                 text: 'PLAY',
                                 icon: const Icon(mt.Icons.play_arrow_rounded),
                                 onPressed: () {
-                                  final sessionCubit = context
-                                      .read<SessionCubit>()
-                                      .state;
-                                  if (sessionCubit is InParty) {
-                                    NotificationService.warning(
-                                      message:
-                                          'You cannot launch a collection while in a party. Please leave your current party to launch this collection.',
-                                    );
-                                    return;
-                                  }
-
                                   MaximaHelper.requestGameLaunch(
                                     context,
                                     modCollection: collection,

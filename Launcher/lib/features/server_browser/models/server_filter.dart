@@ -3,7 +3,6 @@ import 'package:fluent_ui/fluent_ui.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:kyber/kyber.dart';
 import 'package:kyber_launcher/core/routing/app_router.dart';
-import 'package:kyber_launcher/features/kyber/providers/kyber_proxy_cubit.dart';
 import 'package:kyber_launcher/features/maxima/providers/maxima_cubit.dart';
 
 enum ServerType {
@@ -146,26 +145,7 @@ class ServerGroup {
   }
 
   ServerRegion? getPreferredRegion() {
-    final pinnedProxies = servers
-        .map((e) => e.meta['pinned_proxy_id'])
-        .nonNulls
-        .toSet();
-
-    final proxies =
-        navigatorKey.currentContext?.read<KyberProxyCubit>().state.proxies ??
-        const [];
-
-    // TODO: use server region instead
-    final region = proxies
-        .firstWhereOrNull((e) => pinnedProxies.contains(e.proxy.id))
-        ?.proxy
-        .serverRegion;
-
     final available = regions;
-    if (region != null && available.contains(region)) {
-      return region;
-    }
-
     return getPreferredServer().serverRegion ?? available.firstOrNull;
   }
 

@@ -51,7 +51,6 @@ dependencies:
   flutter_markdown: ^0.7.1
   flutter_staggered_grid_view: ^0.7.0
   flutter_svg: ^2.0.6
-  flutter_web_auth_2: ^6.0.0-alpha.7
   flutter_widget_from_html: ^0.17.0
   form_builder_validators: ^11.1.2
   freezed_annotation: ^3.1.0
@@ -73,7 +72,6 @@ dependencies:
     path: ../Packages/nexus_bridge
   nexus_gql:
     path: ../Packages/nexus_gql
-  oauth2_client: ^5.0.0-alpha.2
   package_info_plus: ^10.2.1
   protocol_handler:
     git:
@@ -86,7 +84,6 @@ dependencies:
   replay_bloc: ^0.3.0
   rxdart: ^0.28.0
   screen_retriever: ^0.2.0
-  sentry_flutter: ^9.5.0
   slugify: ^2.0.0
   stream_transform: ^2.1.0
   super_drag_and_drop: ^0.10.0-dev.2

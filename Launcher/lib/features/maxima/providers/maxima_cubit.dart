@@ -11,9 +11,6 @@ import 'package:kyber_launcher/core/routing/app_router.dart';
 import 'package:kyber_launcher/core/services/app_settings.dart';
 import 'package:kyber_launcher/core/services/windows_env.dart';
 import 'package:kyber_launcher/features/ea/services/search_service.dart';
-import 'package:kyber_launcher/features/kyber/helper/kyber_status_helper.dart';
-import 'package:kyber_launcher/features/kyber/providers/kyber_api_status_cubit.dart';
-import 'package:kyber_launcher/features/lightswitch/models/status.dart';
 import 'package:kyber_launcher/features/lan/models/lan_nickname.dart';
 import 'package:kyber_launcher/features/maxima/models/maxima_game_instance.dart';
 import 'package:kyber_launcher/gen/rust/api/outpost.dart';
@@ -132,28 +129,6 @@ class MaximaCubit extends Cubit<MaximaState> {
   Future<void> requestLogin({bool skipMaximaCheck = false}) async {
     if (_loggingIn) {
       return Future.error('Already logging in');
-    }
-
-    final cubit = navigatorKey.currentContext!.read<LightswitchCubit>();
-    late LightswitchStatus status;
-    if (!cubit.firstRequestCompleter.isCompleted) {
-      status = await cubit.firstRequestCompleter.future;
-    } else {
-      status = cubit.state;
-    }
-
-    if (status.status == KyberStatusEnum.down) {
-      _updateTimer?.cancel();
-
-      logger.severe('Kyber is down... Skipping login');
-
-      return emit(
-        MaximaState(
-          status: .error,
-          error: 'KyberDown',
-          servicePlayer: state.servicePlayer,
-        ),
-      );
     }
 
     if (state.status != .loaded && !skipMaximaCheck) {

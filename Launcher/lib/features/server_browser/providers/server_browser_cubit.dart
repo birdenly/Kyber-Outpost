@@ -33,7 +33,6 @@ import 'package:kyber_launcher/features/nexusmods/exceptions/missing_nexus_auth_
 import 'package:kyber_launcher/features/nexusmods/services/mod_finder_service.dart';
 import 'package:kyber_launcher/features/server_browser/dialogs/server_ban_dialog.dart';
 import 'package:kyber_launcher/features/server_browser/models/server_entry.dart';
-import 'package:kyber_launcher/features/session/providers/session_cubit.dart';
 import 'package:kyber_launcher/injection_container.dart';
 import 'package:kyber_launcher/shared/ui/dialog/kyber_dialog.dart';
 import 'package:logging/logging.dart';
@@ -97,46 +96,6 @@ class ServerBrowserCubit extends Cubit<ServerBrowserState> {
     String? serverPassword,
     ModCollectionMetaData? cosmeticCollection,
   }) async {
-    final context = navigatorKey.currentContext;
-    if (context != null) {
-      final sessionState = context.read<SessionCubit>().state;
-      if (sessionState is InParty) {
-        if (spectator) {
-          NotificationService.warning(
-            message: 'You cannot spectate while in a party!',
-          );
-          return;
-        }
-
-        final userId = context.read<MaximaCubit>().state.servicePlayer?.id;
-        if (userId == null) {
-          return;
-        }
-
-        if (sessionState.party.leaderId != userId) {
-          NotificationService.warning(
-            message: 'Only the party leader can join a server!',
-          );
-          return;
-        }
-
-        final banInfo = await _isBanned(serverInfo);
-        if (banInfo != null) {
-          await ServerBanDialog.show(context, banInfo: banInfo);
-          return;
-        }
-
-        await _startPartyJoinGame(serverInfo, serverPassword: serverPassword);
-        return;
-      }
-
-      final banInfo = await _isBanned(serverInfo);
-      if (banInfo != null) {
-        await ServerBanDialog.show(context, banInfo: banInfo);
-        return;
-      }
-    }
-
     if (hasAllRequiredMods(serverInfo)) {
       await _joinServer(
         serverInfo,
@@ -178,23 +137,6 @@ class ServerBrowserCubit extends Cubit<ServerBrowserState> {
 
   Future<BanInfo?> _isBanned(Server serverInfo) async {
     return null;
-  }
-
-  Future<void> _startPartyJoinGame(
-    Server serverInfo, {
-    String? serverPassword,
-  }) async {
-    try {
-      await navigatorKey.currentContext!.read<SessionCubit>().startJoinGame(
-        serverId: serverInfo.id,
-        password: serverPassword ?? '',
-      );
-    } catch (e) {
-      Logger('server_browser').severe('Error starting party join game', e);
-      NotificationService.error(
-        message: 'Failed to start party join: $e',
-      );
-    }
   }
 
   bool hasAllRequiredMods([Server? serverInfo]) {

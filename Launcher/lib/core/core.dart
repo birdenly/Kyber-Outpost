@@ -17,7 +17,6 @@ export 'services/module_version_service.dart';
 export 'services/native_dialog.dart';
 export 'services/notification_service.dart';
 export 'services/process_info.dart';
-export 'services/rich_presence.dart';
 export 'services/storage_helper.dart';
 export 'services/taskbar_icon_helper.dart';
 export 'services/unrar_service.dart';
