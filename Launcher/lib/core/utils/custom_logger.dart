@@ -5,6 +5,7 @@ import 'package:file_selector/file_selector.dart';
 import 'package:fluent_ui/fluent_ui.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter_inappwebview/flutter_inappwebview.dart';
+import 'package:kyber_collection/kyber_collection.dart';
 import 'package:kyber_launcher/core/services/app_settings.dart';
 import 'package:kyber_launcher/core/services/notification_service.dart';
 import 'package:kyber_launcher/gen/rust/api/outpost.dart' as mx;
@@ -112,12 +113,9 @@ class CustomLogger {
       await encoder.addFile(launcherLog, 'launcher-log.txt');
     }
 
-    if (Directory(
-      "${Platform.environment['APPDATA']}\\ArmchairDevelopers\\Kyber\\Logs",
-    ).existsSync()) {
-      final kyberLogsList = Directory(
-        "${Platform.environment['APPDATA']}\\ArmchairDevelopers\\Kyber\\Logs",
-      ).listSync();
+    final logsDirPath = join(FileHelper.getArmchairDirectory().path, 'Logs');
+    if (Directory(logsDirPath).existsSync()) {
+      final kyberLogsList = Directory(logsDirPath).listSync();
       final kyberLogs =
           kyberLogsList
               .where((e) => basename(e.path).startsWith('kyber_'))

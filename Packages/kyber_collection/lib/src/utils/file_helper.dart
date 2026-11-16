@@ -5,7 +5,9 @@ class FileHelper {
 
   static Directory getLauncherDirectory() {
     final baseDir = Directory(
-      Platform.isWindows ? '${Platform.environment['APPDATA']}\\ArmchairDevelopers\\Kyber\\Launcher' : '${Platform.environment['HOME']}/.local/share/kyber/launcher',
+      Platform.isWindows
+          ? '${Platform.environment['APPDATA']}\\KyberOutpost\\Launcher'
+          : '${Platform.environment['HOME']}/.local/share/kyber-outpost/launcher',
     );
 
     return baseDir;
@@ -13,7 +15,9 @@ class FileHelper {
 
   static Directory getArmchairDirectory() {
     final baseDir = Directory(
-      Platform.isWindows ? '${Platform.environment['APPDATA']}\\ArmchairDevelopers' : '${Platform.environment['HOME']}/.local/share/kyber',
+      Platform.isWindows
+          ? '${Platform.environment['APPDATA']}\\KyberOutpost'
+          : '${Platform.environment['HOME']}/.local/share/kyber-outpost',
     );
 
     return baseDir;
@@ -21,7 +25,9 @@ class FileHelper {
 
   static Directory getModuleDirectory() {
     final baseDir = Directory(
-      Platform.isWindows ? '${Platform.environment['ProgramData']}\\Kyber\\Module' : '${Platform.environment['HOME']}/.local/share/kyber/module',
+      Platform.isWindows
+          ? '${Platform.environment['APPDATA']}\\KyberOutpost\\Module'
+          : '${Platform.environment['HOME']}/.local/share/kyber-outpost/module',
     );
 
     return baseDir;
@@ -29,7 +35,9 @@ class FileHelper {
 
   static Directory getModsDirectory() {
     final baseDir = Directory(
-      Platform.isWindows ? '${Platform.environment['APPDATA']}\\ArmchairDevelopers\\Kyber\\Mods' : '${Platform.environment['HOME']}/.local/share/kyber/mods',
+      Platform.isWindows
+          ? '${Platform.environment['APPDATA']}\\KyberOutpost\\Mods'
+          : '${Platform.environment['HOME']}/.local/share/kyber-outpost/mods',
     );
 
     return baseDir;
@@ -37,7 +45,9 @@ class FileHelper {
 
   static Directory getCollectionDirectory() {
     final baseDir = Directory(
-      Platform.isWindows ? '${Platform.environment['APPDATA']}\\ArmchairDevelopers\\Kyber\\Mods' : '${Platform.environment['HOME']}/.local/share/kyber/mods',
+      Platform.isWindows
+          ? '${Platform.environment['APPDATA']}\\KyberOutpost\\Mods'
+          : '${Platform.environment['HOME']}/.local/share/kyber-outpost/mods',
     );
 
     return baseDir;

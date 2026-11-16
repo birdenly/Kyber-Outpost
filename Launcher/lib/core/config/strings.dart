@@ -1,5 +1,5 @@
 class Strings {
   Strings._();
 
-  static const String protocolName = 'kl';
+  static const String protocolName = 'klo';
 }

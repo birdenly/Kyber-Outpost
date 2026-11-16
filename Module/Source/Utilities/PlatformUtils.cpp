@@ -40,7 +40,7 @@ std::filesystem::path PlatformUtils::GetModulePath()
 std::filesystem::path PlatformUtils::GetProgramDataPath()
 {
     std::filesystem::path appdata = std::getenv("APPDATA");
-    return appdata / "ArmchairDevelopers/Kyber";
+    return appdata / "KyberOutpost";
 }
 
 std::string PlatformUtils::GetEnv(const std::string& env, const std::string& def)
