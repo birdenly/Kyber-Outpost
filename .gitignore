@@ -15,8 +15,3 @@ pubspec_overrides.yaml
 /CLI/lib/gen/
 /CLI/frb_generated.h
 /CLI/rust/Cargo.lock
-
-# Local reference checkouts; no longer project dependencies.
-/ThirdParty/Maxima/
-/CLI/ThirdParty/Maxima/
-/Kyber-LAN/
