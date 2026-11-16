@@ -24,12 +24,12 @@ void KyberOpenWebsiteEntity::Event(EntityEvent* event)
     if (event->Is("Open"))
     {
         std::string url = GetData()->URL;
-        if (!url.starts_with("https://kyber.gg") && !url.starts_with("https://nexusmods.com") &&
-            !url.starts_with("https://www.nexusmods.com") && !url.starts_with("https://battlefront.plus"))
+        if (!url.starts_with("https://nexusmods.com") && !url.starts_with("https://www.nexusmods.com") &&
+            !url.starts_with("https://battlefront.plus"))
         {
             KYBER_LOG(Warning,
                 "Attempted to open suspicious URL: "
-                    << url << ". KyberOpenWebsiteEntity only accepts URLs starting with 'https://kyber.gg', 'https://nexusmods.com', 'https://www.nexusmods.com', or 'https://battlefront.plus'.");
+                    << url << ". KyberOpenWebsiteEntity only accepts URLs starting with 'https://nexusmods.com', 'https://www.nexusmods.com', or 'https://battlefront.plus'.");
             return;
         }
 

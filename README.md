@@ -143,7 +143,7 @@ Unlike upstream KYBER (which used its own registered `application=kyber` SSO key
 2. Read the API key notice and press **OK** to show the login browser (preloaded in the background).
 3. Sign in with your NexusMods account. You will be redirected automatically to `https://www.nexusmods.com/settings/api-keys`.
 4. If you have not generated a Personal API Key yet, scroll down and click **Request API Key**. Kyber Outpost automatically detects the key from the page, validates it directly against `api.nexusmods.com`, and finishes login.
-5. Your Personal API Key stays local to your computer and is sent only to NexusMods when browsing or downloading mods.
+5. Your Personal API Key is encrypted locally using **Windows DPAPI** (`CryptProtectData`, scoped to your Windows user account) before being saved in local settings, and is sent only to NexusMods when browsing or downloading mods.
 
 The host selects the mods. Kyber Outpost shares the required mod files over the LAN to other players.
 

@@ -44,6 +44,7 @@ class LanHostedModEntry {
 class LanModServerService {
   static const int kDefaultPort = 25202;
   static const int _maxConcurrentDownloads = 2;
+  static const Duration _downloadQueueTimeout = Duration(seconds: 30);
 
   final Logger _logger = Logger('lan_mod_server');
 
@@ -243,15 +244,21 @@ class LanModServerService {
     }
   }
 
-  Future<void> _acquireDownloadSlot() async {
+  Future<bool> _acquireDownloadSlot() async {
     if (_activeDownloads < _maxConcurrentDownloads) {
       _activeDownloads++;
-      return;
+      return true;
     }
 
     final completer = Completer<void>();
     _downloadWaitQueue.add(completer);
-    await completer.future;
+    try {
+      await completer.future.timeout(_downloadQueueTimeout);
+      return true;
+    } on TimeoutException {
+      _downloadWaitQueue.remove(completer);
+      return false;
+    }
   }
 
   void _releaseDownloadSlot() {
@@ -396,10 +403,22 @@ class LanModServerService {
       return;
     }
 
-    await _acquireDownloadSlot();
+    final acquired = await _acquireDownloadSlot();
+    if (!acquired) {
+      response.statusCode = HttpStatus.serviceUnavailable;
+      response.headers.set(HttpHeaders.retryAfterHeader, '10');
+      response.write('LAN mod server busy, try again shortly');
+      await response.close();
+      return;
+    }
+
     try {
       await response.addStream(file.openRead(start, end + 1));
       await response.close();
+    } on HttpException catch (e) {
+      _logger.fine('LAN mod download interrupted for ${entry.filename}: $e');
+    } on SocketException catch (e) {
+      _logger.fine('LAN mod socket closed for ${entry.filename}: $e');
     } finally {
       _releaseDownloadSlot();
     }

@@ -8,20 +8,16 @@ class LanNetworkPolicy extends HttpOverrides {
     'nexus-cdn.com',
     'nexusmodsusercontent.com',
   ];
-  static const _modServices = [
-    'mod-service.prod.kyber.gg',
-    'mod-bridge.reax.at',
-  ];
 
   /// Applies the LAN and mod-host policy to HTTP clients in this isolate.
   static void install() {
     HttpOverrides.global = LanNetworkPolicy();
   }
 
-  /// Permits numeric LAN/VPN addresses and the mod browser services.
+  /// Permits numeric LAN/VPN addresses and the NexusMods browser domains.
   static bool allowsHost(String hostname) {
     final host = hostname.toLowerCase();
-    if (host == 'localhost' || _modServices.contains(host)) {
+    if (host == 'localhost') {
       return true;
     }
     if (_modDomains.any(

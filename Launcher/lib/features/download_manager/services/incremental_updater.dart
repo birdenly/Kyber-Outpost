@@ -17,7 +17,6 @@ import 'package:path_provider/path_provider.dart';
 import 'package:slugify/slugify.dart';
 
 const _kAllowedHosts = [
-  'kyber.gg',
   'nexusmods.com',
 ];
 

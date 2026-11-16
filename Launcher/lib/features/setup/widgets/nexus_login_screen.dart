@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import 'package:fluent_ui/fluent_ui.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter_inappwebview/flutter_inappwebview.dart';
 import 'package:kyber_launcher/core/services/notification_service.dart';
 import 'package:kyber_launcher/features/nexusmods/services/nexusmods_service.dart';
@@ -134,7 +135,7 @@ class _NexusLoginScreenState extends State<NexusLoginScreen> {
       ),
       initialSettings: InAppWebViewSettings(
         forceDark: ForceDark.ON,
-        isInspectable: true,
+        isInspectable: kDebugMode,
       ),
       onWebViewCreated: (controller) async {
         this.controller = controller;

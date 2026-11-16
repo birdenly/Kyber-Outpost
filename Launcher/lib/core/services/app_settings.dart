@@ -1,6 +1,7 @@
 import 'dart:io';
 
 import 'package:flutter/material.dart';
+import 'package:kyber_launcher/core/services/dpapi_secret_storage.dart';
 import 'package:kyber_launcher/main.dart';
 
 //final box = box;
@@ -196,9 +197,23 @@ class NexusMods {
 
   set isLoggedIn(bool value) => box.put('nexusmods_login', value);
 
-  String? get apiToken => box.get('nexusmods_api_token') as String?;
+  String? get apiToken {
+    final stored = box.get('nexusmods_api_token') as String?;
+    final plain = DpapiSecretStorage.unprotect(stored);
+    if (stored != null && plain != null && stored == plain) {
+      // Transparently migrate legacy plaintext tokens to Windows DPAPI storage.
+      box.put('nexusmods_api_token', DpapiSecretStorage.protect(plain));
+    }
+    return plain;
+  }
 
-  set apiToken(String? value) => box.put('nexusmods_api_token', value);
+  set apiToken(String? value) {
+    if (value == null || value.isEmpty) {
+      box.delete('nexusmods_api_token');
+    } else {
+      box.put('nexusmods_api_token', DpapiSecretStorage.protect(value));
+    }
+  }
 }
 
 class Debug {
