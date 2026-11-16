@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:fluent_ui/fluent_ui.dart';
 import 'package:flutter_inappwebview/flutter_inappwebview.dart';
 import 'package:kyber_launcher/core/services/notification_service.dart';
@@ -22,9 +24,103 @@ class NexusLoginScreen extends StatefulWidget {
 
 class _NexusLoginScreenState extends State<NexusLoginScreen> {
   InAppWebViewController? controller;
+  Timer? _apiKeyPollTimer;
+  bool _isValidatingKey = false;
+  final Set<String> _rejectedCandidates = {};
+
+  static const String _extractPersonalApiKeyJs = r'''
+(() => {
+  const tokenRegex = /^[A-Za-z0-9+/=_-]{32,}$/;
+  const clean = (v) => (v || '').trim();
+
+  // 1. Find the "Personal API Key" section/heading and inspect inputs/code inside its container.
+  const headings = Array.from(document.querySelectorAll('h1, h2, h3, h4, h5, p, span, div, label'));
+  const personalLabel = headings.find((el) => {
+    const txt = (el.textContent || '').trim().toLowerCase();
+    return txt === 'personal api key' || txt.startsWith('personal api key');
+  });
+
+  if (personalLabel) {
+    let container = personalLabel.parentElement;
+    for (let depth = 0; depth < 6 && container; depth++) {
+      const inputs = container.querySelectorAll('input, textarea');
+      for (const inp of inputs) {
+        const val = clean(inp.value);
+        if (tokenRegex.test(val)) return val;
+      }
+      const codes = container.querySelectorAll('code, pre, [data-api-key]');
+      for (const c of codes) {
+        const val = clean(c.getAttribute('data-api-key') || c.textContent);
+        if (tokenRegex.test(val)) return val;
+      }
+      container = container.parentElement;
+    }
+  }
+
+  // 2. Fallback: look for readonly inputs that look like a NexusMods API key.
+  const readonlyInputs = document.querySelectorAll('input[readonly], input[type="text"], input[type="password"]');
+  for (const inp of readonlyInputs) {
+    const val = clean(inp.value);
+    if (tokenRegex.test(val)) return val;
+  }
+
+  return null;
+})();
+''';
+
+  static const String _scrollToPersonalApiKeyJs = r'''
+(() => {
+  const els = Array.from(document.querySelectorAll('h1, h2, h3, h4, h5, p, span, label'));
+  const target = els.find((el) => (el.textContent || '').trim().toLowerCase().includes('personal api key'));
+  if (target) target.scrollIntoView({ behavior: 'smooth', block: 'center' });
+})();
+''';
+
+  void _startApiKeyPolling(InAppWebViewController webController) {
+    _apiKeyPollTimer?.cancel();
+    _apiKeyPollTimer = Timer.periodic(const Duration(seconds: 1), (_) async {
+      if (!mounted || _isValidatingKey) return;
+
+      try {
+        final result = await webController.evaluateJavascript(
+          source: _extractPersonalApiKeyJs,
+        );
+        if (result is! String) return;
+
+        final candidate = result.trim();
+        if (candidate.isEmpty || _rejectedCandidates.contains(candidate)) {
+          return;
+        }
+
+        _isValidatingKey = true;
+        if (mounted) {
+          widget.onShowOverlay(true);
+        }
+
+        final ok = await sl.get<NexusModsService>().loginWithApiKey(candidate);
+        if (ok) {
+          _apiKeyPollTimer?.cancel();
+          if (mounted) {
+            widget.onSuccess();
+          }
+          return;
+        }
+
+        _rejectedCandidates.add(candidate);
+        _isValidatingKey = false;
+        if (mounted) {
+          widget.onShowOverlay(false);
+        }
+      } catch (e) {
+        _isValidatingKey = false;
+        Logger.root.fine('API key poll iteration error: $e');
+      }
+    });
+  }
 
   @override
   void dispose() {
+    _apiKeyPollTimer?.cancel();
     controller?.dispose();
     super.dispose();
   }
@@ -41,6 +137,7 @@ class _NexusLoginScreenState extends State<NexusLoginScreen> {
         isInspectable: true,
       ),
       onWebViewCreated: (controller) async {
+        this.controller = controller;
         await CookieManager.instance(
           webViewEnvironment: webViewEnvironment,
         ).deleteAllCookies();
@@ -74,11 +171,13 @@ class _NexusLoginScreenState extends State<NexusLoginScreen> {
 
         final uri = url.toString();
         if (uri.startsWith('https://users.nexusmods.com/account') ||
-            uri.startsWith('https://users.nexusmods.com/account/security')) {
+            uri.startsWith('https://users.nexusmods.com/account/security') ||
+            uri == 'https://www.nexusmods.com/' ||
+            uri.startsWith('https://www.nexusmods.com/?')) {
           widget.onShowOverlay(true);
           await controller.loadUrl(
             urlRequest: URLRequest(
-              url: WebUri('https://www.nexusmods.com/starwarsbattlefront22017'),
+              url: WebUri('https://www.nexusmods.com/settings/api-keys'),
             ),
           );
           return;
@@ -86,43 +185,15 @@ class _NexusLoginScreenState extends State<NexusLoginScreen> {
 
         if (uri.startsWith('https://users.nexusmods.com/auth') ||
             uri.startsWith('https://users.nexusmods.com/register')) {
+          _apiKeyPollTimer?.cancel();
           widget.onShowOverlay(false);
           return;
         }
 
-        if (uri.startsWith(
-              'https://www.nexusmods.com/games/starwarsbattlefront22017',
-            ) ||
-            uri.startsWith(
-              'https://www.nexusmods.com/starwarsbattlefront22017',
-            )) {
-          try {
-            await sl.get<NexusModsService>().requestApiToken(
-              onUrl: (url) => controller.loadUrl(
-                urlRequest: URLRequest(url: WebUri(url)),
-              ),
-            );
-            if (mounted) {
-              widget.onSuccess();
-            }
-          } catch (e, s) {
-            Logger.root.severe('Failed NexusMods SSO flow', e, s);
-            if (mounted) {
-              widget.onShowOverlay(false);
-              NotificationService.error(
-                message: 'Failed to authorize with NexusMods: $e',
-              );
-            }
-          }
-          return;
-        }
-
-        if (uri.startsWith('https://www.nexusmods.com/sso')) {
-          await controller.evaluateJavascript(
-            source:
-                '''document.getElementsByClassName('hero-overlay')[0]?.scrollIntoView();''',
-          );
+        if (uri.startsWith('https://www.nexusmods.com/settings/api-keys')) {
           widget.onShowOverlay(false);
+          await controller.evaluateJavascript(source: _scrollToPersonalApiKeyJs);
+          _startApiKeyPolling(controller);
           return;
         }
       },

@@ -194,6 +194,24 @@ class NexusModsService {
     }
   }
 
+  Future<bool> loginWithApiKey(String token) async {
+    try {
+      await setApiToken(token);
+      final checkResp = await _nexusBridge!.apiClient.validateUser();
+      _logger.info('User validated: ${checkResp.name}');
+      await fetchUser();
+      Preferences.nexusMods.isLoggedIn = true;
+      NotificationService.showNotification(
+        message: 'Logged in as ${checkResp.name}',
+        severity: InfoBarSeverity.success,
+      );
+      return true;
+    } catch (e, s) {
+      _logger.warning('Failed to validate NexusMods API key', e, s);
+      return false;
+    }
+  }
+
   Future<void> setApiToken(String token) async {
     _nexusBridge = await NexusBridge.getInstance(
       apiToken: token,
