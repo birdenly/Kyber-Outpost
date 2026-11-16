@@ -1,0 +1,48 @@
+name: Set up Outpost frontend build
+description: Install the tested Windows Flutter, Rust, and code generation tools.
+inputs:
+  rust-workspace:
+    description: Rust crate directory to cache.
+    required: true
+runs:
+  using: composite
+  steps:
+    - uses: dtolnay/rust-toolchain@master
+      with:
+        toolchain: nightly-2026-04-06
+        components: rustfmt
+
+    - uses: Swatinem/rust-cache@v2
+      with:
+        workspaces: ${{ inputs.rust-workspace }} -> target
+
+    - uses: subosito/flutter-action@v2
+      with:
+        channel: master
+        flutter-version: cf854df0531bde9852165f8385046926b93d4599
+        cache: true
+
+    - uses: arduino/setup-protoc@v3
+      with:
+        version: '28.3'
+        repo-token: ${{ github.token }}
+
+    - name: Configure LLVM
+      shell: pwsh
+      run: |
+        $llvm = Join-Path $env:ProgramFiles 'LLVM/bin'
+        "LIBCLANG_PATH=$llvm" | Out-File -FilePath $env:GITHUB_ENV -Append -Encoding utf8
+        $llvm | Out-File -FilePath $env:GITHUB_PATH -Append -Encoding utf8
+
+    - name: Install code generators
+      shell: pwsh
+      run: |
+        cargo install flutter_rust_bridge_codegen --version 2.11.1 --locked
+        if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+        cargo install cargo-expand --version 1.0.127 --locked
+        if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+        dart pub global activate protoc_plugin 25.0.0
+        if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+        dart pub global activate melos 7.1.1
+        if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+        Join-Path $env:LOCALAPPDATA 'Pub\Cache\bin' | Out-File -FilePath $env:GITHUB_PATH -Append -Encoding utf8

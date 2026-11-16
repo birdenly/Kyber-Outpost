@@ -112,12 +112,11 @@ class StartServerCommand extends Command<int> {
                 'Kyber Outpost LAN Server')
             as String;
 
-    final modulePath = argResults?['module-path'] as String?;
-    EnvHelper.setPath(modulePath);
-    Env.set(
-      'KYBER_MODULE_PATH',
-      join(modulePath ?? FileHelper.getModuleDirectory().path, 'Kyber.dll'),
+    final modulePath = EnvHelper.getModulePath(
+      argResults?['module-path'] as String?,
     );
+    EnvHelper.setPath(modulePath);
+    Env.set('KYBER_MODULE_PATH', join(modulePath, 'Kyber.dll'));
 
     _logger.info('Initializing the local player profile...');
     late String playerName;
@@ -415,7 +414,7 @@ class StartServerCommand extends Command<int> {
       gameArgs: [],
     );
 
-    final moduleDir = modulePath ?? FileHelper.getModuleDirectory().path;
+    final moduleDir = modulePath;
     final moduleFile = join(moduleDir, 'Kyber.dll');
     _logger
       ..info('Game started with PID: $pid')

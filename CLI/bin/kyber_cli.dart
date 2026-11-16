@@ -1,13 +1,24 @@
 import 'dart:async';
 import 'dart:io';
 
+import 'package:flutter_rust_bridge/flutter_rust_bridge_for_generated.dart'
+    show ExternalLibrary;
 import 'package:kyber_cli/command_runner.dart';
 import 'package:kyber_cli/gen/frb_generated.dart';
 import 'package:kyber/kyber.dart';
 
 Future<void> main(List<String> args) async {
   LanNetworkPolicy.install();
-  await RustLib.init();
+  final bundledLibrary = File(
+    File(
+      Platform.resolvedExecutable,
+    ).parent.uri.resolve('rust_lib.dll').toFilePath(),
+  );
+  await RustLib.init(
+    externalLibrary: Platform.isWindows && bundledLibrary.existsSync()
+        ? ExternalLibrary.open(bundledLibrary.path)
+        : null,
+  );
   await runZonedGuarded(
     () async {
       await _flushThenExit(await KyberCliCommandRunner().run(args));

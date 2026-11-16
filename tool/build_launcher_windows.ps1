@@ -6,6 +6,10 @@ param(
 
 $ErrorActionPreference = 'Stop'
 $repoRoot = [IO.Path]::GetFullPath((Join-Path $PSScriptRoot '..'))
+$setupBat = Join-Path $PSScriptRoot 'setup_outpost.bat'
+if (!(Test-Path -LiteralPath $setupBat -PathType Leaf)) {
+    throw "Setup script is missing: $setupBat"
+}
 $launcherRoot = Join-Path $repoRoot 'Launcher'
 $buildRoot = Join-Path $launcherRoot 'build\windows\x64'
 $releaseRoot = Join-Path $buildRoot 'runner\Release'
@@ -132,8 +136,9 @@ try {
         '--install', $buildRoot, '--config', 'Release', '--component', 'Runtime', '--prefix', $releaseRoot)
 
     $runtimeFiles = @(
-        (Join-Path $repoRoot 'setup_outpost.bat'),
-        (Join-Path $repoRoot 'start_outpost_isolated.bat'),
+        $setupBat,
+        (Join-Path $PSScriptRoot 'allow_lan_firewall.ps1'),
+        (Join-Path $repoRoot 'LICENSE'),
         (Join-Path $launcherRoot 'rust\target\release\rust_lib.dll'),
         (Join-Path $repoRoot 'Module\bazel-bin\Kyber.dll'),
         (Join-Path $repoRoot 'Module\ThirdParty\vivox\SDK\Libraries\Release\x64\vivoxsdk.dll'),

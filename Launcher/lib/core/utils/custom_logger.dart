@@ -96,9 +96,6 @@ class CustomLogger {
 
     final documentsDirectory = await getApplicationDocumentsDirectory();
 
-    final maximaLog = File(
-      'C:/ProgramData/Maxima/Logs/MaximaBackgroundService.log',
-    );
     final launcherLog = File(join(applicationDocumentsDirectory, 'log.txt'));
     final crashDumpsDir = Directory(
       '${documentsDirectory.path}\\STAR WARS Battlefront II\\CrashDumps',
@@ -112,10 +109,6 @@ class CustomLogger {
     }
 
     final encoder = ZipFileEncoder()..create(file.path);
-
-    if (maximaLog.existsSync()) {
-      await encoder.addFile(maximaLog, 'maxima-log.txt');
-    }
 
     if (launcherLog.existsSync()) {
       await encoder.addFile(launcherLog, 'launcher-log.txt');

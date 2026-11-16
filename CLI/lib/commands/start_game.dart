@@ -87,12 +87,11 @@ class StartGameCommand extends Command<int> {
 
   @override
   Future<int> run() async {
-    final modulePath = argResults?['module-path'] as String?;
-    EnvHelper.setPath(modulePath);
-    Env.set(
-      'KYBER_MODULE_PATH',
-      join(modulePath ?? FileHelper.getModuleDirectory().path, 'Kyber.dll'),
+    final modulePath = EnvHelper.getModulePath(
+      argResults?['module-path'] as String?,
     );
+    EnvHelper.setPath(modulePath);
+    Env.set('KYBER_MODULE_PATH', join(modulePath, 'Kyber.dll'));
 
     if (argResults?['lan'] == false) {
       _logger.err('This build only supports LAN. Use --connect-ip and --name.');

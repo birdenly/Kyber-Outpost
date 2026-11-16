@@ -1,171 +1,79 @@
-name: Build Module
-
-concurrency:
-  group: ${{ github.workflow }}-${{ github.ref }}
-  cancel-in-progress: true
+name: Build Outpost module
 
 on:
-  workflow_dispatch: { }
-  pull_request:
-    paths:
-      - 'Module/**/*'
+  workflow_call:
+  workflow_dispatch:
   push:
-    branches:
-      - stable
-      - ver/*
     paths:
       - '.github/workflows/build-module.yaml'
-      - 'Module/**/*'
+      - 'Module/**'
+  pull_request:
+    paths:
+      - '.github/workflows/build-module.yaml'
+      - 'Module/**'
+
+permissions:
+  contents: read
+
+concurrency:
+  group: module-${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
 
 jobs:
   build:
-    runs-on: ${{ (github.ref == 'refs/heads/stable') && 'windows-latest' || 'windows-latest-l' }}
-
-    env:
-      working-directory: ./Module
-
-    outputs:
-      unsigned-artifact-id: ${{ steps.upload-unsigned-artifact.outputs.artifact-id }}
+    runs-on: windows-2022
+    timeout-minutes: 90
+    defaults:
+      run:
+        shell: pwsh
 
     steps:
-      - name: Get branch names
-        id: branch-names
-        uses: tj-actions/branch-names@v8
-
-      - name: Git Checkout
-        uses: actions/checkout@v4
-
-      - name: Mount Bazel Cache
-        uses: actions/cache@v3
+      - uses: actions/checkout@v6
         with:
-          path: "${{ runner.temp }}/bazelCache"
-          key: bazel
+          lfs: true
 
-      - name: Build
-        working-directory: ${{env.working-directory}}
-        run: bazel --output_user_root="C:\bz" build --config=release Kyber
+      - name: Enable long paths
+        run: git config --system core.longpaths true
 
-      - name: Download Dependencies
-        if: github.ref == 'refs/heads/stable' || startsWith(github.ref, 'refs/heads/ver/') || github.event_name == 'workflow_dispatch'
-        working-directory: ${{env.working-directory}}
-        run: |
-          New-Item -Path _work -ItemType Directory
-          $ProgressPreference = 'SilentlyContinue'
-          Invoke-WebRequest https://s3.kyber.gg/artifacts/kyber-depends.zip -OutFile depends.zip
-          Expand-Archive depends.zip -DestinationPath _work
-        shell: powershell
-
-      - name: Setup Sentry CLI
-        if: github.ref == 'refs/heads/stable' || startsWith(github.ref, 'refs/heads/ver/') || github.event_name == 'workflow_dispatch'
-        uses: mathieu-bour/setup-sentry-cli@v2
+      - uses: ilammy/msvc-dev-cmd@v1
         with:
-          token: ${{ secrets.SENTRY_AUTH_TOKEN }}
-          url: ${{ secrets.SENTRY_URL }}
-          organization: kyber
-          project: module
+          arch: amd64
 
-      - name: Upload PDB
-        if: github.ref == 'refs/heads/stable' || startsWith(github.ref, 'refs/heads/ver/') || github.event_name == 'workflow_dispatch'
-        continue-on-error: true
-        working-directory: ${{env.working-directory}}
-        run: |
-          sentry-cli debug-files upload --project module --include-sources bazel-bin/Kyber.pdb
-        shell: powershell
-
-      - name: Copy DLL
-        if: startsWith(github.ref, 'refs/heads/ver/') || github.event_name == 'workflow_dispatch'
-        working-directory: ${{env.working-directory}}
-        run: |
-          cp "bazel-bin/Kyber.dll" "_work/Kyber.dll"
-
-      - name: upload-unsigned-artifact
-        if: github.ref == 'refs/heads/stable'
-        id: upload-unsigned-artifact
-        uses: actions/upload-artifact@v4
+      - uses: bazel-contrib/setup-bazel@0.19.2
         with:
-          path: ${{env.working-directory}}/bazel-bin/Kyber.dll
+          bazelisk-version: 1.25.0
+          module-root: Module
+          output-base: C:/bz
+          bazelisk-cache: true
+          disk-cache: outpost-module-windows
+          repository-cache: true
 
-      - name: Zip files
-        if: github.ref != 'refs/heads/stable' && (startsWith(github.ref, 'refs/heads/ver/') || github.event_name == 'workflow_dispatch')
-        working-directory: ${{env.working-directory}}
+      - name: Build module
+        working-directory: Module
         run: |
-          Compress-Archive -Path "_work/*" -DestinationPath kyber-module.zip
-        shell: powershell
+          bazel build --config=release //:Kyber --jobs=4 2>&1 | Tee-Object -FilePath build-module.log
+          exit $LASTEXITCODE
 
-      - name: Upload Artifacts
-        if: github.ref != 'refs/heads/stable' && (startsWith(github.ref, 'refs/heads/ver/') || github.event_name == 'workflow_dispatch')
-        working-directory: ${{env.working-directory}}
+      - name: Package module
         run: |
-          $ProgressPreference = 'SilentlyContinue'
-          Invoke-WebRequest https://cdn.kyber.gg/artifacts/mc.exe -OutFile _work/mc.exe
-          _work/mc.exe alias set kyber https://s3.kyber.gg ${{ secrets.AWS_KEY_ID }} ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-          _work/mc.exe cp kyber-module.zip kyber/releases/${{ steps.branch-names.outputs.current_branch }}/kyber-module.zip
-        shell: powershell
+          $package = 'Module/build/outpost-module'
+          New-Item -ItemType Directory -Path $package -Force | Out-Null
+          Copy-Item -LiteralPath 'Module/bazel-bin/Kyber.dll' -Destination $package
+          Copy-Item -LiteralPath 'Module/ThirdParty/vivox/SDK/Libraries/Release/x64/vivoxsdk.dll' -Destination $package
+          Copy-Item -LiteralPath 'LICENSE' -Destination $package
 
-  sign:
-    name: Sign module
-    needs: build
-    if: github.ref == 'refs/heads/stable'
-    runs-on: ubuntu-latest
-    timeout-minutes: 360
-
-    steps:
-      - name: Submit signing request
-        uses: signpath/github-action-submit-signing-request@v2
+      - uses: actions/upload-artifact@v7
         with:
-          api-token: '${{ secrets.SIGNPATH_API_TOKEN }}'
-          organization-id: '${{ secrets.SIGNPATH_ORG_ID }}'
-          project-slug: 'kyber'
-          signing-policy-slug: 'release-signing'
-          github-artifact-id: '${{ needs.build.outputs.unsigned-artifact-id }}'
-          wait-for-completion: true
-          output-artifact-directory: '_signed'
-          wait-for-completion-timeout-in-seconds: 21000
+          name: outpost-module-windows-x64
+          path: Module/build/outpost-module/
+          if-no-files-found: error
+          retention-days: 14
 
-      - name: Upload signed module
-        uses: actions/upload-artifact@v4
+      - name: Upload build log
+        if: always()
+        uses: actions/upload-artifact@v7
         with:
-          name: module-signed
-          path: _signed/*
-
-  publish:
-    name: Publish signed release
-    needs: sign
-    if: github.ref == 'refs/heads/stable'
-    runs-on: windows-latest
-
-    steps:
-      - name: Get branch names
-        id: branch-names
-        uses: tj-actions/branch-names@v8
-
-      - name: Download Dependencies
-        run: |
-          New-Item -Path _work -ItemType Directory
-          $ProgressPreference = 'SilentlyContinue'
-          Invoke-WebRequest https://s3.kyber.gg/artifacts/kyber-depends.zip -OutFile depends.zip
-          Expand-Archive depends.zip -DestinationPath _work
-        shell: powershell
-
-      - name: Download signed module
-        uses: actions/download-artifact@v4
-        with:
-          name: module-signed
-          path: _signed
-
-      - name: Copy DLL
-        run: |
-          cp -Force "_signed/Kyber.dll" "_work/Kyber.dll"
-
-      - name: Zip files
-        run: |
-          Compress-Archive -Path "_work/*" -DestinationPath kyber-module.zip
-        shell: powershell
-
-      - name: Upload Artifacts
-        run: |
-          $ProgressPreference = 'SilentlyContinue'
-          Invoke-WebRequest https://cdn.kyber.gg/artifacts/mc.exe -OutFile _work/mc.exe
-          _work/mc.exe alias set kyber https://s3.kyber.gg ${{ secrets.AWS_KEY_ID }} ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-          _work/mc.exe cp kyber-module.zip kyber/releases/${{ steps.branch-names.outputs.current_branch }}/kyber-module.zip
-        shell: powershell
+          name: outpost-module-log
+          path: Module/build-module.log
+          if-no-files-found: ignore
+          retention-days: 7

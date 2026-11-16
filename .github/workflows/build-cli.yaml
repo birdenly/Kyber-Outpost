@@ -1,215 +1,108 @@
-name: Build CLI
-
-concurrency:
-  group: ${{ github.workflow }}-${{ github.ref }}
-  cancel-in-progress: true
+name: Build Outpost CLI
 
 on:
-  workflow_dispatch: { }
+  workflow_dispatch:
   push:
     paths:
       - '.github/workflows/build-cli.yaml'
-      - 'CLI/**/*'
+      - '.github/workflows/build-module.yaml'
+      - '.github/actions/setup-frontend/**'
+      - 'CLI/**'
+      - 'Module/**'
+      - 'Packages/**'
+      - 'pubspec.yaml'
+      - 'tool/setup_outpost.bat'
+      - 'tool/allow_lan_firewall.ps1'
+  pull_request:
+    paths:
+      - '.github/workflows/build-cli.yaml'
+      - '.github/workflows/build-module.yaml'
+      - '.github/actions/setup-frontend/**'
+      - 'CLI/**'
+      - 'Module/**'
+      - 'Packages/**'
+      - 'pubspec.yaml'
+      - 'tool/setup_outpost.bat'
+      - 'tool/allow_lan_firewall.ps1'
+
+permissions:
+  contents: read
+
+concurrency:
+  group: cli-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
 
 jobs:
+  module:
+    uses: ./.github/workflows/build-module.yaml
+
   build:
-    runs-on: ${{ matrix.os }}
-
-    env:
-      working-directory: ./CLI
-
-    continue-on-error: ${{ matrix.experimental }}
-    strategy:
-      fail-fast: false
-      matrix:
-        rust-version: [ nightly ]
-        os: [ windows-latest-l, ubuntu-latest-m ]
-        experimental: [ false ]
+    needs: module
+    runs-on: windows-2022
+    timeout-minutes: 90
+    defaults:
+      run:
+        shell: pwsh
 
     steps:
-      - name: Set SSH Key
-        env:
-          ssh_key: ${{secrets.ssh_key}}
-        if: env.ssh_key != null
-        uses: webfactory/ssh-agent@v0.7.0
+      - uses: actions/checkout@v6
         with:
-          ssh-private-key: ${{secrets.ssh_key}}
+          lfs: true
 
-      - name: Get branch names
-        id: branch-names
-        uses: tj-actions/branch-names@v8
+      - name: Enable long paths
+        run: git config --system core.longpaths true
 
-      - name: Git Checkout
-        uses: actions/checkout@v4
+      - uses: ilammy/msvc-dev-cmd@v1
         with:
-          token: ${{ secrets.GH_PAT }}
-          submodules: true
+          arch: amd64
 
-      - name: Set up compiler
-        if: runner.os == 'Linux'
-        run: |
-          sudo apt update -y && sudo apt install -y build-essential libssl-dev pkg-config zip
-
-      - name: Cache Rust ${{ matrix.rust-version }}
-        uses: actions/cache@v3
+      - uses: ./.github/actions/setup-frontend
         with:
-          path: ${{ github.workspace }}\rust\.rustup
-          key: rust-${{ matrix.rust-version }}-${{ hashFiles('**/rust-toolchain') }}
+          rust-workspace: CLI/rust
 
-      - name: Setup Rust ${{ matrix.rust-version }}
-        uses: actions-rs/toolchain@v1
-        with:
-          toolchain: nightly
-          override: true
-          components: rustfmt, clippy
-
-      - uses: Swatinem/rust-cache@v2
-        with:
-          workspaces: "./CLI/rust -> target"
-          shared-key: ${{ runner.os}}-rust-deps
-          cache-on-failure: true
-
-      - name: Install Protoc
-        uses: arduino/setup-protoc@v3
-
-      - name: Setup Flutter
-        uses: subosito/flutter-action@v2
-        with:
-          channel: beta
-
-      - name: Install Dependencies
+      - name: Resolve workspace dependencies
         run: flutter pub get
-        working-directory: ${{env.working-directory}}
 
-      - name: Upgrade Dependencies
-        run: flutter pub upgrade
-        working-directory: ${{env.working-directory}}
-
-      - name: Install FRB-Codegen
-        run: cargo install flutter_rust_bridge_codegen@^2.11.0
-        working-directory: ${{env.working-directory}}
-
-      - name: Create gen folder
-        if: runner.os == 'Windows'
-        run: mkdir lib\gen
-        working-directory: ${{env.working-directory}}
-
-      - name: Create gen folder
-        if: runner.os == 'Linux'
-        run: mkdir lib/gen
-        working-directory: ${{env.working-directory}}
-
-      - name: Generate Files
-        run: flutter_rust_bridge_codegen generate
-        working-directory: ${{env.working-directory}}
-
-      - name: Build rust library
-        working-directory: ./CLI/rust
-        run: cargo build --release
-
-      - name: Generate proto bindings
+      - name: Generate shared Dart sources
         run: |
-          dart pub global activate protoc_plugin 25.0.0
-          mkdir ./Packages/kyber/lib/gen
-          protoc --proto_path=Module --dart_out=grpc:Packages/kyber/lib/gen ./Module/Proto/kyber_common.proto ./Module/Proto/kyber_api.proto ./Module/Proto/kyber_interface.proto
+          dart run melos run generate_proto
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          dart run melos run generate
 
-      - name: Run generator (Kyber Collection)
-        working-directory: ./Packages/kyber_collection
-        run: dart run build_runner build
-
-      - name: Run generator
-        run: dart run build_runner build
-        working-directory: ${{env.working-directory}}
-
-      - name: Install Dependencies
-        run: flutter pub upgrade
-        working-directory: ${{env.working-directory}}
-
-      - name: Install Dependencies
-        run: flutter pub get
-        working-directory: ${{env.working-directory}}
-
-      - name: Build CLI
-        if: runner.os == 'Windows'
+      - name: Resolve CLI dependencies and generate models
+        working-directory: CLI
         run: |
-          New-Item -ItemType Directory -Force build/cli/windows_x64/bundle/bin
-          dart compile exe bin/kyber_cli.dart -o build/cli/windows_x64/bundle/bin/kyber_cli.exe
-        working-directory: ${{env.working-directory}}
+          flutter pub get
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          dart run build_runner build --delete-conflicting-outputs
 
-      - name: Build CLI
-        if: runner.os == 'Linux'
+      - name: Generate Rust bridge
+        working-directory: CLI
+        run: flutter_rust_bridge_codegen generate --no-dart-fix --no-build-runner
+
+      - name: Build Rust library
+        run: cargo build --release --manifest-path CLI/rust/Cargo.toml
+
+      - uses: actions/download-artifact@v8
+        with:
+          name: outpost-module-windows-x64
+          path: CLI/build/windows-x64
+
+      - name: Build portable CLI
+        working-directory: CLI
         run: |
-          mkdir -p build/cli/linux_x64/bundle/bin
-          dart compile exe bin/kyber_cli.dart -o build/cli/linux_x64/bundle/bin/kyber_cli
-        working-directory: ${{env.working-directory}}
+          dart compile exe bin/kyber_cli.dart -o build/windows-x64/kyber_cli.exe
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          Copy-Item -LiteralPath 'rust/target/release/rust_lib.dll' -Destination 'build/windows-x64'
+          Copy-Item -LiteralPath '../tool/setup_outpost.bat' -Destination 'build/windows-x64'
+          Copy-Item -LiteralPath '../tool/allow_lan_firewall.ps1' -Destination 'build/windows-x64'
 
-      - name: Download Maxima Wine Helper
-        id: maxima-wine
-        if: runner.os == 'Linux'
-        working-directory: ${{env.working-directory}}
-        run: |
-          curl -fSsv -L https://s3.kyber.gg/artifacts/github-ci/wine-helper.exe --output build/cli/linux_x64/bundle/bin/wine-helper.exe
+      - name: Check packaged CLI
+        run: ./CLI/build/windows-x64/kyber_cli.exe --help
 
-      - name: Download Maxima
-        if: runner.os == 'Windows'
-        run: |
-          New-Item -Path _work -ItemType Directory
-          Invoke-WebRequest https://s3.kyber.gg/artifacts/maxima-win64.zip -OutFile maxima.zip
-          Expand-Archive maxima.zip -DestinationPath _work
-        shell: powershell
-
-      - name: Download Maxima
-        if: runner.os == 'Linux'
-        run: |
-          mkdir _work
-          curl -sL https://s3.kyber.gg/artifacts/maxima-linux64.zip -o maxima.zip
-          unzip maxima.zip -d _work
-          ls -l _work
-
-      - name: Copy Maxima
-        if: runner.os == 'Windows'
-        run: |
-          cp "_work/maxima-service.exe" "CLI/build/cli/windows_x64/bundle/bin/maxima-service.exe"
-          cp "_work/maxima-bootstrap.exe" "CLI/build/cli/windows_x64/bundle/bin/maxima-bootstrap.exe"
-
-      - name: Copy Maxima
-        if: runner.os == 'Linux'
-        run: |
-          cp "_work/maxima-bootstrap" "CLI/build/cli/linux_x64/bundle/bin/maxima-bootstrap"
-
-      - name: Copy generated library to release
-        if: runner.os == 'Windows'
-        run: cp "rust/target/release/rust_lib.dll" "build/cli/windows_x64/bundle/bin/rust_lib.dll"
-        working-directory: ${{env.working-directory}}
-
-      - name: Copy generated library to release
-        if: runner.os == 'Linux'
-        run: cp "rust/target/release/librust_lib.so" "build/cli/linux_x64/bundle/bin/librust_lib.so"
-        working-directory: ${{env.working-directory}}
-
-      - name: Zip files
-        if: runner.os == 'Windows'
-        run: |
-          Compress-Archive -Path "CLI/build/cli/windows_x64/bundle/bin/*" -DestinationPath kyber-cli.zip
-        shell: powershell
-
-      - name: Zip files
-        if: runner.os == 'Linux'
-        run: |
-          zip -j -r kyber-cli.zip "CLI/build/cli/linux_x64/bundle/bin"
-
-      - name: Upload artifacts
-        if: runner.os == 'Windows'
-        run: |
-          Invoke-WebRequest https://cdn.kyber.gg/artifacts/mc.exe -OutFile C:\mc.exe
-          C:\mc.exe alias set kyber https://s3.kyber.gg ${{ secrets.AWS_KEY_ID }} ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-          C:\mc.exe cp kyber-cli.zip kyber/releases/${{ steps.branch-names.outputs.current_branch }}/kyber-cli-win64.zip
-        shell: powershell
-
-      - name: Upload artifacts
-        if: runner.os == 'Linux'
-        run: |
-          curl -sL https://cdn.kyber.gg/artifacts/mc -o mc
-          chmod +x mc
-          ./mc alias set kyber https://s3.kyber.gg ${{ secrets.AWS_KEY_ID }} ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-          ./mc cp kyber-cli.zip kyber/releases/${{ steps.branch-names.outputs.current_branch }}/kyber-cli-linux64.zip
+      - uses: actions/upload-artifact@v7
+        with:
+          name: outpost-cli-windows-x64
+          path: CLI/build/windows-x64/
+          if-no-files-found: error
+          retention-days: 14

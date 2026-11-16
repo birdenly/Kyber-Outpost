@@ -70,7 +70,7 @@ Both tools are by **anadius** and are obtained separately. Links will not be giv
 ### 3. Prepare the game
 
 1. Close the game and Outpost. Start with the original `starwarsbattlefrontii.exe` in the game folder.
-2. Run **[setup_outpost.bat](setup_outpost.bat)** from that folder.
+2. Run **[setup_outpost.bat](tool/setup_outpost.bat)** from that folder.
 3. Wait for **Setup complete**. After the Unwrapper succeeds, the BAT saves the original as `starwarsbattlefrontii.exe.backup` and replaces the game executable with the prepared output, keeping the name **`starwarsbattlefrontii.exe`** so Kyber Outpost recognizes it.
 
 Run the BAT once on the original executable. It prepares the game, saves the backup, and replaces the executable automatically. If preparation or backup fails, it stops before replacement. If writing under `Program Files` is denied, run the BAT as administrator.
