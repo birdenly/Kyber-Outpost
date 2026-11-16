@@ -7,7 +7,6 @@ import 'package:intl/intl.dart';
 import 'package:kyber/kyber.dart';
 import 'package:kyber_collection/kyber_collection.dart';
 import 'package:kyber_launcher/core/config/colors.dart';
-import 'package:kyber_launcher/features/download_manager/providers/download_manager_cubit.dart';
 import 'package:kyber_launcher/features/mod_browser/screens/mod_details.dart';
 import 'package:kyber_launcher/features/mods/dialogs/move_directory_dialog.dart';
 import 'package:kyber_launcher/features/mods/services/mod_service.dart';

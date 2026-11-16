@@ -5,7 +5,6 @@ import 'package:kyber_collection/kyber_collection.dart';
 import 'package:kyber_launcher/features/download_manager/screens/download_manager.dart';
 import 'package:kyber_launcher/features/frosty/screens/create_frosty_collection.dart';
 import 'package:kyber_launcher/features/kyber/widgets/debug_server_launcher.dart';
-import 'package:kyber_launcher/features/maxima/providers/maxima_cubit.dart';
 import 'package:kyber_launcher/features/mod_browser/providers/mod_cubit.dart';
 import 'package:kyber_launcher/features/mod_browser/providers/mod_search_cubit.dart';
 import 'package:kyber_launcher/features/mod_browser/screens/mod_details.dart';

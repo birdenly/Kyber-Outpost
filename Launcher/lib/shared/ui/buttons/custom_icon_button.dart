@@ -1,7 +1,6 @@
 import 'package:fluent_ui/fluent_ui.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:kyber_launcher/core/config/colors.dart';
-import 'package:kyber_launcher/gen/fonts.gen.dart';
 import 'package:tinycolor2/tinycolor2.dart';
 
 class KyberIconButton extends StatefulWidget {

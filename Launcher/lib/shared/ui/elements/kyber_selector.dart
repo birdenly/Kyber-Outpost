@@ -1,7 +1,6 @@
 import 'package:auto_size_text/auto_size_text.dart';
 import 'package:fluent_ui/fluent_ui.dart';
 import 'package:kyber_launcher/core/config/colors.dart';
-import 'package:kyber_launcher/gen/fonts.gen.dart';
 import 'package:kyber_launcher/shared/ui/buttons/custom_icon_button.dart';
 
 class KyberSelector<T> extends StatefulWidget {

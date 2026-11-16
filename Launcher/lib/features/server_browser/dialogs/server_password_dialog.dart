@@ -1,14 +1,10 @@
 // Modified for Kyber Outpost (LAN Edition) - 2026-11-10.
 import 'package:fluent_ui/fluent_ui.dart';
-import 'package:grpc/grpc.dart' hide Server;
 import 'package:kyber/kyber.dart';
 import 'package:kyber_launcher/core/core.dart';
-import 'package:kyber_launcher/features/server_browser/dialogs/server_ban_dialog.dart';
-import 'package:kyber_launcher/injection_container.dart';
 import 'package:kyber_launcher/shared/ui/buttons/button.dart';
 import 'package:kyber_launcher/shared/ui/dialog/kyber_dialog.dart';
 import 'package:kyber_launcher/shared/ui/elements/kyber_input.dart';
-import 'package:logging/logging.dart';
 
 class ServerPasswordDialog extends StatefulWidget {
   const ServerPasswordDialog({required this.serverInfo, super.key});

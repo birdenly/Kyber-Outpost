@@ -1,17 +1,10 @@
-import 'dart:io';
-
 import 'package:fluent_ui/fluent_ui.dart';
 import 'package:flutter/material.dart' as mt;
-import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_inappwebview/flutter_inappwebview.dart';
-import 'package:kyber/kyber.dart';
 import 'package:kyber_launcher/core/core.dart';
-import 'package:kyber_launcher/features/maxima/providers/maxima_cubit.dart';
 import 'package:kyber_launcher/features/nexusmods/dialogs/nexusmods_login.dart';
 import 'package:kyber_launcher/features/nexusmods/services/nexusmods_service.dart';
-import 'package:kyber_launcher/features/settings/dialogs/change_background_dialog.dart';
 import 'package:kyber_launcher/features/settings/screens/settings.dart';
-import 'package:kyber_launcher/gen/assets.gen.dart';
 import 'package:kyber_launcher/injection_container.dart';
 import 'package:kyber_launcher/main.dart';
 import 'package:kyber_launcher/shared/ui/ui.dart';
@@ -107,12 +100,14 @@ class AccountsAndUpdates extends StatelessWidget {
                                 padding: const EdgeInsets.symmetric(
                                   vertical: 8,
                                 ),
-                                child: Assets.icons.kyberLogo.svg(
+                                child: Image.asset(
+                                  'assets/logos/outpost_icon.png',
                                   height: 40,
                                 ),
                               ),
-                              applicationLegalese: '© 2024 ArmchairDevelopers',
-                              applicationName: 'KYBER Launcher',
+                              applicationLegalese:
+                                  'GPLv3 — Kyber Outpost (based on KYBER)',
+                              applicationName: 'Kyber Outpost',
                               applicationVersion: snapshot.data?.version,
                             );
                           },
@@ -130,42 +125,6 @@ class AccountsAndUpdates extends StatelessWidget {
                   Preferences.general.developerMode = value;
                 },
               ),
-              if (context.read<MaximaCubit>().state.entitlements!.contains(
-                UserEntitlement.admin,
-              )) ...[
-                KyberTableItem.button(
-                  title: 'Set Background Image',
-                  text: 'Set Image',
-                  onClick: () async {
-                    final result = await showKyberDialog<String?>(
-                      context: context,
-                      builder: (_) => const ChangeBackgroundDialog(),
-                    );
-
-                    if (result == null) {
-                      return;
-                    }
-
-                    if (result.isEmpty) {
-                      Preferences.customization.backgroundImage = null;
-                      return;
-                    }
-
-                    Preferences.customization.backgroundImage = result;
-                  },
-                ),
-                KyberTableItem.switchButton(
-                  title: 'Dummy Server',
-                  onChange: (value) => Preferences.admin.dummyServer = value,
-                  value: Preferences.admin.dummyServer,
-                ),
-                KyberTableItem.switchButton(
-                  title: 'Remove Background',
-                  value: Preferences.admin.removeBackground,
-                  onChange: (value) =>
-                      Preferences.admin.removeBackground = value,
-                ),
-              ],
             ],
           ),
         ),

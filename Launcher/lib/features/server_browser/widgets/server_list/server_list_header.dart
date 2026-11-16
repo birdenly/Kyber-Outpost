@@ -1,7 +1,5 @@
 import 'package:fluent_ui/fluent_ui.dart';
-import 'package:flutter/material.dart' as mt;
 import 'package:kyber_launcher/core/config/colors.dart';
-import 'package:kyber_launcher/shared/ui/ui.dart';
 
 class DashedLineVerticalPainter extends CustomPainter {
   @override

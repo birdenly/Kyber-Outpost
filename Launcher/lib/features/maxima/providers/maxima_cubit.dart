@@ -7,7 +7,6 @@ import 'package:flutter_rust_bridge/flutter_rust_bridge.dart';
 import 'package:kyber/kyber.dart';
 import 'package:kyber_launcher/core/services/instance_manager.dart';
 import 'package:kyber_launcher/core/config/colors.dart';
-import 'package:kyber_launcher/core/routing/app_router.dart';
 import 'package:kyber_launcher/core/services/app_settings.dart';
 import 'package:kyber_launcher/core/services/windows_env.dart';
 import 'package:kyber_launcher/features/ea/services/search_service.dart';

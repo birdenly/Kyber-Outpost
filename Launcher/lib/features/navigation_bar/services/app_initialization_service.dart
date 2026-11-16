@@ -4,9 +4,7 @@ import 'dart:io';
 
 import 'package:fluent_ui/fluent_ui.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:grpc/grpc.dart';
 import 'package:kyber_launcher/core/services/app_settings.dart';
-import 'package:kyber_launcher/core/services/module_version_service.dart';
 import 'package:kyber_launcher/core/services/notification_service.dart';
 import 'package:kyber_launcher/core/services/process_info.dart';
 import 'package:kyber_launcher/core/services/storage_helper.dart';
@@ -27,7 +25,6 @@ import 'package:kyber_launcher/injection_container.dart';
 import 'package:kyber_launcher/main.dart';
 import 'package:kyber_launcher/shared/ui/dialog/kyber_dialog.dart';
 import 'package:logging/logging.dart';
-import 'package:web_socket_channel/web_socket_channel.dart';
 
 class AppInitializationService {
   static final _logger = Logger('app_initialization_service');

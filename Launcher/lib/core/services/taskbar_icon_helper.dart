@@ -2,7 +2,6 @@
 import 'dart:io';
 import 'dart:typed_data';
 
-import 'package:dio/dio.dart';
 import 'package:ffi/ffi.dart';
 import 'package:logging/logging.dart';
 import 'package:path/path.dart';

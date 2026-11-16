@@ -10,7 +10,6 @@ import 'package:kyber_launcher/gen/fonts.gen.dart';
 import 'package:kyber_launcher/injection_container.dart';
 import 'package:kyber_launcher/shared/ui/buttons/button.dart';
 import 'package:kyber_launcher/shared/ui/dialog/kyber_dialog.dart';
-import 'package:nexus_gql/nexus_gql.dart';
 
 class CategorizedModList extends StatefulWidget {
   const CategorizedModList({super.key});

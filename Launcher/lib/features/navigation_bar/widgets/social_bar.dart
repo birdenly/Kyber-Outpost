@@ -1,23 +1,17 @@
-import 'dart:async';
 
-import 'package:background_downloader/background_downloader.dart';
 import 'package:fluent_ui/fluent_ui.dart' hide Button;
 import 'package:kyber_launcher/features/lan/dialogs/lan_nickname_dialog.dart';
 import 'package:flutter/material.dart' as mt;
 import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:kyber/kyber.dart';
 import 'package:kyber_launcher/core/core.dart';
 import 'package:kyber_launcher/features/download_manager/models/download_state.dart';
 import 'package:kyber_launcher/features/download_manager/providers/download_manager_cubit.dart';
 import 'package:kyber_launcher/features/kyber/providers/kyber_status_cubit.dart';
 import 'package:kyber_launcher/features/maxima/providers/maxima_cubit.dart';
-import 'package:kyber_launcher/features/maxima/providers/maxima_rtm_cubit.dart';
 import 'package:kyber_launcher/features/navigation_bar/widgets/exit_devplaytest_button.dart';
 import 'package:kyber_launcher/features/settings/dialogs/chromium_download_dialog.dart';
 import 'package:kyber_launcher/gen/fonts.gen.dart';
-import 'package:kyber_launcher/injection_container.dart';
 import 'package:kyber_launcher/shared/ui/ui.dart';
-import 'package:logging/logging.dart';
 
 class SocialBar extends StatefulWidget {
   const SocialBar({super.key});
@@ -30,7 +24,6 @@ class _SocialBarState extends State<SocialBar> {
   @override
   Widget build(BuildContext context) {
     final kyberState = context.watch<KyberStatusCubit>().state;
-    final maximaState = context.watch<MaximaCubit>().state;
 
     return SizedBox(
       height: 50,

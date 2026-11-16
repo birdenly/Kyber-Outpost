@@ -1,9 +1,7 @@
 // Modified for Kyber Outpost (LAN Edition) - 2026-11-10.
 import 'dart:async';
-import 'dart:convert';
 
 import 'package:audioplayers/audioplayers.dart';
-import 'package:dio/dio.dart';
 import 'package:fluent_ui/fluent_ui.dart';
 import 'package:kyber/kyber.dart';
 import 'package:kyber_launcher/core/config/colors.dart';
@@ -105,12 +103,10 @@ class _CreditsState extends State<Credits> {
         .patronList(Empty())
         .then<PatronListResponse>((v) => v)
         .catchError((_) => PatronListResponse());
-    final contributorsFuture = _fetchBfpContributors();
-
     Future.delayed(const Duration(seconds: 1), () async {
       if (!mounted) return;
 
-      final result = await Future.wait([x, contributorsFuture]);
+      final result = await x;
 
       if (!mounted) return;
 
@@ -123,9 +119,7 @@ class _CreditsState extends State<Credits> {
 
       if (!mounted) return;
 
-      bfpDevs = result.last as List<String>;
-
-      setState(() => patrons = result.first as PatronListResponse);
+      setState(() => patrons = result);
 
       await Future<void>.delayed(const Duration(milliseconds: 500));
 
@@ -152,18 +146,6 @@ class _CreditsState extends State<Credits> {
     listController.dispose();
     player.dispose();
     super.dispose();
-  }
-
-  Future<List<String>> _fetchBfpContributors() async {
-    try {
-      final resp = await Dio().get<String>(
-        'https://battlefront.plus/lists/devs.json',
-      );
-      final parsed = jsonDecode(resp.data!) as List<dynamic>;
-      return parsed.map((e) => e['name'] as String).toList();
-    } catch (_) {
-      return <String>[];
-    }
   }
 
   @override

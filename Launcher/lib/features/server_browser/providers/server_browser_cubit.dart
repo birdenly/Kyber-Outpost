@@ -24,14 +24,12 @@ import 'package:kyber_launcher/features/download_manager/services/mod_bridge_ser
 import 'package:kyber_launcher/features/kyber/helper/kyber_server_helper.dart';
 import 'package:kyber_launcher/features/lan/dialogs/lan_mod_download_dialog.dart';
 import 'package:kyber_launcher/features/lan/services/lan_mod_server_service.dart';
-import 'package:kyber_launcher/features/maxima/providers/maxima_cubit.dart';
 import 'package:kyber_launcher/features/mod_browser/providers/mod_browser_cubit.dart';
 import 'package:kyber_launcher/features/mods/helper/mod_helper.dart';
 import 'package:kyber_launcher/features/mods/services/mod_service.dart';
 import 'package:kyber_launcher/features/nexusmods/dialogs/nexusmods_login.dart';
 import 'package:kyber_launcher/features/nexusmods/exceptions/missing_nexus_auth_exception.dart';
 import 'package:kyber_launcher/features/nexusmods/services/mod_finder_service.dart';
-import 'package:kyber_launcher/features/server_browser/dialogs/server_ban_dialog.dart';
 import 'package:kyber_launcher/features/server_browser/models/server_entry.dart';
 import 'package:kyber_launcher/injection_container.dart';
 import 'package:kyber_launcher/shared/ui/dialog/kyber_dialog.dart';
@@ -507,7 +505,7 @@ class ServerBrowserCubit extends Cubit<ServerBrowserState> {
       }
 
       _running = true;
-      await sl<ModService>().refreshCompleter!.future;
+      await sl<ModService>().refreshCompleter.future;
       if (!hasAllRequiredMods()) {
         final cubit = BlocProvider.of<DownloadCubit>(
           navigatorKey.currentContext!,

@@ -13,7 +13,6 @@ import 'package:kyber_launcher/features/server_browser/providers/server_list_cub
 import 'package:kyber_launcher/features/server_browser/widgets/server_info_box/server_info_box.dart';
 import 'package:kyber_launcher/features/server_browser/widgets/server_list/server_list.dart';
 import 'package:kyber_launcher/gen/assets.gen.dart';
-import 'package:kyber_launcher/gen/fonts.gen.dart';
 import 'package:kyber_launcher/shared/ui/buttons/button.dart';
 import 'package:kyber_launcher/shared/ui/dialog/kyber_dialog.dart';
 import 'package:kyber_launcher/shared/ui/elements/filter_dropdown.dart';

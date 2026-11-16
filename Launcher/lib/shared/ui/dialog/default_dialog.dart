@@ -5,7 +5,6 @@ import 'package:fluent_ui/fluent_ui.dart' hide FluentDialogRoute, TitleBar;
 import 'package:kyber_launcher/core/config/colors.dart';
 import 'package:kyber_launcher/features/navigation_bar/widgets/title_bar.dart';
 import 'package:kyber_launcher/features/navigation_bar/widgets/window_buttons.dart';
-import 'package:kyber_launcher/gen/fonts.gen.dart';
 import 'package:kyber_launcher/shared/ui/cards/kyber_container.dart';
 import 'package:kyber_launcher/shared/ui/utils/background_blur.dart';
 

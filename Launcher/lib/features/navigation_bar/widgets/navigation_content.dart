@@ -5,7 +5,6 @@ import 'package:kyber_launcher/features/maxima/providers/maxima_cubit.dart';
 import 'package:kyber_launcher/features/maxima/providers/maxima_rtm_cubit.dart';
 import 'package:kyber_launcher/features/navigation_bar/providers/status_cubit.dart';
 import 'package:kyber_launcher/features/navigation_bar/widgets/action_bar.dart';
-import 'package:kyber_launcher/features/navigation_bar/widgets/social_bar.dart';
 import 'package:kyber_launcher/features/navigation_bar/widgets/title_bar.dart'
     as kl;
 import 'package:kyber_launcher/shared/ui/navigation_bar/navigation_bar_list.dart';

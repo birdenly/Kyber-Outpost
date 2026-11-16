@@ -2,17 +2,14 @@
 import 'package:collection/collection.dart';
 import 'package:fluent_ui/fluent_ui.dart';
 import 'package:flutter/material.dart' as mt;
-import 'package:grpc/grpc.dart' hide Server;
 import 'package:kyber/kyber.dart';
 import 'package:kyber_collection/kyber_collection.dart';
 import 'package:kyber_launcher/core/core.dart';
 import 'package:kyber_launcher/features/mod_collections/extensions/mod_collection_extension.dart';
 import 'package:kyber_launcher/features/mods/widgets/collection_list/collection_icon.dart';
-import 'package:kyber_launcher/features/server_browser/dialogs/server_ban_dialog.dart';
 import 'package:kyber_launcher/features/server_browser/models/server_entry.dart';
 import 'package:kyber_launcher/gen/assets.gen.dart';
 import 'package:kyber_launcher/gen/fonts.gen.dart';
-import 'package:kyber_launcher/injection_container.dart';
 import 'package:kyber_launcher/main.dart';
 import 'package:kyber_launcher/shared/ui/buttons/button.dart';
 import 'package:kyber_launcher/shared/ui/buttons/normal_button.dart';
@@ -20,7 +17,6 @@ import 'package:kyber_launcher/shared/ui/dialog/kyber_dialog.dart';
 import 'package:kyber_launcher/shared/ui/elements/dropdown/kyber_dropdown.dart';
 import 'package:kyber_launcher/shared/ui/elements/kyber_input.dart';
 import 'package:kyber_launcher/shared/ui/elements/kyber_tab_bar.dart';
-import 'package:logging/logging.dart';
 
 class CosmeticModsDialog extends StatefulWidget {
   const CosmeticModsDialog({

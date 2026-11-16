@@ -1,6 +1,6 @@
 import 'dart:ui';
 
-import 'package:jiffy/jiffy.dart' hide Locale;
+import 'package:jiffy/jiffy.dart';
 import 'package:kyber_launcher/core/services/app_settings.dart';
 import 'package:logging/logging.dart';
 

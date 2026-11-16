@@ -1,12 +1,9 @@
 // Modified for Kyber Outpost (LAN Edition) - 2026-11-10.
 import 'package:collection/collection.dart';
-import 'package:fluent_ui/fluent_ui.dart';
-import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:grpc/grpc.dart' hide Server;
 import 'package:kyber/kyber.dart' hide ServerMod;
 import 'package:kyber_collection/kyber_collection.dart';
 import 'package:kyber_launcher/core/routing/app_router.dart';
-import 'package:kyber_launcher/core/services/app_settings.dart';
 import 'package:kyber_launcher/core/services/notification_service.dart';
 import 'package:kyber_launcher/features/lan/dialogs/lan_nickname_dialog.dart';
 import 'package:kyber_launcher/features/lan/models/lan_nickname.dart';

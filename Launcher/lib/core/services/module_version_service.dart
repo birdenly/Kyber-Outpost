@@ -14,11 +14,6 @@ import 'package:package_info_plus/package_info_plus.dart';
 import 'package:path/path.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:rhttp/rhttp.dart';
-import 'package:win32/win32.dart';
-import 'package:win32_registry/win32_registry.dart';
-
-const _launcherInstallerKey =
-    r'SOFTWARE\WOW6432Node\Microsoft\Windows\CurrentVersion\Uninstall\KyberLauncher_is1';
 
 enum VersionModule {
   //launcher,

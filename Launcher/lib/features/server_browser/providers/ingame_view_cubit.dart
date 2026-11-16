@@ -8,12 +8,10 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:grpc/grpc.dart' hide Server;
 import 'package:kyber/kyber.dart';
 import 'package:kyber_launcher/core/services/instance_manager.dart';
-import 'package:kyber_launcher/core/services/app_settings.dart';
 import 'package:kyber_launcher/core/services/notification_service.dart';
 import 'package:kyber_launcher/features/lan/services/lan_discovery_service.dart';
 import 'package:kyber_launcher/injection_container.dart';
 import 'package:logging/logging.dart';
-import 'package:web_socket_channel/io.dart';
 import 'package:web_socket_channel/web_socket_channel.dart';
 
 class IngameViewCubit extends Cubit<IngameViewState> {

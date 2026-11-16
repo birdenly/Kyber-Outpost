@@ -50,7 +50,7 @@ class KyberMapService {
         )
         .toList();
 
-    for (final item in ((overrides ?? []) as List<MapOverride>)) {
+    for (final item in (overrides ?? <MapOverride>[])) {
       if (_maps.where((e) => e['map'] == item.map).isNotEmpty) {
         _logger.warning('Map with id ${item.map} already exists');
         continue;

@@ -2,7 +2,6 @@ import 'package:fluent_ui/fluent_ui.dart';
 import 'package:flutter/material.dart' as mt;
 import 'package:kyber_launcher/core/config/colors.dart';
 import 'package:kyber_launcher/features/maxima/helper/maxima_helper.dart';
-import 'package:kyber_launcher/gen/fonts.gen.dart';
 import 'package:kyber_launcher/shared/ui/navigation_bar/navigation_bar_list.dart';
 import 'package:kyber_launcher/shared/ui/navigation_bar/widgets/navigation_bar_item.dart';
 import 'package:kyber_launcher/shared/ui/utils/background_blur.dart';

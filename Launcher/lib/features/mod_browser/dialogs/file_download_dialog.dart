@@ -1,10 +1,7 @@
 import 'package:fluent_ui/fluent_ui.dart';
-import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_widget_from_html/flutter_widget_from_html.dart';
-import 'package:kyber/gen/Proto/mod_bridge.pb.dart';
 import 'package:kyber_launcher/core/config/colors.dart';
 import 'package:kyber_launcher/core/services/notification_service.dart';
-import 'package:kyber_launcher/features/download_manager/models/download_link_type.dart';
 import 'package:kyber_launcher/features/download_manager/models/download_request.dart';
 import 'package:kyber_launcher/features/download_manager/services/download_orchestrator.dart';
 import 'package:kyber_launcher/injection_container.dart';

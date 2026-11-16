@@ -2,9 +2,7 @@ import 'package:fluent_ui/fluent_ui.dart';
 import 'package:kyber_collection/kyber_collection.dart';
 import 'package:kyber_launcher/core/config/colors.dart';
 import 'package:kyber_launcher/features/mods/helper/frosty_mod_extension.dart';
-import 'package:kyber_launcher/features/mods/services/mod_service.dart';
 import 'package:kyber_launcher/features/mods/widgets/mod_list/mod_list_entry.dart';
-import 'package:kyber_launcher/injection_container.dart';
 
 class ModList extends StatefulWidget {
   const ModList({

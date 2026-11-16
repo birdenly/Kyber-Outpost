@@ -1,6 +1,5 @@
 import 'package:fluent_ui/fluent_ui.dart';
 import 'package:kyber_launcher/core/config/colors.dart';
-import 'package:kyber_launcher/gen/fonts.gen.dart';
 
 class KyberTableSlider extends StatefulWidget {
   const KyberTableSlider({

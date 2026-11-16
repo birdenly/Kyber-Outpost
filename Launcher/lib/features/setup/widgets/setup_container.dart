@@ -3,18 +3,14 @@ import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart' as mt;
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_fadein/flutter_fadein.dart';
-import 'package:grpc/grpc.dart';
 import 'package:kyber_launcher/core/config/colors.dart';
-import 'package:kyber_launcher/core/services/notification_service.dart';
 import 'package:kyber_launcher/features/maxima/providers/maxima_cubit.dart';
 import 'package:kyber_launcher/features/setup/widgets/mod_selector.dart';
 import 'package:kyber_launcher/features/setup/widgets/nexus_login_screen.dart';
 import 'package:kyber_launcher/gen/assets.gen.dart';
 import 'package:kyber_launcher/gen/fonts.gen.dart';
-import 'package:kyber_launcher/shared/ui/buttons/button.dart';
 import 'package:kyber_launcher/shared/ui/utils/background_blur.dart';
 import 'package:kyber_launcher/shared/ui/utils/button_builder.dart';
-import 'package:logging/logging.dart';
 import 'package:url_launcher/url_launcher_string.dart';
 
 class SetupContainer extends StatefulWidget {
