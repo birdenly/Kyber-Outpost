@@ -47,7 +47,7 @@ class _SettingsListState extends State<SettingsList> {
     },
     {
       'title': 'CREDITS LIST',
-      'description': 'VIEW KYBER OUTPOST & UPSTREAM KYBER CREDITS',
+      'description': 'VIEW KYBER OUTPOST & KYBER CREDITS',
       'child': const Credits(),
     },
     {

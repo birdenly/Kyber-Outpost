@@ -151,19 +151,13 @@ class _UserBar extends StatelessWidget {
             color: Colors.black.withOpacity(0.5),
           ),
           padding: const .symmetric(horizontal: 10, vertical: 5),
-          child: Row(
-            spacing: 8,
-            children: [
-              Icon(mt.Icons.person_outline, size: 16, color: kActiveColor),
-              Text(
-                currentUser.displayName,
-                style: const TextStyle(
-                  fontSize: 16,
-                  fontFamily: FontFamily.battlefrontUI,
-                  height: 1.1,
-                ),
-              ),
-            ],
+          child: Text(
+            currentUser.displayName,
+            style: const TextStyle(
+              fontSize: 16,
+              fontFamily: FontFamily.battlefrontUI,
+              height: 1.1,
+            ),
           ),
         );
       },

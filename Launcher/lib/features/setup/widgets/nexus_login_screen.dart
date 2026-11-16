@@ -91,8 +91,11 @@ class _NexusLoginScreenState extends State<NexusLoginScreen> {
         }
 
         if (uri.startsWith(
-          'https://www.nexusmods.com/games/starwarsbattlefront22017',
-        )) {
+              'https://www.nexusmods.com/games/starwarsbattlefront22017',
+            ) ||
+            uri.startsWith(
+              'https://www.nexusmods.com/starwarsbattlefront22017',
+            )) {
           await sl.get<NexusModsService>().requestApiToken(
             onUrl: (url) => controller.loadUrl(
               urlRequest: URLRequest(url: WebUri(url)),

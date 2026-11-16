@@ -200,62 +200,27 @@ class LanDiscoveryService {
     final httpPort =
         defaultHttpPort ?? InstanceManager.httpPortForGamePort(gamePort);
 
-    try {
-      final dio = Dio(
-        BaseOptions(
-          connectTimeout: const Duration(seconds: 3),
-          receiveTimeout: const Duration(seconds: 3),
-        ),
-      );
-      final response = await dio.get<Map<String, dynamic>>(
-        'http://$hostIp:$httpPort/lan/info',
-      );
-      final data = response.data;
-      if (data != null) {
-        final server = _serverFromMap(
-          data,
-          senderIp: hostIp,
-          fallbackPort: gamePort,
-          fallbackHttpPort: httpPort,
-        );
-        registerManualServer(server);
-        return server;
-      }
-    } catch (e) {
-      _logger.fine(
-        'Could not fetch /lan/info from $hostIp:$httpPort, '
-        'creating direct LAN server entry: $e',
-      );
-    }
-
-    final fallbackServer = Server(
-      id: 'lan_$hostIp:$gamePort',
-      name: 'LAN Server ($hostIp)',
-      description: 'Direct LAN connection to $hostIp:$gamePort',
-      creator: 'LAN Host',
-      creatorId: '0',
-      ip: hostIp,
-      port: gamePort,
-      maxPlayerCount: 40,
-      playerCount: 1,
-      requiresPassword: false,
-      requiresProxy: false,
-      official: false,
-      region: 'LAN',
-      levelSetup: LevelSetup(
-        map: 'Levels/MP/Geonosis_01/Geonosis_01',
-        mode: 'PlanetaryBattles',
-        mapName: 'Geonosis',
-        modeName: 'Galactic Assault',
+    final dio = Dio(
+      BaseOptions(
+        connectTimeout: const Duration(seconds: 3),
+        receiveTimeout: const Duration(seconds: 3),
       ),
-      mods: const <ServerMod>[],
-      meta: <String, String>{
-        'lan': 'true',
-        'lan_http_port': httpPort.toString(),
-      }.entries,
     );
-    registerManualServer(fallbackServer);
-    return fallbackServer;
+    final response = await dio.get<Map<String, dynamic>>(
+      'http://$hostIp:$httpPort/lan/info',
+    );
+    final data = response.data;
+    if (data == null) {
+      throw Exception('Empty response from LAN server at $hostIp:$httpPort');
+    }
+    final server = _serverFromMap(
+      data,
+      senderIp: hostIp,
+      fallbackPort: gamePort,
+      fallbackHttpPort: httpPort,
+    );
+    registerManualServer(server);
+    return server;
   }
 
   void _onSocketEvent(RawSocketEvent event) {

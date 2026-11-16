@@ -16,7 +16,7 @@ const credits = <String, Map<String, List<String>>>{
   'KYBER OUTPOST (LAN EDITION)': {
     'FORK & LAN MAINTAINER': ['Birden'],
   },
-  'UPSTREAM KYBER TEAM (ORIGINAL)': {
+  'KYBER TEAM': {
     'LEAD DEVELOPER': ['7reax'],
     'LEAD DESIGNER': ['dcat'],
     'DEVELOPERS': ['Magix', 'Nuuby'],
