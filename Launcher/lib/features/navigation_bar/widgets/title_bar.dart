@@ -11,7 +11,13 @@ class TitleBar extends StatelessWidget {
       padding: const EdgeInsets.only(top: 10),
       child: Row(
         children: [
-          Text(
+          Image.asset(
+            'assets/logos/outpost_icon.png',
+            height: 20,
+            fit: BoxFit.contain,
+          ),
+          const SizedBox(width: 8),
+          const Text(
             'KYBER OUTPOST',
             style: TextStyle(
               fontFamily: FontFamily.battlefrontUI,

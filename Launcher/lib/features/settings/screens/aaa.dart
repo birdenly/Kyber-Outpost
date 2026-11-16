@@ -177,10 +177,73 @@ class _CreditsState extends State<Credits> {
       slivers: [
         SliverToBoxAdapter(
           child: Padding(
-            padding: const EdgeInsets.only(top: 20, bottom: 60),
-            child: Assets.logos.kyberArmchair.svg(
-              color: kWhiteColor,
-              height: 140,
+            padding: const EdgeInsets.only(top: 24, bottom: 50),
+            child: Column(
+              children: [
+                Assets.logos.kyberArmchair.svg(
+                  color: kWhiteColor,
+                  height: 140,
+                ),
+                const SizedBox(height: 28),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 12,
+                        vertical: 6,
+                      ),
+                      decoration: BoxDecoration(
+                        borderRadius: BorderRadius.circular(4),
+                        border: Border.all(color: kWhiteColor, width: 1.5),
+                      ),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Image.asset(
+                            'assets/logos/outpost_icon.png',
+                            height: 20,
+                            fit: BoxFit.contain,
+                          ),
+                          const SizedBox(width: 8),
+                          const Text(
+                            'KYBER OUTPOST',
+                            style: TextStyle(
+                              fontFamily: FontFamily.battlefrontUI,
+                              fontSize: 20,
+                              fontWeight: FontWeight.bold,
+                              letterSpacing: 1.5,
+                              color: kWhiteColor,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    const Padding(
+                      padding: EdgeInsets.symmetric(horizontal: 14),
+                      child: Text(
+                        'BY',
+                        style: TextStyle(
+                          fontFamily: FontFamily.battlefrontUI,
+                          fontSize: 13,
+                          color: kWhiteColor,
+                          letterSpacing: 1.2,
+                        ),
+                      ),
+                    ),
+                    Text(
+                      'BIRDEN',
+                      style: TextStyle(
+                        fontFamily: FontFamily.battlefrontUI,
+                        fontSize: 20,
+                        fontWeight: FontWeight.bold,
+                        letterSpacing: 1.5,
+                        color: kActiveColor,
+                      ),
+                    ),
+                  ],
+                ),
+              ],
             ),
           ),
         ),
