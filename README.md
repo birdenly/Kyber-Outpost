@@ -133,7 +133,17 @@ Allow the game and Launcher through the VPN adapter's firewall. The [firewall he
 
 ## Mods
 
-New mods needs connection to NexusMods for downloads.
+Downloading mods directly from the in-app browser requires a NexusMods account. **Other LAN players do not need a NexusMods account** if the host shares the required `.fbmod` files directly over the local network (TCP port `25202`).
+
+### NexusMods Login (Personal API Key)
+
+Unlike upstream KYBER (which used its own registered `application=kyber` SSO key), **Kyber Outpost** authenticates using your own **Personal API Key**:
+
+1. Click **Login** in the NexusMods prompt or **Settings -> Accounts -> NexusMods**.
+2. Read the API key notice and press **OK** to show the login browser (preloaded in the background).
+3. Sign in with your NexusMods account. You will be redirected automatically to `https://www.nexusmods.com/settings/api-keys`.
+4. If you have not generated a Personal API Key yet, scroll down and click **Request API Key**. Kyber Outpost automatically detects the key from the page, validates it directly against `api.nexusmods.com`, and finishes login.
+5. Your Personal API Key stays local to your computer and is sent only to NexusMods when browsing or downloading mods.
 
 The host selects the mods. Kyber Outpost shares the required mod files over the LAN to other players.
 
