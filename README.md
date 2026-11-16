@@ -26,18 +26,18 @@
 
 ## Overview
 
-**Kyber Outpost** is a LAN version of [Kyber V2](https://github.com/ArmchairDevelopers/Kyber). It uses the offline **anadius emulator** to launch the game and lets you host or join matches on the same network. Kyber Outpost still needs a legit copy with valid denuvo tokens, this will not change, this isnt a crack.
+**Kyber Outpost** is a LAN version of [Kyber](https://github.com/ArmchairDevelopers/Kyber). It uses the **anadius EA emulator** + Kyber to launch the game and lets you host or join matches on the same network. Kyber Outpost still needs a legit copy with valid denuvo tokens, this will not change, this isnt a crack.
 
-Outpost adds these features to the original Kyber V2 workflow:
+Kyber Outpost adds these features to the original Kyber workflow:
 
 - **LAN server discovery:** find rooms on your network or connect to the host's local IP address.
-- **Local player profiles:** choose a nickname in the Launcher. Each name gets its own player ID.
+- **Local player profiles:** choose a nickname in the Launcher at the start or by clicking on your username top right.
 - **LAN mod sharing:** synchronize the host's selected mods over the local network. This mean one player can download the mods and transfer to others instead of, for example, downloading 4x.
 - **Portable installation:** runs Kyber Outpost directly from the game folder, with automatic detection of the adjacent executable.
 - **Automatic emulator configuration:** maintain `anadius.cfg`, including file hashes, the local player profile, and the computer's existing activation.
-- **Standalone local launch:** start games without an EA login in Outpost or a Maxima service.
+- **Standalone local launch:** start games without an EA account. The game still needs to be legit and generate denuvo token of its own.
 
-Matches use your local network. Internet is needed for installation, official activation (denuvo), and downloading new mods from external services.
+Matches use your local network. Internet is needed for installation, official activation (denuvo), and downloading new mods.
 
 ## How to play
 
@@ -47,6 +47,7 @@ Repeat setup on each computer that will join the match.
 
 1. Install **STAR WARS Battlefront II (2017)** through the store where you own it.
 2. Launch the original game through that store with internet available and wait until it reaches the main menu.
+3. Close
 
 Kyber Outpost reuses the existing Denuvo activation on each computer. It does not create or renew an activation. If it expires or is rejected, launch the original game through its store again.
 
@@ -97,9 +98,9 @@ STAR WARS Battlefront II\
 
 ### 4. Choose your player name
 
-Open **kyber_launcher.exe**. In the **Local Player** step, choose your nickname and save it to continue to the optional Nexus Mods setup. You can change your name later by clicking it at the top right of the Launcher.
+Open **kyber_launcher.exe**. In the **Local Player** step, choose your nickname and save it to continue to the optional Nexus Mods setup. You can change your name later by clicking at your username top right.
 
-Names must be different within a room and contain 1 to 16 characters. Close the game before changing your name. Nexus sign-in is optional and is used for mod downloads.
+Names must be different within a room and contain 1 to 16 characters. Close the game before changing your name.
 
 The Launcher creates or completes **`anadius.cfg`** when starting the game.
 
@@ -118,9 +119,8 @@ Existing language settings and custom options are preserved. To select an instal
 ### 5. Game Setup
 
 1. Connect all players to the same Ethernet or Wi-Fi network.
-2. Allow the game and Launcher through Windows Firewall on your **Private** network.
-3. Host a Match with whatever cofig you want.
-Keep the host's Launcher open during the match so other players can find the room and receive its information and mods.
+2. Allow the game and Launcher through Windows Firewall on your **Private** network. A [.ps1](tool/allow_lan_firewall.ps1) will be included in release, if you would like to run that way.
+3. Host a Match with whatever cofig you want. Keep the host's Launcher open during the match so other players can find the room and receive its information and mods.
 4. Joining: On another computer, open **HOME**, refresh the server list, and select the host's room.
 
 If the room does not appear, use **DIRECT IP** with the host's local IPv4 address and game port, for example `192.168.1.50:25200`.
@@ -129,7 +129,7 @@ If the room does not appear, use **DIRECT IP** with the host's local IPv4 addres
 
 For players on different networks, Outpost accepts Radmin VPN (`26.x.x.x`), Hamachi (`25.x.x.x`), and VPNs using private IPv4 addresses or `100.64.0.0/10`. Join the same virtual network and use **DIRECT IP** with the host's VPN address, for example `26.10.20.30:25200`. Automatic room discovery depends on the VPN's broadcast support.
 
-Allow the game and Launcher through the VPN adapter's firewall. The [firewall helper](tool/allow_lan_firewall.ps1) includes these address ranges; rerun it if you previously used an older version. Playing between remote computers requires internet through the VPN. Virtual LAN gameplay has not yet been tested between two computers.
+Allow the game and Launcher through the VPN adapter's firewall. The [firewall helper](tool/allow_lan_firewall.ps1) includes these address ranges. Virtual LAN gameplay has not yet been tested between two computers.
 
 ## Mods
 
