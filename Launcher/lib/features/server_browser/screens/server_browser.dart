@@ -189,32 +189,6 @@ class _FilterDropdown extends StatelessWidget {
           final cubit = context.read<ServerListCubit>();
           return SuperListView(
             children: [
-              KyberFilterSection<ServerRegion>(
-                title: 'REGION',
-                selectedItems: [cubit.filter.region],
-                items: toSelectorItems(
-                  ServerRegion.values,
-                  title: (e) => e.displayName,
-                ),
-                onChanged: (selected) {
-                  cubit.setFilter(
-                    cubit.filter.copyWith(region: selected.firstOrNull),
-                  );
-                },
-              ),
-              KyberFilterSection<ServerType>(
-                title: 'SERVER TYPE',
-                selectedItems: [cubit.filter.type],
-                items: toSelectorItems(
-                  ServerType.values,
-                  title: (e) => e.name,
-                ),
-                onChanged: (selected) {
-                  cubit.setFilter(
-                    cubit.filter.copyWith(type: selected.firstOrNull),
-                  );
-                },
-              ),
               KyberFilterSection<GameType>(
                 title: 'GAME TYPE',
                 selectedItems: [cubit.filter.gameType],

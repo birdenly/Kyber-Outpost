@@ -35,13 +35,17 @@ class AccountsAndUpdates extends StatelessWidget {
                 title: 'NexusMods',
                 onClick: () async {
                   if (Preferences.nexusMods.isLoggedIn) {
-                    await sl.get<NexusModsService>().deleteToken();
+                    try {
+                      await sl.get<NexusModsService>().deleteToken();
+                    } catch (_) {}
+                    try {
+                      await CookieManager.instance(
+                        webViewEnvironment: webViewEnvironment,
+                      ).deleteAllCookies();
+                    } catch (_) {}
                     Preferences.nexusMods.isLoggedIn = false;
                     Preferences.nexusMods.apiToken = null;
                     Preferences.nexusMods.refreshToken = null;
-                    await CookieManager.instance(
-                      webViewEnvironment: webViewEnvironment,
-                    ).deleteAllCookies();
                   } else {
                     await showKyberDialog(
                       context: context,

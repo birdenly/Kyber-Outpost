@@ -13,7 +13,10 @@ import 'package:kyber_launcher/injection_container.dart';
 import 'package:super_sliver_list/super_sliver_list.dart';
 
 const credits = <String, Map<String, List<String>>>{
-  'KYBER TEAM': {
+  'KYBER OUTPOST (LAN EDITION)': {
+    'FORK & LAN MAINTAINER': ['Birden'],
+  },
+  'UPSTREAM KYBER TEAM (ORIGINAL)': {
     'LEAD DEVELOPER': ['7reax'],
     'LEAD DESIGNER': ['dcat'],
     'DEVELOPERS': ['Magix', 'Nuuby'],

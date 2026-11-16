@@ -5,17 +5,14 @@
 list(APPEND FLUTTER_PLUGIN_LIST
   audioplayers_windows
   connectivity_plus
-  desktop_webview_window
   file_selector_windows
   flutter_inappwebview_windows
   flutter_js
-  flutter_secure_storage_windows
   irondash_engine_context
   media_kit_libs_windows_video
   media_kit_video
   protocol_handler_windows
   screen_retriever_windows
-  sentry_flutter
   super_native_extensions
   url_launcher_windows
   video_player_win
@@ -25,7 +22,6 @@ list(APPEND FLUTTER_PLUGIN_LIST
 )
 
 list(APPEND FLUTTER_FFI_PLUGIN_LIST
-  jni
   rhttp
 )
 

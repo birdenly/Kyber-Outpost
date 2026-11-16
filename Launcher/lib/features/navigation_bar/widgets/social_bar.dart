@@ -12,7 +12,6 @@ import 'package:kyber_launcher/features/download_manager/providers/download_mana
 import 'package:kyber_launcher/features/kyber/providers/kyber_status_cubit.dart';
 import 'package:kyber_launcher/features/maxima/providers/maxima_cubit.dart';
 import 'package:kyber_launcher/features/maxima/providers/maxima_rtm_cubit.dart';
-import 'package:kyber_launcher/features/maxima/widgets/maxima_avatar.dart';
 import 'package:kyber_launcher/features/navigation_bar/widgets/exit_devplaytest_button.dart';
 import 'package:kyber_launcher/features/settings/dialogs/chromium_download_dialog.dart';
 import 'package:kyber_launcher/gen/fonts.gen.dart';
@@ -151,15 +150,11 @@ class _UserBar extends StatelessWidget {
             borderRadius: const .all(.circular(6)),
             color: Colors.black.withOpacity(0.5),
           ),
-          padding: const .symmetric(horizontal: 3, vertical: 3),
+          padding: const .symmetric(horizontal: 10, vertical: 5),
           child: Row(
-            spacing: 10,
+            spacing: 8,
             children: [
-              MaximaAvatar(
-                pd: currentUser.pd,
-                height: 24,
-                width: 24,
-              ),
+              Icon(mt.Icons.person_outline, size: 16, color: kActiveColor),
               Text(
                 currentUser.displayName,
                 style: const TextStyle(
@@ -168,7 +163,6 @@ class _UserBar extends StatelessWidget {
                   height: 1.1,
                 ),
               ),
-              const SizedBox.shrink(),
             ],
           ),
         );

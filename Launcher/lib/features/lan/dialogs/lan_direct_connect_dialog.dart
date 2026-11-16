@@ -57,7 +57,7 @@ class _LanDirectConnectDialogState extends State<LanDirectConnectDialog> {
   Widget build(BuildContext context) {
     return KyberContentDialog(
       title: const Text('DIRECT LAN CONNECT'),
-      constraints: const BoxConstraints(maxWidth: 500, maxHeight: 280),
+      constraints: const BoxConstraints(maxWidth: 500, maxHeight: 360),
       content: Column(
         mainAxisSize: MainAxisSize.min,
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -75,7 +75,7 @@ class _LanDirectConnectDialogState extends State<LanDirectConnectDialog> {
             placeholder: '192.168.1.50:25200',
             controller: _ipController,
           ),
-          const SizedBox(height: 10),
+          const SizedBox(height: 12),
           const Text(
             'Note: Kyber Outpost will automatically query the HTTP port '
             '(game port + 2) for the server mod list and Frostbite load order before connecting.',
@@ -85,6 +85,7 @@ class _LanDirectConnectDialogState extends State<LanDirectConnectDialog> {
               color: kInactiveColor,
             ),
           ),
+          const SizedBox(height: 16),
         ],
       ),
       actions: [
