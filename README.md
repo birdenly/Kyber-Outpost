@@ -37,7 +37,7 @@ Kyber Outpost adds these features to the original Kyber workflow:
 - **Automatic emulator configuration:** maintain `anadius.cfg`, including file hashes, the local player profile, and the computer's existing activation.
 - **Standalone local launch:** start games without an EA account. The game still needs to be legit and generate denuvo token of its own.
 
-Matches use your local network. Internet is needed for installation, official activation (denuvo), and downloading new mods.
+Matches use your local network. Internet is needed for installation, denuvo activation from legit game, and downloading new mods.
 
 ## How to play
 
@@ -133,19 +133,17 @@ Allow the game and Launcher through the VPN adapter's firewall. The [firewall he
 
 ## Mods
 
-Downloading mods directly from the in-app browser requires a NexusMods account. **Other LAN players do not need a NexusMods account** if the host shares the required `.fbmod` files directly over the local network (TCP port `25202`).
+Downloading mods directly from the in-app browser requires a NexusMods account. **Other LAN players do not need a NexusMods account**, the host shares the required `.fbmod` files directly over the local network to other players if they dont have the mod.
 
 ### NexusMods Login (Personal API Key)
 
-Unlike upstream KYBER (which used its own registered `application=kyber` SSO key), **Kyber Outpost** authenticates using your own **Personal API Key**:
+Unlike upstream KYBER (which used its own registered SSO key), **Kyber Outpost** authenticates using your own **Personal API Key**:
 
 1. Click **Login** in the NexusMods prompt or **Settings -> Accounts -> NexusMods**.
 2. Read the API key notice and press **OK** to show the login browser (preloaded in the background).
 3. Sign in with your NexusMods account. You will be redirected automatically to `https://www.nexusmods.com/settings/api-keys`.
 4. If you have not generated a Personal API Key yet, scroll down and click **Request API Key**. Kyber Outpost automatically detects the key from the page, validates it directly against `api.nexusmods.com`, and finishes login.
-5. Your Personal API Key is encrypted locally using **Windows DPAPI** (`CryptProtectData`, scoped to your Windows user account) before being saved in local settings, and is sent only to NexusMods when browsing or downloading mods.
-
-The host selects the mods. Kyber Outpost shares the required mod files over the LAN to other players.
+5. Your Personal API Key is encrypted locally using **Windows DPAPI** (`CryptProtectData`, scoped to your Windows user account) before being saved in local settings.
 
 ## Troubleshooting
 
