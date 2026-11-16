@@ -57,7 +57,13 @@ class LanNetworkPolicy extends HttpOverrides {
       if (!allowsHost(uri.host)) {
         throw SocketException('Internet access is disabled for ${uri.host}');
       }
-      return Socket.startConnect(uri.host, uri.port);
+      final port = uri.port != 0
+          ? uri.port
+          : (uri.scheme == 'https' || uri.scheme == 'wss' ? 443 : 80);
+      if (uri.scheme == 'https' || uri.scheme == 'wss') {
+        return SecureSocket.startConnect(uri.host, port, context: context);
+      }
+      return Socket.startConnect(uri.host, port);
     };
     return client;
   }
