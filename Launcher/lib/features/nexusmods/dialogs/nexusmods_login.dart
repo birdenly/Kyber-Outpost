@@ -101,19 +101,17 @@ class _NexusmodsLoginState extends State<NexusmodsLogin> {
       ),
       actions: [
         KyberButton(
-          text: 'Skip',
+          text: 'Cancel',
           onPressed: () {
             Navigator.of(context).pop(false);
           },
         ),
-        if (_currentStep == 1)
+        if (_currentStep == 1 && !browserOpen)
           KyberButton(
-            onPressed: browserOpen
-                ? null
-                : () async {
-                    setState(() => browserOpen = true);
-                  },
-            text: !browserOpen ? 'CONTINUE' : 'WAIT',
+            onPressed: () {
+              setState(() => browserOpen = true);
+            },
+            text: 'OK',
           ),
       ],
       content: Builder(
@@ -149,70 +147,86 @@ class _NexusmodsLoginState extends State<NexusmodsLogin> {
           }
 
           return SizedBox(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: browserOpen
-                  ? [
-                      Expanded(
-                        child: Stack(
-                          children: [
-                            Positioned.fill(
-                              child: NexusLoginScreen(
-                                onShowOverlay: (showOverlay) {
-                                  setState(() => this.showOverlay = showOverlay);
-                                },
-                                onSuccess: () async {
-                                  if (!mounted) return;
-                                  Preferences.nexusMods.isLoggedIn = true;
-                                  Navigator.of(context).pop(true);
-                                },
-                              ),
+            child: Stack(
+              children: [
+                Positioned.fill(
+                  child: IgnorePointer(
+                    ignoring: !browserOpen,
+                    child: Opacity(
+                      opacity: browserOpen ? 1.0 : 0.0,
+                      child: Stack(
+                        children: [
+                          Positioned.fill(
+                            child: NexusLoginScreen(
+                              onShowOverlay: (showOverlay) {
+                                setState(() => this.showOverlay = showOverlay);
+                              },
+                              onSuccess: () async {
+                                if (!mounted) return;
+                                Preferences.nexusMods.isLoggedIn = true;
+                                Navigator.of(context).pop(true);
+                              },
                             ),
-                            if (showOverlay)
-                              Positioned.fill(
-                                child: Container(
-                                  color: FluentTheme.of(
-                                    context,
-                                  ).micaBackgroundColor.withOpacity(.9),
-                                  alignment: Alignment.center,
-                                  child: const Center(
-                                    child: Row(
-                                      mainAxisAlignment:
-                                          MainAxisAlignment.center,
-                                      children: [
-                                        SizedBox(
-                                          height: 30,
-                                          width: 30,
-                                          child: ProgressRing(),
-                                        ),
-                                        SizedBox(width: 15),
-                                        Text(
-                                          'Waiting for NexusMods...',
-                                          style: TextStyle(fontSize: 19),
-                                        ),
-                                      ],
-                                    ),
+                          ),
+                          if (showOverlay && browserOpen)
+                            Positioned.fill(
+                              child: Container(
+                                color: FluentTheme.of(
+                                  context,
+                                ).micaBackgroundColor.withOpacity(.9),
+                                alignment: Alignment.center,
+                                child: const Center(
+                                  child: Row(
+                                    mainAxisAlignment: MainAxisAlignment.center,
+                                    children: [
+                                      SizedBox(
+                                        height: 30,
+                                        width: 30,
+                                        child: ProgressRing(),
+                                      ),
+                                      SizedBox(width: 15),
+                                      Text(
+                                        'Waiting for NexusMods...',
+                                        style: TextStyle(fontSize: 19),
+                                      ),
+                                    ],
                                   ),
                                 ),
                               ),
-                          ],
-                        ),
+                            ),
+                        ],
                       ),
-                    ]
-                  : [
-                      const Text(
-                        'To continue, you will need to log in with your NexusMods account in the browser that is about to open.',
-                        style: .new(
-                          fontSize: 16,
-                          fontWeight: .bold,
-                        ),
+                    ),
+                  ),
+                ),
+                if (!browserOpen)
+                  const Positioned.fill(
+                    child: SingleChildScrollView(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            'Unlike Kyber which used its own application API key, Kyber Outpost will use your own Personal API Key.',
+                            style: TextStyle(
+                              fontSize: 16,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                          SizedBox(height: 16),
+                          Text(
+                            'When you login you will be taken to https://www.nexusmods.com/settings/api-keys — please scroll down and press "Request API Key" if it does not automatically detect your key.',
+                            style: TextStyle(fontSize: 14),
+                          ),
+                          SizedBox(height: 12),
+                          Text(
+                            'Your key is not stored remotely by Kyber Outpost or used anywhere else besides when you download the mods you want.',
+                            style: TextStyle(fontSize: 14),
+                          ),
+                        ],
                       ),
-                      const SizedBox(height: 16),
-                      const Text(
-                        'The data is processed locally and will only be sent to Nexusmods.\nYou can also enable/disable this feature later in the settings menu..',
-                        style: .new(fontSize: 14),
-                      ),
-                    ],
+                    ),
+                  ),
+              ],
             ),
           );
         },

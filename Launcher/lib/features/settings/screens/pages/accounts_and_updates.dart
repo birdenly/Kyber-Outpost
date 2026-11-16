@@ -45,7 +45,6 @@ class AccountsAndUpdates extends StatelessWidget {
                     } catch (_) {}
                     Preferences.nexusMods.isLoggedIn = false;
                     Preferences.nexusMods.apiToken = null;
-                    Preferences.nexusMods.refreshToken = null;
                   } else {
                     await showKyberDialog(
                       context: context,

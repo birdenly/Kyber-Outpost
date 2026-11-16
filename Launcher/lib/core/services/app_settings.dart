@@ -199,10 +199,6 @@ class NexusMods {
   String? get apiToken => box.get('nexusmods_api_token') as String?;
 
   set apiToken(String? value) => box.put('nexusmods_api_token', value);
-
-  String? get refreshToken => box.get('nexusmods_refresh_token') as String?;
-
-  set refreshToken(String? value) => box.put('nexusmods_refresh_token', value);
 }
 
 class Debug {

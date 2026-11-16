@@ -1,5 +1,3 @@
-import 'dart:async';
-import 'dart:convert';
 import 'dart:io';
 
 import 'package:http_cache_hive_store/http_cache_hive_store.dart';
@@ -14,9 +12,6 @@ import 'package:kyber_launcher/main.dart';
 import 'package:logging/logging.dart';
 import 'package:nexus_bridge/nexus_bridge.dart';
 import 'package:package_info_plus/package_info_plus.dart';
-import 'package:uuid/uuid.dart';
-import 'package:web_socket_channel/web_socket_channel.dart';
-import 'package:window_to_front/window_to_front.dart';
 
 class NexusModsService {
   NexusBridge? _nexusBridge;
@@ -110,88 +105,6 @@ class NexusModsService {
     ).clean();
     Preferences.nexusMods.apiToken = null;
     _nexusBridge = null;
-  }
-
-  Future<void> requestApiToken({
-    required void Function(String url) onUrl,
-  }) async {
-    _logger.info('Requesting NexusMods API token');
-    final wsUrl = Uri.parse('wss://sso.nexusmods.com');
-    final channel = WebSocketChannel.connect(wsUrl);
-
-    final completer = Completer<void>();
-    try {
-      await channel.ready.timeout(const Duration(seconds: 10));
-      _logger.info('WebSocket connection ready');
-
-      final data = {
-        'id': const Uuid().v4(),
-        'protocol': 2,
-        'token': Preferences.nexusMods.refreshToken,
-      };
-      channel.sink.add(jsonEncode(data));
-
-      channel.stream.listen(
-        (message) async {
-          _logger
-            ..info('Received message')
-            ..fine(message);
-          final decoded = jsonDecode(message as String) as Map<String, dynamic>;
-          if (decoded['success'] == true) {
-            if (decoded['data']['connection_token'] != null) {
-              _logger.info('Received connection token');
-              Preferences.nexusMods.refreshToken =
-                  (decoded['data']['refresh_token'] as String?);
-            } else if (decoded['data']['api_key'] != null) {
-              _logger.info('Received API token');
-              await setApiToken(decoded['data']['api_key'] as String);
-
-              final checkResp = await _nexusBridge!.apiClient.validateUser();
-              _logger.info('User validated: ${checkResp.name}');
-              NotificationService.showNotification(
-                message: 'Logged in as ${checkResp.name}',
-                severity: InfoBarSeverity.success,
-              );
-
-              await fetchUser();
-
-              Preferences.nexusMods.isLoggedIn = true;
-
-              completer.complete();
-              await WindowToFront.activate();
-              await fetchUser();
-            }
-          } else {
-            _logger.severe(
-              "Error while requesting API token: ${decoded["error"]}",
-            );
-            completer.completeError(decoded['error'] as String);
-          }
-        },
-        cancelOnError: true,
-        onDone: () {
-          _logger.info('WebSocket connection closed');
-          if (!completer.isCompleted) {
-            completer.completeError('WebSocket connection closed');
-          }
-        },
-        onError: (e, s) {
-          _logger.severe('Error while receiving message:', e);
-          completer.completeError(e.toString());
-        },
-      );
-
-      onUrl('https://www.nexusmods.com/sso?id=${data["id"]}&application=kyber');
-
-      await completer.future.timeout(const Duration(minutes: 5));
-    } catch (e, s) {
-      _logger.severe('Error while requesting API token:', e, s);
-      if (!completer.isCompleted) {
-        completer.completeError(e);
-      }
-    } finally {
-      await channel.sink.close();
-    }
   }
 
   Future<bool> loginWithApiKey(String token) async {
