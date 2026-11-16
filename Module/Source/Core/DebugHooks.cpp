@@ -9,8 +9,10 @@
 #include <Core/Console.h>
 #include <Utilities/PlatformUtils.h>
 #include <Utilities/MemoryUtils.h>
-#include <Core/Sentry.h>
 #include <SDK/Funcs.h>
+
+#include <EASTL/map.h>
+#include <EASTL/string.h>
 
 #include <processthreadsapi.h>
 #include <functional>
@@ -41,6 +43,7 @@ namespace Kyber
 {
 static std::mutex s_heartbeatMutex;
 static std::map<std::string, DWORD> s_heartbeatLastThreadIds;
+static eastl::map<eastl::string, eastl::string> s_debugContextData;
 
 void HeartbeatMonitorBeatHk(const char* name)
 {
@@ -58,7 +61,7 @@ void DebugContextDataPushContextData(void* inst, const char* dataKey, const char
     static const auto trampoline = HookManager::Call(DebugContextDataPushContextData);
     KYBER_LOG(Debug, "[" << dataKey << "] " << dataValue);
 
-    Sentry::s_debugContextData[dataKey] = dataValue;
+    s_debugContextData[dataKey] = dataValue;
 
     if (std::string(dataKey).find("turbo.buffer") != std::string::npos)
     {
@@ -78,7 +81,7 @@ void DebugContextDataPushContextData(void* inst, const char* dataKey, const char
         }
 
         KYBER_LOG(Info, "Dumping debug context:");
-        for (const auto& [key, value] : Sentry::s_debugContextData)
+        for (const auto& [key, value] : s_debugContextData)
         {
             KYBER_LOG(Info, " " << key.c_str() << ": " << value.c_str());
         }

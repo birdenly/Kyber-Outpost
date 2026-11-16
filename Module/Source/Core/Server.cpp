@@ -734,7 +734,7 @@ bool ServerConnectionOnCreatePlayerMessageHk(ServerConnection* inst, NetworkCrea
     if (playerName.rfind(prefix, 0) != 0)
     {
         KYBER_LOG(Info, "[Server] Kicking " << playerName.c_str() << " as they aren't authenticated");
-        inst->SafeDisconnect("KYBER failed to authenticate your connection.\n\nPlease visit discord.gg/kyber for support.");
+        inst->SafeDisconnect("KYBER Outpost failed to authenticate your LAN connection.");
         return false;
     }
 
@@ -753,7 +753,7 @@ bool ServerConnectionOnCreatePlayerMessageHk(ServerConnection* inst, NetworkCrea
             if (!response)
             {
                 KYBER_LOG(Info, "[Server] Kicking " << playerName.c_str() << " as their join token was invalid");
-                inst->SafeDisconnect("KYBER failed to authenticate your connection.\n\nPlease visit discord.gg/kyber for support.");
+                inst->SafeDisconnect("KYBER Outpost failed to authenticate your LAN connection.");
                 return;
             }
 

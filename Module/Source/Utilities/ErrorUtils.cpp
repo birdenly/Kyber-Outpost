@@ -8,8 +8,7 @@ namespace Kyber
 {
 void ErrorUtils::ThrowException(LPCSTR message)
 {
-    LPCSTR base = "Something went wrong with Kyber. Please restart your game and report this on the Kyber Discord if it "
-                  "continues.\n\nException Details:\n";
+    LPCSTR base = "Something went wrong with Kyber Outpost. Please restart your game.\n\nException Details:\n";
     std::string combined = std::string(base) + message;
     LPCSTR combinedLPC = combined.c_str();
 

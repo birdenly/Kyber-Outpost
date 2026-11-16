@@ -9,7 +9,6 @@
 #include <Base/Version.h>
 #include <Core/DebugHooks.h>
 #include <Core/Memory.h>
-#include <Core/Sentry.h>
 #include <Hook/HookManager.h>
 #include <Utilities/ErrorUtils.h>
 #include <Utilities/MemoryUtils.h>
@@ -134,8 +133,6 @@ void Program::InitializationThread()
 {
     HookManager::CreateHook(HOOK_OFFSET(0x1401898A0), MainInitHk);
     Hook::ApplyQueuedActions();
-
-    Sentry::Initialize();
 
     InitializeEASTL();
 
