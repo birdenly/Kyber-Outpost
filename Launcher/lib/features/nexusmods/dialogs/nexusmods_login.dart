@@ -201,28 +201,34 @@ class _NexusmodsLoginState extends State<NexusmodsLogin> {
                 ),
                 if (!browserOpen)
                   const Positioned.fill(
-                    child: SingleChildScrollView(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            'Unlike Kyber which used its own application API key, Kyber Outpost will use your own Personal API Key.',
-                            style: TextStyle(
-                              fontSize: 16,
-                              fontWeight: FontWeight.bold,
+                    child: Center(
+                      child: SingleChildScrollView(
+                        child: Column(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          crossAxisAlignment: CrossAxisAlignment.center,
+                          children: [
+                            Text(
+                              'Unlike Kyber which used its own application API key, Kyber Outpost will use your own Personal API Key.',
+                              textAlign: TextAlign.center,
+                              style: TextStyle(
+                                fontSize: 16,
+                                fontWeight: FontWeight.bold,
+                              ),
                             ),
-                          ),
-                          SizedBox(height: 16),
-                          Text(
-                            'When you login you will be taken to https://www.nexusmods.com/settings/api-keys — please scroll down and press "Request API Key" if it does not automatically detect your key.',
-                            style: TextStyle(fontSize: 14),
-                          ),
-                          SizedBox(height: 12),
-                          Text(
-                            'Your key is not stored remotely by Kyber Outpost or used anywhere else besides when you download the mods you want.',
-                            style: TextStyle(fontSize: 14),
-                          ),
-                        ],
+                            SizedBox(height: 16),
+                            Text(
+                              'When you login you will be taken to https://www.nexusmods.com/settings/api-keys — please scroll down and press "Request API Key" if it does not automatically detect your key.',
+                              textAlign: TextAlign.center,
+                              style: TextStyle(fontSize: 14),
+                            ),
+                            SizedBox(height: 12),
+                            Text(
+                              'Your key is not stored remotely by Kyber Outpost or used anywhere else besides when you download the mods you want.',
+                              textAlign: TextAlign.center,
+                              style: TextStyle(fontSize: 14),
+                            ),
+                          ],
+                        ),
                       ),
                     ),
                   ),
