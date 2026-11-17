@@ -4,11 +4,9 @@ import 'package:fluent_ui/fluent_ui.dart';
 import 'package:flutter_fadein/flutter_fadein.dart';
 import 'package:kyber_launcher/core/core.dart';
 import 'package:kyber_launcher/gen/assets.gen.dart';
-import 'package:kyber_launcher/shared/ui/buttons/custom_icon_button.dart';
 import 'package:kyber_launcher/shared/ui/dialog/kyber_dialog.dart';
 import 'package:media_kit/media_kit.dart';
 import 'package:media_kit_video/media_kit_video.dart';
-import 'package:url_launcher/url_launcher_string.dart';
 import 'package:vector_graphics/vector_graphics.dart';
 
 Future<void> showOpenBetaDialog(BuildContext context) async {
@@ -28,8 +26,6 @@ Future<void> showOpenBetaDialog(BuildContext context) async {
 
 final links = [
   'asset://${Assets.videos.kblFirststartVideoHeroes}',
-  'https://s3.kyber.gg/frontend-assets/videos/kbl-firststart-video-reinforcements.mp4',
-  'https://s3.kyber.gg/frontend-assets/videos/kbl-firststart-video-skins.mp4',
 ];
 
 class OpenBetaDialog extends StatefulWidget {
@@ -115,7 +111,11 @@ class _OpenBetaDialogState extends State<OpenBetaDialog> {
                   FadeIn(
                     controller: _fadeInControllers[1],
                     duration: const .new(seconds: 1),
-                    child: Assets.icons.betaIcon.svg(height: 32),
+                    child: Image.asset(
+                      'assets/logos/outpost_icon.png',
+                      height: 36,
+                      fit: BoxFit.contain,
+                    ),
                   ),
                   FadeIn(
                     controller: _fadeInControllers.first,
@@ -123,29 +123,8 @@ class _OpenBetaDialogState extends State<OpenBetaDialog> {
                   ),
                   FadeIn(
                     controller: _fadeInControllers.last,
-                    child: Column(
-                      spacing: 20,
-                      children: [
-                        _PlayButton(
-                          onPressed: () => Navigator.of(context).pop(true),
-                        ),
-                        Row(
-                          spacing: 20,
-                          mainAxisAlignment: .center,
-                          children: [
-                            CustomSvgButton(
-                              path: Assets.icons.discord.path,
-                              onPressed: () =>
-                                  launchUrlString('https://discord.gg/kyber'),
-                            ),
-                            CustomSvgButton(
-                              path: Assets.icons.iconLib.kblBrowserIcon.path,
-                              onPressed: () =>
-                                  launchUrlString('https://kyber.gg'),
-                            ),
-                          ],
-                        ),
-                      ],
+                    child: _PlayButton(
+                      onPressed: () => Navigator.of(context).pop(true),
                     ),
                   ),
                 ],

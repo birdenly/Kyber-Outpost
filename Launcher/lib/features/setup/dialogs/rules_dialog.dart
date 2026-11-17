@@ -10,28 +10,20 @@ import 'package:kyber_launcher/shared/ui/buttons/button.dart';
 import 'package:kyber_launcher/shared/ui/dialog/kyber_dialog.dart';
 
 const _rules = '''
-When using KYBER, you agree to the following:
+When using Kyber Outpost (LAN Edition), keep the following guidelines in mind:
 
-- **No Cheating**:  
-  You will not use cheats, bots, or unauthorized tools to gain an unfair advantage.
-
-- **No DDoSing or Hacking**:  
-  You will not disrupt or interfere with KYBER’s services, servers, or users.
-
-- **No Abuse or Exploitation**:  
-  You will not abuse, misuse, or exploit KYBER’s APIs, systems, or features.
+- **Play Only With Trusted People**:  
+  Only host or join LAN / virtual LAN rooms and download shared mods from players you know and trust. Avoid exposing LAN ports (25200–25202) to untrusted public networks.
 
 - **Lawful Use Only**:  
-  You will not use KYBER for any unlawful or malicious activities.
+  You will use Kyber Outpost only for lawful, non-commercial, private LAN sessions with a legitimate copy of STAR WARS™ Battlefront™ II, and never for malicious or unauthorized activities.
 
-- **Respect Our Community**:  
-  You will not engage in harassment, unwelcome communication, hate speech, or other harmful behavior towards other users or our team.
+- **Fair Play & Respect**:  
+  Respect everyone in your room and avoid griefing, exploits, or unapproved tampering inside shared matches.
 
-Violating these rules may result in account suspension, banning, or other corrective actions.
+Special thanks to the original **KYBER** team, **Armchair Developers**, and all upstream contributors whose open-source work made this project possible. Kyber Outpost is an independent LAN fork and is not affiliated with or supported by Armchair Developers or Electronic Arts (EA).
 
-(Read the full [Terms of Service](https://kyber.gg/about/tos))
-
-Armchair Developers and/or Electronic Arts may take action against users who violate the KYBER Code of Conduct and the STAR WARS™ Battlefront™ II [EULA](https://www.ea.com/legal/user-agreement), respectively.''';
+Please also review the STAR WARS™ Battlefront™ II [EULA](https://www.ea.com/legal/user-agreement).''';
 
 Future<void> showRulesDialog(BuildContext context) async {
   if (Preferences.general.acceptedRules) {
@@ -80,7 +72,7 @@ class _RulesDialogState extends State<RulesDialog> {
   @override
   Widget build(BuildContext context) {
     return KyberContentDialog(
-      title: const Text('CODE OF CONDUCT'),
+      title: const Text('LAN NOTICE'),
       constraints: const BoxConstraints(maxWidth: 900, maxHeight: 600),
       content: Container(
         padding: const EdgeInsets.only(top: 4),

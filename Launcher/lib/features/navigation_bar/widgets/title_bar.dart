@@ -1,10 +1,14 @@
 import 'package:fluent_ui/fluent_ui.dart';
 import 'package:kyber_launcher/core/config/colors.dart';
 import 'package:kyber_launcher/gen/fonts.gen.dart';
+import 'package:package_info_plus/package_info_plus.dart';
 import 'package:window_manager/window_manager.dart';
 
 class TitleBar extends StatelessWidget {
   const TitleBar({super.key});
+
+  static final Future<PackageInfo> _packageInfoFuture =
+      PackageInfo.fromPlatform();
 
   @override
   Widget build(BuildContext context) {
@@ -48,6 +52,25 @@ class TitleBar extends StatelessWidget {
                   color: kActiveColor,
                 ),
               ),
+            ),
+            const SizedBox(width: 8),
+            FutureBuilder<PackageInfo>(
+              future: _packageInfoFuture,
+              builder: (context, snapshot) {
+                final info = snapshot.data;
+                if (info == null || info.version.isEmpty) {
+                  return const SizedBox.shrink();
+                }
+
+                return Text(
+                  'v${info.version}#CL${info.buildNumber}',
+                  style: const TextStyle(
+                    fontFamily: FontFamily.iBMPlexMono,
+                    fontSize: 12,
+                    color: kGrayColor,
+                  ),
+                );
+              },
             ),
             const Spacer(),
           ],

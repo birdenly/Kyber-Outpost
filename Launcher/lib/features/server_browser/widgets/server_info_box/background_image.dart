@@ -1,11 +1,8 @@
 import 'dart:ui';
 
-import 'package:cached_network_image/cached_network_image.dart';
 import 'package:fluent_ui/fluent_ui.dart';
-import 'package:kyber/kyber.dart';
 import 'package:kyber_launcher/features/kyber/services/map_helper.dart';
 import 'package:kyber_launcher/gen/assets.gen.dart';
-import 'package:kyber_launcher/injection_container.dart';
 
 class ServerBackgroundImage extends StatelessWidget {
   const ServerBackgroundImage({
@@ -36,26 +33,14 @@ class ServerBackgroundImage extends StatelessWidget {
             sigmaY: !blur ? 0 : 4,
             tileMode: TileMode.mirror,
           ),
-          child: imageId != null
-              ? CachedNetworkImage(
-                  imageUrl:
-                      'https://${sl.get<KyberGRPCService>().httpHostname}/images/$imageId.jpeg',
-                  height: 200,
+          child: image?.image(
+                  height: 400,
                   fit: BoxFit.cover,
-                  placeholder: (context, url) =>
-                      Assets.images.kyberNoImage.image(
-                        height: 400,
-                        fit: BoxFit.cover,
-                      ),
-                )
-              : image?.image(
-                      height: 400,
-                      fit: BoxFit.cover,
-                    ) ??
-                    Assets.images.kyberNoImage.image(
-                      height: 400,
-                      fit: BoxFit.cover,
-                    ),
+                ) ??
+                Assets.images.kyberNoImage.image(
+                  height: 400,
+                  fit: BoxFit.cover,
+                ),
         ),
       );
     }
