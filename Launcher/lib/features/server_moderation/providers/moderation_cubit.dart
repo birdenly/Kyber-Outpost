@@ -23,11 +23,13 @@ class ModerationCubit extends Cubit<ModerationServerState> {
     botChangeStream = ReplaySubject<(int, int)>();
     botChangeStream!
         .debounceTime(const Duration(milliseconds: 300))
-        .listen(
-          (event) => sendCommand(
+        .listen((event) {
+          sendCommand('/AutoPlayers.AllowAddAutoFillPlayers 1');
+          sendCommand('/AutoPlayers.ForceApplyGameplayBotsCount 1');
+          sendCommand(
             '/AutoPlayers.ForceFillGameplayBotsTeam${event.$1} ${event.$2}',
-          ),
-        );
+          );
+        });
   }
 
   final _logger = Logger('moderation_cubit');

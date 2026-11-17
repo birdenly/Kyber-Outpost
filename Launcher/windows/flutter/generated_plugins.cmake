@@ -10,12 +10,12 @@ list(APPEND FLUTTER_PLUGIN_LIST
   flutter_js
   irondash_engine_context
   media_kit_libs_windows_video
-  media_kit_video
   protocol_handler_windows
   screen_retriever_windows
   super_native_extensions
   url_launcher_windows
   video_player_win
+  media_kit_video
   window_manager
   window_to_front
   windows_taskbar

@@ -407,6 +407,42 @@ void FullTeamSwapCommand(ConsoleContext& cc)
     cc << "Successfully swapped both teams to the opposite side";
 }
 
+void ListPlayersCommand(ConsoleContext& cc)
+{
+    auto* server = g_program->m_server;
+    auto* pm = (server != nullptr && server->IsRunning() && server->GetServerGameContext() != nullptr)
+        ? server->GetServerGameContext()->GetPlayerManager()
+        : nullptr;
+    if (pm == nullptr)
+    {
+        cc << "Server player manager is not available";
+        return;
+    }
+
+    int humanCount = 0;
+    int botCount = 0;
+    for (ServerPlayer* player : pm->m_players)
+    {
+        if (player == nullptr)
+        {
+            continue;
+        }
+        bool isBot = player->IsAIPlayer();
+        if (isBot)
+        {
+            ++botCount;
+        }
+        else
+        {
+            ++humanCount;
+        }
+        KYBER_LOG(Info, "[Players] " << (isBot ? "[BOT] " : "[HUMAN] ")
+            << (player->m_name ? player->m_name : "<null>")
+            << " (Team " << player->m_teamId << ")");
+    }
+    cc << "Humans: " << humanCount << ", Bots: " << botCount;
+}
+
 void ShuffleTeamsCommand(ConsoleContext& cc)
 {
     if (!g_program->m_server->IsRunning())
@@ -828,6 +864,7 @@ Console::Console()
     RegisterConsoleCommand(&SetTeamByIndexCommand, "SetTeamByIndex", "<playerIndex> <team>");
     RegisterConsoleCommand(&SetTeamByIdCommand, "SetTeamById", "<playerId> <team>");
     RegisterConsoleCommand(&FullTeamSwapCommand, "FullTeamSwap");
+    RegisterConsoleCommand(&ListPlayersCommand, "ListPlayers");
     RegisterConsoleCommand(&ShuffleTeamsCommand, "ShuffleTeams");
     RegisterConsoleCommand(&TeleportCommand, "Teleport", "<player> <x> <y> <z>");
     RegisterConsoleCommand(&SetBattlepointsCommand, "SetBattlepoints", "<player> <amount>");

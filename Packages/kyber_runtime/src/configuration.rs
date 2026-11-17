@@ -307,21 +307,10 @@ pub(crate) fn prepare(
     ])?;
     persist_configuration(directory, &config_path, "anadius.cfg", config)?;
 
-    // anadius64.dll applies anadius_override.cfg on top of anadius.cfg if present.
+    // Leave only anadius.cfg active; stale anadius_override.cfg files would override it.
     let override_path = directory.join("anadius_override.cfg");
     if override_path.is_file() {
-        let override_text = fs::read_to_string(&override_path).context("Could not read anadius_override.cfg")?;
-        let mut override_config = Configuration::read(override_text)?;
-        override_config.update_section("Game", &[("DenuvoToken", token.to_owned(), Always)])?;
-        override_config.update_section("User", &[
-            ("Username", profile.name.clone(), Always),
-            ("UserId", user_id.to_string(), Always),
-            ("PersonaId", persona_id, Always),
-        ])?;
-        override_config.update_section("Emulator", &[
-            ("LoadExtraDLLsFromMain", module_path, Always),
-        ])?;
-        persist_configuration(directory, &override_path, "anadius_override.cfg", override_config)?;
+        fs::remove_file(&override_path).context("Could not remove stale anadius_override.cfg")?;
     }
     Ok(())
 }
@@ -368,9 +357,7 @@ mod tests {
         fs::write(&override_path, "\"Config2\" { \"User\" { \"Username\" \"OutpostPlayer 2\" } }").unwrap();
         prepare(&exe, &module, "new-test-token", &profile).unwrap();
         assert_eq!(second, fs::read_to_string(&config).unwrap());
-        let override_text = fs::read_to_string(&override_path).unwrap();
-        assert_eq!(value(&override_text, "User", "Username"), "Player Two");
-        assert_eq!(value(&override_text, "Game", "DenuvoToken"), "new-test-token");
+        assert!(!override_path.exists());
         // Reject an invalid name without changing configuration or leaking activation.
         let bad = super::super::LocalProfile { id: profile.id.clone(), name: "bad\"name".into() };
         let error = prepare(&exe, &module, "private-test-token", &bad).unwrap_err().to_string();

@@ -4,25 +4,20 @@
 
 list(APPEND FLUTTER_PLUGIN_LIST
   audioplayers_linux
-  dart_discord_rpc
-  desktop_webview_window
   file_selector_linux
   flutter_inappwebview_linux
   flutter_js
-  flutter_secure_storage_linux
   irondash_engine_context
   media_kit_libs_linux
-  media_kit_video
   screen_retriever_linux
-  sentry_flutter
   super_native_extensions
   url_launcher_linux
+  media_kit_video
   window_manager
   window_to_front
 )
 
 list(APPEND FLUTTER_FFI_PLUGIN_LIST
-  jni
   rhttp
 )
 
