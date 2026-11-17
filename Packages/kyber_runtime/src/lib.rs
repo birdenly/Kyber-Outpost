@@ -11,7 +11,7 @@ use anyhow::{ensure, Result};
 static PLAYER_NAME: OnceLock<RwLock<String>> = OnceLock::new();
 
 fn player_name() -> &'static RwLock<String> {
-    PLAYER_NAME.get_or_init(|| RwLock::new("OutpostPlayer".to_owned()))
+    PLAYER_NAME.get_or_init(|| RwLock::new("Jedha".to_owned()))
 }
 
 pub fn set_player_name(name: &str) -> Result<()> {
@@ -64,14 +64,14 @@ mod tests {
             assert!(set_player_name(name).is_err());
         }
         assert_eq!(local_profile().id, profile.id);
-        set_player_name("OutpostPlayer").unwrap();
+        set_player_name("Jedha").unwrap();
     }
 
     #[test]
     fn local_sdk_id_follows_the_nickname_and_fits_ui_numbers() {
-        let first = lan_profile_id("OutpostPlayer");
-        assert_eq!(first, lan_profile_id(" outpostplayer "));
-        assert_ne!(first, lan_profile_id("OutpostPlayer 2"));
+        let first = lan_profile_id("Jedha");
+        assert_eq!(first, lan_profile_id(" jedha "));
+        assert_ne!(first, lan_profile_id("Jedha 2"));
         let id = first.parse::<u64>().unwrap();
         assert!(id >= 1 << 52 && id < 1 << 53);
         assert_eq!((id as f64) as u64, id);

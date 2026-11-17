@@ -679,7 +679,7 @@ const char* GetHostIdHk(__int64 inst)
         return eaId;
     }
 
-    return "OutpostPlayer";
+    return "Jedha";
 }
 
 const char* GetLocalizedStringInternalHk(const char* inst, const char* id)

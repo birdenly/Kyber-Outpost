@@ -239,7 +239,7 @@ class MaximaHelper {
       }
     } catch (_) {}
     final playerName =
-        cubitPlayerName ?? 'OutpostPlayer${InstanceManager.nameSuffix}';
+        cubitPlayerName ?? 'Jedha${InstanceManager.nameSuffix}';
     await outpost.getLocalProfile(name: playerName);
     ProcessEnv.set('KYBER_ONLINE_MODE', '0');
     ProcessEnv.set('KYBER_SERVER_PORT', InstanceManager.gamePort.toString());

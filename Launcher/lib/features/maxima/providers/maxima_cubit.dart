@@ -145,7 +145,7 @@ class MaximaCubit extends Cubit<MaximaState> {
       final nickname =
           savedName != null && validateLanNickname(savedName) == null
           ? savedName
-          : 'OutpostPlayer${InstanceManager.nameSuffix}';
+          : 'Jedha${InstanceManager.nameSuffix}';
       servicePlayer = await getLocalProfile(name: nickname);
 
       await WindowToFront.activate();

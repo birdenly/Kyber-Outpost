@@ -67,12 +67,13 @@ class _LanNicknameDialogState extends State<LanNicknameDialog> {
     constraints: const BoxConstraints(maxWidth: 520, maxHeight: 360),
     content: Column(
       mainAxisSize: MainAxisSize.min,
-      crossAxisAlignment: CrossAxisAlignment.start,
+      crossAxisAlignment: CrossAxisAlignment.center,
       children: [
         Text(
           widget.duplicate
               ? 'Another player in this room is using your nickname. Choose a different name to connect.'
               : 'This name identifies you in LAN rooms and in the game. Close your game before changing it.',
+          textAlign: TextAlign.center,
         ),
         const SizedBox(height: 14),
         KyberInput(controller: _controller, placeholder: 'Your nickname'),

@@ -61,13 +61,13 @@ class _WalkThroughSetupState extends State<WalkThroughSetup> {
     return NavigationView(
       key: const Key('navigation_view'),
       titleBar: const SizedBox(
-        height: 34,
+        height: 35,
         child: Row(
           children: [
             Expanded(
               child: Padding(padding: .only(left: 16), child: kl.TitleBar()),
             ),
-            Expanded(child: ActionBar()),
+            ActionBar(),
           ],
         ),
       ),
@@ -204,7 +204,7 @@ class _WalkThroughSetupState extends State<WalkThroughSetup> {
           initialName:
               player.getUsername() ??
               (box.get('lanPlayerName') as String?) ??
-              'OutpostPlayer',
+              'Jedha',
         ),
       );
       if (!mounted || nickname == null) return;

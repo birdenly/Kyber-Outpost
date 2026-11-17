@@ -8,7 +8,6 @@ import 'package:kyber_launcher/features/navigation_bar/widgets/action_bar.dart';
 import 'package:kyber_launcher/features/navigation_bar/widgets/title_bar.dart'
     as kl;
 import 'package:kyber_launcher/shared/ui/navigation_bar/navigation_bar_list.dart';
-import 'package:window_manager/window_manager.dart';
 
 class NavigationContent extends StatelessWidget {
   const NavigationContent({
@@ -27,13 +26,11 @@ class NavigationContent extends StatelessWidget {
     return NavigationView(
       key: const Key('navigation_view'),
       titleBar: const SizedBox(
-        height: 34,
+        height: 35,
         child: Row(
           children: [
             Expanded(
-              child: DragToMoveArea(
-                child: Padding(padding: .only(left: 16), child: kl.TitleBar()),
-              ),
+              child: Padding(padding: .only(left: 16), child: kl.TitleBar()),
             ),
             ActionBar(),
           ],
