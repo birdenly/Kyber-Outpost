@@ -86,11 +86,6 @@ class General {
 
   set acceptedRules(bool value) => box.put('acceptedRules1', value);
 
-  bool get openBetaDialogShown =>
-      box.get('openBetaDialogShown1', defaultValue: false) as bool;
-
-  set openBetaDialogShown(bool value) => box.put('openBetaDialogShown1', value);
-
   int get modBrowserPerPage =>
       box.get('modBrowserPerPage', defaultValue: 20) as int;
 

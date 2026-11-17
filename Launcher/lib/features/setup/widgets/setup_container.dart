@@ -448,17 +448,7 @@ class _SetupContainerState extends State<SetupContainer> {
                                     ),
                                     const TextSpan(
                                       text:
-                                          '\n\nArmchair Developers is independently operated and is not, in any way, affiliated with Electronic Arts (EA).\n\n',
-                                    ),
-                                    TextSpan(
-                                      text: 'LEARN MORE',
-                                      style: TextStyle(
-                                        color: kActiveColor,
-                                      ),
-                                      recognizer: TapGestureRecognizer()
-                                        ..onTap = () {
-                                          //launchUrlString('https://docs.flutter.io/flutter/services/UrlLauncher-class.html');
-                                        },
+                                          '\n\nArmchair Developers is independently operated and is not, in any way, affiliated with Electronic Arts (EA).',
                                     ),
                                   ],
                                   style: const TextStyle(

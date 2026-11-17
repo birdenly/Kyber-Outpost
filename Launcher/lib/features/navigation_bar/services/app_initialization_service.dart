@@ -18,7 +18,6 @@ import 'package:kyber_launcher/features/navigation_bar/dialogs/disable_comp_mode
 import 'package:kyber_launcher/features/navigation_bar/helper/protocol_helper.dart';
 import 'package:kyber_launcher/features/nexusmods/widgets/graphql_provider.dart';
 import 'package:kyber_launcher/features/server_moderation/providers/moderation_servers_cubit.dart';
-import 'package:kyber_launcher/features/setup/dialogs/open_beta_dialog.dart';
 import 'package:kyber_launcher/features/setup/dialogs/rules_dialog.dart';
 import 'package:kyber_launcher/injection_container.dart';
 import 'package:kyber_launcher/main.dart';
@@ -63,7 +62,6 @@ class AppInitializationService {
     _connectToSessionService(context);
 
     await _checkCompatibilityMode(context);
-    await showOpenBetaDialog(context);
     await showRulesDialog(context);
     await _showPlatformWarnings();
     await _validateModDirectory(context);

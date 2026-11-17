@@ -8,20 +8,18 @@ import 'package:kyber_launcher/core/services/app_settings.dart';
 import 'package:kyber_launcher/gen/fonts.gen.dart';
 import 'package:kyber_launcher/shared/ui/buttons/button.dart';
 import 'package:kyber_launcher/shared/ui/dialog/kyber_dialog.dart';
+import 'package:url_launcher/url_launcher_string.dart';
 
 const _rules = '''
 When using Kyber Outpost (LAN Edition), keep the following guidelines in mind:
 
 - **Play Only With Trusted People**:  
-  Only host or join LAN / virtual LAN rooms and download shared mods from players you know and trust. Avoid exposing LAN ports (25200–25202) to untrusted public networks.
+  Only host or join LAN / virtual LAN rooms and download shared mods from players you know and trust.
 
 - **Lawful Use Only**:  
   You will use Kyber Outpost only for lawful, non-commercial, private LAN sessions with a legitimate copy of STAR WARS™ Battlefront™ II, and never for malicious or unauthorized activities.
 
-- **Fair Play & Respect**:  
-  Respect everyone in your room and avoid griefing, exploits, or unapproved tampering inside shared matches.
-
-Special thanks to the original **KYBER** team, **Armchair Developers**, and all upstream contributors whose open-source work made this project possible. Kyber Outpost is an independent LAN fork and is not affiliated with or supported by Armchair Developers or Electronic Arts (EA).
+Special thanks to the original **KYBER** team, **Armchair Developers**, and all contributors whose open-source work made this project possible. Kyber Outpost is an independent LAN fork and is not affiliated with or supported by Armchair Developers or Electronic Arts (EA).
 
 Please also review the STAR WARS™ Battlefront™ II [EULA](https://www.ea.com/legal/user-agreement).''';
 
@@ -80,6 +78,11 @@ class _RulesDialogState extends State<RulesDialog> {
         child: SingleChildScrollView(
           child: MarkdownBody(
             data: _rules,
+            onTapLink: (text, href, title) {
+              if (href != null) {
+                launchUrlString(href);
+              }
+            },
             styleSheet: MarkdownStyleSheet(
               p: const TextStyle(
                 fontFamily: FontFamily.battlefrontUI,

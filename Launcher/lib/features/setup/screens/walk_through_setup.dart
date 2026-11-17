@@ -147,7 +147,6 @@ class _WalkThroughSetupState extends State<WalkThroughSetup> {
                               Row(
                                 children: [
                                   ProgressItem(
-                                    iconPath: Assets.logos.eaPlay.path,
                                     text: 'Local player',
                                     done: setupPage > 0,
                                     active: setupPage == 0,
@@ -238,14 +237,14 @@ class _WalkThroughSetupState extends State<WalkThroughSetup> {
 
 class ProgressItem extends StatelessWidget {
   const ProgressItem({
-    required this.iconPath,
     required this.text,
     required this.done,
     required this.active,
+    this.iconPath,
     super.key,
   });
 
-  final String iconPath;
+  final String? iconPath;
   final String text;
   final bool done;
   final bool active;
@@ -274,17 +273,19 @@ class ProgressItem extends StatelessWidget {
                 Positioned.fill(
                   child: Row(
                     children: [
-                      const SizedBox(width: 10),
-                      SvgPicture.asset(
-                        iconPath,
-                        height: 15,
-                        width: 15,
-                        colorFilter: ColorFilter.mode(
-                          color,
-                          BlendMode.srcIn,
+                      if (iconPath != null) ...[
+                        const SizedBox(width: 10),
+                        SvgPicture.asset(
+                          iconPath!,
+                          height: 15,
+                          width: 15,
+                          colorFilter: ColorFilter.mode(
+                            color,
+                            BlendMode.srcIn,
+                          ),
                         ),
-                      ),
-                      const SizedBox(width: 10),
+                      ],
+                      const SizedBox(width: 12),
                       Text(
                         text.toUpperCase(),
                         style: TextStyle(
