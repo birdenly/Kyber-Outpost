@@ -34,7 +34,7 @@ class StartGameCommand extends Command<int> {
         'name',
         abbr: 'n',
         help: 'Player nickname for LAN mode',
-        valueHelp: 'OutpostPlayer',
+        valueHelp: 'Jedha',
       )
       ..addOption(
         'connect-ip',
@@ -101,7 +101,7 @@ class StartGameCommand extends Command<int> {
     _logger.info('Initializing the local player profile...');
     late ServicePlayer player;
     try {
-      player = await getLocalProfile(name: customName ?? 'OutpostPlayer');
+      player = await getLocalProfile(name: customName ?? 'Jedha');
     } catch (e) {
       if (e is PanicException || e is AnyhowException) {
         final err = e is PanicException

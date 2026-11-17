@@ -80,7 +80,7 @@ class StartServerCommand extends Command<int> {
       ..addOption(
         'name',
         help: 'Local player nickname',
-        valueHelp: 'OutpostPlayer',
+        valueHelp: 'Jedha',
       )
       ..addOption(
         'module-path',
@@ -122,7 +122,7 @@ class StartServerCommand extends Command<int> {
     late String playerName;
     try {
       final player = await getLocalProfile(
-        name: argResults?['name'] as String? ?? 'OutpostPlayer',
+        name: argResults?['name'] as String? ?? 'Jedha',
       );
       playerName = player.displayName;
     } catch (e) {

@@ -241,6 +241,19 @@ fn sha1_file(path: &Path) -> Result<String> {
     Ok(format!("{:x}", hash.finalize()))
 }
 
+fn persist_configuration(directory: &Path, target: &Path, label: &str, config: Configuration) -> Result<()> {
+    if !config.has_changes() {
+        return Ok(());
+    }
+    let text = config.finish();
+    // Persist atomically so an interrupted write cannot truncate the user's config.
+    let mut temporary = tempfile::NamedTempFile::new_in(directory).context("Could not create configuration in the game folder; check Modify permission")?;
+    temporary.write_all(text.as_bytes())?;
+    temporary.as_file().sync_all()?;
+    temporary.persist(target).map_err(|_| anyhow::anyhow!("Could not replace {label}; check Modify permission for the file and game folder"))?;
+    Ok(())
+}
+
 pub(crate) fn prepare(
     path: &Path,
     module: &Path,
@@ -255,6 +268,8 @@ pub(crate) fn prepare(
         "Choose a nickname with 1 to 16 characters, without quotes, backslashes or control characters.");
     ensure!(!token.chars().any(char::is_control), "Invalid local activation token");
     let user_id = profile.id.parse::<u64>().context("The local player ID is invalid")?;
+    let persona_id = ((user_id & 0x3fffffff) | 0x40000000).to_string();
+    let module_path = module.to_string_lossy().replace('\\', "/");
     let config_path = directory.join("anadius.cfg");
     let text = match fs::read_to_string(&config_path) {
         Ok(text) => text,
@@ -280,7 +295,7 @@ pub(crate) fn prepare(
     config.update_section("User", &[
         ("Username", profile.name.clone(), Always),
         ("UserId", user_id.to_string(), Always),
-        ("PersonaId", ((user_id & 0x3fffffff) | 0x40000000).to_string(), Always),
+        ("PersonaId", persona_id.clone(), Always),
         ("UseLastOnlineProfile", "false".into(), Missing),
         ("IsSubscriber", "false".into(), Missing),
     ])?;
@@ -288,17 +303,26 @@ pub(crate) fn prepare(
         ("ServerPort", "0".into(), Missing),
         ("PretendConnected", "false".into(), Missing),
         ("FakeAuth", "false".into(), Missing),
-        ("LoadExtraDLLsFromMain", module.to_string_lossy().replace('\\', "/"), Always),
+        ("LoadExtraDLLsFromMain", module_path.clone(), Always),
     ])?;
-    if !config.has_changes() {
-        return Ok(());
+    persist_configuration(directory, &config_path, "anadius.cfg", config)?;
+
+    // anadius64.dll applies anadius_override.cfg on top of anadius.cfg if present.
+    let override_path = directory.join("anadius_override.cfg");
+    if override_path.is_file() {
+        let override_text = fs::read_to_string(&override_path).context("Could not read anadius_override.cfg")?;
+        let mut override_config = Configuration::read(override_text)?;
+        override_config.update_section("Game", &[("DenuvoToken", token.to_owned(), Always)])?;
+        override_config.update_section("User", &[
+            ("Username", profile.name.clone(), Always),
+            ("UserId", user_id.to_string(), Always),
+            ("PersonaId", persona_id, Always),
+        ])?;
+        override_config.update_section("Emulator", &[
+            ("LoadExtraDLLsFromMain", module_path, Always),
+        ])?;
+        persist_configuration(directory, &override_path, "anadius_override.cfg", override_config)?;
     }
-    let text = config.finish();
-    // Persist atomically so an interrupted write cannot truncate the user's config.
-    let mut temporary = tempfile::NamedTempFile::new_in(directory).context("Could not create configuration in the game folder; check Modify permission")?;
-    temporary.write_all(text.as_bytes())?;
-    temporary.as_file().sync_all()?;
-    temporary.persist(&config_path).map_err(|_| anyhow::anyhow!("Could not replace anadius.cfg; check Modify permission for the file and game folder"))?;
     Ok(())
 }
 
@@ -340,8 +364,13 @@ mod tests {
         assert_eq!(value(&second, "Game", "Language"), "pt_BR");
         assert_eq!(value(&second, "Game", "DenuvoExeHash"), sha1_file(&exe).unwrap());
         assert_eq!(value(&second, "Game", "DenuvoToken"), "new-test-token");
+        let override_path = directory.path().join("anadius_override.cfg");
+        fs::write(&override_path, "\"Config2\" { \"User\" { \"Username\" \"OutpostPlayer 2\" } }").unwrap();
         prepare(&exe, &module, "new-test-token", &profile).unwrap();
         assert_eq!(second, fs::read_to_string(&config).unwrap());
+        let override_text = fs::read_to_string(&override_path).unwrap();
+        assert_eq!(value(&override_text, "User", "Username"), "Player Two");
+        assert_eq!(value(&override_text, "Game", "DenuvoToken"), "new-test-token");
         // Reject an invalid name without changing configuration or leaking activation.
         let bad = super::super::LocalProfile { id: profile.id.clone(), name: "bad\"name".into() };
         let error = prepare(&exe, &module, "private-test-token", &bad).unwrap_err().to_string();
