@@ -1,10 +1,8 @@
 import 'dart:io' show ContentType, HeaderValue;
 
 import 'package:dio/dio.dart';
-import 'package:kyber/gen/Proto/mod_bridge.pb.dart';
 import 'package:kyber_launcher/features/download_manager/models/download_link_type.dart';
 import 'package:kyber_launcher/features/download_manager/models/download_request.dart';
-import 'package:kyber_launcher/features/download_manager/services/mod_bridge_service.dart';
 import 'package:kyber_launcher/features/nexusmods/services/download_service.dart';
 import 'package:kyber_launcher/features/nexusmods/services/nexusmods_service.dart';
 import 'package:kyber_launcher/injection_container.dart';
@@ -26,11 +24,8 @@ class ResolvedDownload {
 }
 
 class DownloadLinkResolver {
-  DownloadLinkResolver({
-    ModBridgeGRPCService? modBridgeService,
-  }) : _modBridgeService = modBridgeService ?? sl.get<ModBridgeGRPCService>();
+  DownloadLinkResolver();
 
-  final ModBridgeGRPCService _modBridgeService;
   final Logger _logger = Logger('download_link_resolver');
 
   Future<ResolvedDownload> resolve(DownloadRequest request) async {
@@ -146,37 +141,8 @@ class DownloadLinkResolver {
   }
 
   Future<ResolvedDownload> _resolveKyberLink(DownloadRequest request) async {
-    try {
-      final parts = request.link.split('(');
-      if (parts.length < 2) {
-        throw Exception('Invalid Kyber link format: ${request.link}');
-      }
-
-      final modName = parts[0].trim();
-      final modVersion = parts[1].split(')')[0].trim();
-
-      final response = await _modBridgeService.searchClient.searchMod(
-        SearchModRequest(
-          modName: modName,
-          modVersion: modVersion,
-        ),
-      );
-
-      final downloadUrl = response.mod.link;
-      final filename = downloadUrl.split('/').last.split('?').first;
-      final size = response.mod.fileSize.toInt();
-
-      _logger.info('Resolved Kyber link to: $filename ($size bytes)');
-
-      return ResolvedDownload(
-        url: downloadUrl,
-        filename: request.filename ?? filename,
-        type: DownloadLinkType.kyber,
-        size: size,
-      );
-    } catch (e, s) {
-      _logger.severe('Failed to resolve Kyber link', e, s);
-      rethrow;
-    }
+    throw UnsupportedError(
+      'Kyber central mod-bridge links are disabled in LAN mode (${request.link}).',
+    );
   }
 }

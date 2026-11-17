@@ -20,7 +20,6 @@ import 'package:kyber_launcher/features/download_manager/models/download_state.d
 import 'package:kyber_launcher/features/download_manager/providers/download_manager_cubit.dart';
 import 'package:kyber_launcher/features/download_manager/repositories/download_repository.dart';
 import 'package:kyber_launcher/features/download_manager/services/download_orchestrator.dart';
-import 'package:kyber_launcher/features/download_manager/services/mod_bridge_service.dart';
 import 'package:kyber_launcher/features/kyber/helper/kyber_server_helper.dart';
 import 'package:kyber_launcher/features/lan/dialogs/lan_mod_download_dialog.dart';
 import 'package:kyber_launcher/features/lan/services/lan_mod_server_service.dart';
@@ -393,39 +392,16 @@ class ServerBrowserCubit extends Cubit<ServerBrowserState> {
           }
         }
       } else {
-        final missingMods = remainingForInternet.map(
-          (m) => mb.BridgeMod(
-            name: m.name,
-            version: m.version,
-            id: serverInfo.mods.indexOf(m).toString(),
-          ),
-        );
-
-        final chunks = missingMods.slices(50);
         final modsToDownload = <mb.Mod>[];
-        final notFound = <mb.BridgeMod>[];
-        for (final chunk in chunks) {
-          final resp = await sl
-              .get<ModBridgeGRPCService>()
-              .searchClient
-              .searchMods(
-                mb.SearchModsRequest(mods: chunk),
-              )
-              .catchError((e) {
-                Logger('server_browser').warning(
-                  'ModBridge search unavailable, falling back to direct/LAN: $e',
-                );
-                return mb.SearchModsResponse(notFound: chunk);
-              });
-
-          if (resp.mods.isEmpty && resp.notFound.isEmpty) {
-            notFound.addAll(chunk);
-            continue;
-          }
-
-          modsToDownload.addAll(resp.mods);
-          notFound.addAll(resp.notFound);
-        }
+        final notFound = remainingForInternet
+            .map(
+              (m) => mb.BridgeMod(
+                name: m.name,
+                version: m.version,
+                id: serverInfo.mods.indexOf(m).toString(),
+              ),
+            )
+            .toList();
 
         final finderService = ModFinderService();
         for (final mod in notFound) {

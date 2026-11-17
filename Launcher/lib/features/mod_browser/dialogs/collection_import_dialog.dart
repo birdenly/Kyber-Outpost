@@ -9,7 +9,6 @@ import 'package:kyber_launcher/core/services/notification_service.dart';
 import 'package:kyber_launcher/features/download_manager/models/download_link_type.dart' as dl;
 import 'package:kyber_launcher/features/download_manager/models/download_request.dart';
 import 'package:kyber_launcher/features/download_manager/services/download_orchestrator.dart';
-import 'package:kyber_launcher/features/download_manager/services/mod_bridge_service.dart';
 import 'package:kyber_launcher/features/mods/helper/mod_helper.dart';
 import 'package:kyber_launcher/features/mods/services/mod_service.dart';
 import 'package:kyber_launcher/features/nexusmods/dialogs/nexusmods_login.dart';
@@ -45,10 +44,9 @@ class _CollectionImportDialogState extends State<CollectionImportDialog> {
         continue;
       }
 
-      availableMods[i] = sl.get<ModBridgeGRPCService>().searchClient.searchMod(
-        SearchModRequest(
-          modName: mod.name,
-          modVersion: mod.version,
+      availableMods[i] = Future.value(
+        SearchModResponse(
+          mod: null,
         ),
       );
     }
