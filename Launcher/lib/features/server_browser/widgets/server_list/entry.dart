@@ -10,7 +10,6 @@ import 'package:kyber_launcher/features/kyber/models/maps.dart';
 import 'package:kyber_launcher/features/kyber/models/mode.dart';
 import 'package:kyber_launcher/features/kyber/models/modes.dart';
 import 'package:kyber_launcher/features/kyber/services/map_helper.dart';
-import 'package:kyber_launcher/features/maxima/providers/maxima_rtm_cubit.dart';
 import 'package:kyber_launcher/features/server_browser/helpers/server_browser_helper.dart';
 import 'package:kyber_launcher/features/server_browser/models/server_entry.dart';
 import 'package:kyber_launcher/features/server_browser/providers/server_browser_cubit.dart';
@@ -375,16 +374,6 @@ class _TableServerName extends StatelessWidget {
                   height: 15,
                 );
               },
-            ),
-          ),
-        if (context.read<MaximaRtmCubit>().state.friends.any(
-          (e) => e.displayName == server.creator,
-        ))
-          Padding(
-            padding: const EdgeInsets.only(right: 4, top: 2, bottom: 4),
-            child: Assets.icons.kblLink.svg(
-              color: kWhiteColor,
-              height: 15,
             ),
           ),
         Flexible(

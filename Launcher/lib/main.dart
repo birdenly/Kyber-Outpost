@@ -20,7 +20,6 @@ import 'package:kyber_launcher/features/download_manager/providers/download_mana
 import 'package:kyber_launcher/features/kyber/providers/kyber_status_cubit.dart';
 import 'package:kyber_launcher/features/map_rotation/providers/map_rotation_cubit.dart';
 import 'package:kyber_launcher/features/maxima/providers/maxima_cubit.dart';
-import 'package:kyber_launcher/features/maxima/providers/maxima_rtm_cubit.dart';
 import 'package:kyber_launcher/features/mod_browser/providers/mod_browser_cubit.dart';
 import 'package:kyber_launcher/features/mods/providers/mod_list_cubit.dart';
 import 'package:kyber_launcher/features/navigation_bar/helper/protocol_helper.dart';
@@ -277,7 +276,6 @@ class _AppState extends State<App> {
                     providers: [
                       BlocProvider(create: (_) => StatusCubit()),
                       BlocProvider(create: (_) => MaximaCubit()),
-                      BlocProvider(create: (_) => MaximaRtmCubit()),
                       BlocProvider(create: (_) => MapRotationCubit()),
                       BlocProvider(create: (_) => TutorialCubit()),
                       BlocProvider(create: (_) => KyberStatusCubit()),

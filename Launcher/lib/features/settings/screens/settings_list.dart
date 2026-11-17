@@ -52,7 +52,7 @@ class _SettingsListState extends State<SettingsList> {
     },
     {
       'title': 'INGAME SETTINGS',
-      'description': 'Configure Proximity Chat settings'.toUpperCase(),
+      'description': 'CONFIGURE INGAME HOTKEY & GRAPHICS SETTINGS',
       'child': const ProximityChat(),
     },
     {

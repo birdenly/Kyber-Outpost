@@ -21,8 +21,6 @@ export 'services/storage_helper.dart';
 export 'services/taskbar_icon_helper.dart';
 export 'services/unrar_service.dart';
 export 'services/unzip_helper.dart';
-export 'services/vivox_sdk_service.dart';
-export 'services/voip_service.dart';
 export 'services/window_helper.dart';
 export 'services/windows_env.dart';
 export 'services/windows_utils.dart';

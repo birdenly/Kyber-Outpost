@@ -3,8 +3,6 @@ import 'dart:async';
 
 import 'package:get_it/get_it.dart';
 import 'package:kyber/kyber.dart';
-import 'package:kyber_launcher/core/services/vivox_sdk_service.dart';
-import 'package:kyber_launcher/core/services/voip_service.dart';
 import 'package:kyber_launcher/features/download_manager/services/download_orchestrator.dart';
 import 'package:kyber_launcher/features/kyber/services/kyber_grpc_service.dart';
 import 'package:kyber_launcher/features/lan/services/lan_discovery_service.dart';
@@ -30,7 +28,6 @@ void initializeDependencies() {
     ..registerSingleton<LanDiscoveryService>(lanDiscoveryService)
     ..registerSingleton<MaximaInstanceService>(MaximaInstanceService())
     ..registerSingleton<KyberGRPCServer>(KyberGRPCServer())
-    ..registerSingleton<VoipService>(VoipService().getInstance())
     ..registerSingleton<PluginManager>(PluginManager())
     ..registerSingleton<LevelDeclarationService>(LevelDeclarationService())
     ..registerSingletonAsync<ModService>(ModService.getInstance)
@@ -38,6 +35,5 @@ void initializeDependencies() {
       DownloadOrchestrator.getInstance,
     )
     ..registerSingletonAsync<KyberMapService>(KyberMapService().getInstance)
-    ..registerSingletonAsync<VivoxService>(VivoxService().getInstance)
     ..registerSingletonAsync<NexusModsService>(NexusModsService().getInstance);
 }

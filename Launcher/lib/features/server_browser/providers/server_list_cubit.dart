@@ -154,29 +154,6 @@ class ServerListCubit extends Cubit<ServerListState> {
     await Future<void>.delayed(const Duration(milliseconds: 120));
     final s = List<Server>.from(lanDiscovery.getDiscoveredServers());
 
-    if (Preferences.admin.dummyServer) {
-      s.add(KyberDummyServer(title: 'Dummy Server'));
-      s.add(
-        KyberDummyServer(
-          title: 'Dummy Server AA',
-          creator: 'Dangercato',
-          requiredPassword: true,
-        ),
-      );
-      s.add(KyberDummyServer(title: 'Dummy Server X', isOfficial: true));
-      s.add(
-        KyberDummyServer(
-          title: 'Dummy Server X',
-          isOfficial: false,
-          playerCount: 10,
-        ),
-      );
-      s.add(KyberDummyServer(title: 'Dummy Server', requiredPassword: true));
-      s.add(KyberDummyServer(title: 'Dummy Server', requiredPassword: true));
-      s.add(KyberDummyServer(title: 'Dummy Server', requiredPassword: true));
-      s.add(KyberDummyServer(title: 'Dummy Server', requiredPassword: true));
-    }
-
     if (filter.type != .all) {
       s.removeWhere((element) {
         switch (filter.type) {

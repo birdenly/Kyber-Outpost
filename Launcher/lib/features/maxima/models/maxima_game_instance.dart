@@ -1,6 +1,6 @@
 import 'dart:async';
 
-import 'package:kyber/kyber.dart';
+import 'package:kyber/kyber.dart' show ClientGRPCService;
 import 'package:kyber_collection/kyber_collection.dart';
 import 'package:kyber_launcher/features/mods/constants/categories.dart';
 
@@ -10,7 +10,6 @@ class MaximaGameInstance {
     required this.isDedicated,
     required this.clientService,
     this.mods = const [],
-    this.voipSettings,
   }) {
     _eventStreamController = StreamController<String>.broadcast();
   }
@@ -19,7 +18,6 @@ class MaximaGameInstance {
   bool isDedicated;
   ClientGRPCService clientService;
   List<FrostyMod> mods;
-  VoipSettings? voipSettings;
 
   late StreamController<String> _eventStreamController;
 
@@ -44,14 +42,12 @@ class MaximaGameInstance {
     bool? isDedicated,
     ClientGRPCService? clientService,
     List<FrostyMod>? mods,
-    VoipSettings? voipSettings,
   }) {
     return MaximaGameInstance(
       pid: pid ?? this.pid,
       isDedicated: isDedicated ?? this.isDedicated,
       clientService: clientService ?? this.clientService,
       mods: mods ?? this.mods,
-      voipSettings: voipSettings ?? this.voipSettings,
     );
   }
 }

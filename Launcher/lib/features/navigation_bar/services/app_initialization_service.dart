@@ -12,7 +12,6 @@ import 'package:kyber_launcher/core/services/taskbar_icon_helper.dart';
 import 'package:kyber_launcher/core/services/windows_utils.dart';
 import 'package:kyber_launcher/features/kyber/providers/kyber_status_cubit.dart';
 import 'package:kyber_launcher/features/maxima/providers/maxima_cubit.dart';
-import 'package:kyber_launcher/features/maxima/providers/maxima_rtm_cubit.dart';
 import 'package:kyber_launcher/features/mods/dialogs/move_directory_dialog.dart';
 import 'package:kyber_launcher/features/mods/services/mod_service.dart';
 import 'package:kyber_launcher/features/navigation_bar/dialogs/disable_comp_mode_dialog.dart';
@@ -58,10 +57,6 @@ class AppInitializationService {
         );
       }),
     );
-
-    if (context.mounted) {
-      context.read<MaximaRtmCubit>().startPresenceStream();
-    }
 
     await ProtocolHelper.initialize();
 

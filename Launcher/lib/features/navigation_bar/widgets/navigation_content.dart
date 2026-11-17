@@ -2,7 +2,6 @@ import 'package:fluent_ui/fluent_ui.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:go_router/go_router.dart';
 import 'package:kyber_launcher/features/maxima/providers/maxima_cubit.dart';
-import 'package:kyber_launcher/features/maxima/providers/maxima_rtm_cubit.dart';
 import 'package:kyber_launcher/features/navigation_bar/providers/status_cubit.dart';
 import 'package:kyber_launcher/features/navigation_bar/widgets/action_bar.dart';
 import 'package:kyber_launcher/features/navigation_bar/widgets/title_bar.dart'
@@ -37,11 +36,10 @@ class NavigationContent extends StatelessWidget {
         ),
       ),
       content: BlocConsumer<MaximaCubit, MaximaState>(
-        listener: (context, maximaState) async {
-          if (maximaState.loggedIn &&
-              !context.read<MaximaRtmCubit>().isRtmConnected()) {
-            onMaximaLoggedIn();
-          }
+        listenWhen: (previous, current) =>
+            !previous.loggedIn && current.loggedIn,
+        listener: (context, maximaState) {
+          onMaximaLoggedIn();
         },
         builder: (context, maximaState) {
           return BlocBuilder<StatusCubit, ApplicationStatus>(

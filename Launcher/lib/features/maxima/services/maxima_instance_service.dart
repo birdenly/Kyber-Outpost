@@ -1,6 +1,5 @@
 import 'package:kyber_launcher/core/core.dart';
 import 'package:kyber_launcher/core/services/hotkey_manager.dart';
-import 'package:kyber_launcher/core/services/voip_service.dart';
 import 'package:kyber_launcher/features/maxima/models/maxima_game_instance.dart';
 import 'package:kyber_launcher/gen/rust/api/outpost.dart';
 import 'package:kyber_launcher/injection_container.dart';
@@ -23,7 +22,6 @@ class MaximaInstanceService {
 
     if (_instances.isEmpty) {
       HotKeyService.unregisterIngameHotKey();
-      sl.get<VoipService>().clearDevices();
     }
   }
 

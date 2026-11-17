@@ -6,7 +6,6 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:grpc/grpc.dart' hide Server;
 import 'package:kyber/kyber.dart';
 import 'package:kyber_launcher/core/services/instance_manager.dart';
-import 'package:kyber_launcher/core/services/voip_service.dart';
 import 'package:kyber_launcher/features/lan/services/lan_discovery_service.dart';
 import 'package:kyber_launcher/features/lan/services/lan_mod_server_service.dart';
 import 'package:kyber_launcher/features/maxima/models/maxima_game_instance.dart';
@@ -111,9 +110,6 @@ class KyberStatusCubit extends Cubit<KyberStatusState> {
         sl.get<LanModServerService>().updateHostedState(data.server);
       } else {
         _clearHostedServer();
-      }
-      if (data.vivoxInitialized && client.voipSettings == null) {
-        sl.get<VoipService>().setGameVoipSettings();
       }
 
       final isKyber = data.hasClient() || data.hasServer();
