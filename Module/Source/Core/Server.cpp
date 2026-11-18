@@ -94,6 +94,7 @@ void InitLevelSetup(LevelSetup* levelSetup, const char* level, const char* mode,
 
     g_program->m_server->m_currentLevel = level;
     g_program->m_server->m_currentMode = mode != nullptr ? mode : "";
+    g_program->m_server->m_levelLoaded = false;
     g_program->m_server->m_mode3RoundHasSpawned = false;
     g_program->m_server->m_roundLoadedTime = std::chrono::steady_clock::now();
 
@@ -504,7 +505,21 @@ __int64 SettingsManagerApplyHk(__int64 inst, __int64* a2, char* script, BYTE* a4
 void ServerPlayerSetTeamIdHk(ServerPlayer* inst, int teamId)
 {
     static const auto trampoline = HookManager::Call(ServerPlayerSetTeamIdHk);
-    trampoline(inst, teamId);
+    int oldTeam = inst != nullptr ? inst->m_teamId : -1;
+    int effectiveTeam = teamId;
+    if (g_program->m_server != nullptr && g_program->m_server->ShouldOverrideMode3TeamChange(inst, teamId, effectiveTeam))
+    {
+        KYBER_LOG(Debug, "[Mode3] Preserved '" << (inst->m_name ? inst->m_name : "<null>")
+            << "' on Team " << effectiveTeam << " (blocked collapse to Team " << teamId << ")");
+    }
+    trampoline(inst, effectiveTeam);
+
+    if (inst != nullptr && !inst->IsAIPlayer() && g_program->m_server != nullptr && g_program->m_server->m_currentMode == "Mode3" &&
+        oldTeam != inst->m_teamId)
+    {
+        KYBER_LOG(Info, "[Mode3] SetTeamId '" << (inst->m_name ? inst->m_name : "<null>") << "': " << oldTeam
+                                            << " -> " << inst->m_teamId);
+    }
 
     if (!g_program->m_server->m_onlineMode || inst->IsAIPlayer())
     {
@@ -868,7 +883,7 @@ void Server::EnsureEwokHuntTeams()
 
 void Server::NoteMode3Activity()
 {
-    if (m_currentMode != "Mode3" || m_mode3RoundHasSpawned)
+    if (m_currentMode != "Mode3" || !m_levelLoaded || m_mode3RoundHasSpawned)
     {
         return;
     }
@@ -883,6 +898,11 @@ bool Server::ShouldDelayMode3RoundOver()
     if (m_currentMode != "Mode3")
     {
         return false;
+    }
+
+    if (!m_levelLoaded)
+    {
+        return true;
     }
 
     if (!m_mode3RoundHasSpawned && m_playerManager != nullptr)
@@ -916,6 +936,67 @@ bool Server::ShouldDelayMode3RoundOver()
         {
             return true;
         }
+    }
+
+    return false;
+}
+
+bool Server::ShouldOverrideMode3TeamChange(ServerPlayer* player, int requestedTeam, int& outTeam)
+{
+    if (m_currentMode != "Mode3" || !IsRunning() || m_playerManager == nullptr || player == nullptr ||
+        player->IsAIPlayer() || player->IsSpectator())
+    {
+        return false;
+    }
+
+    if (requestedTeam != Team1 && requestedTeam != Team2)
+    {
+        return false;
+    }
+
+    if (m_mode3RoundHasSpawned)
+    {
+        auto now = std::chrono::steady_clock::now();
+        auto sinceSpawn = std::chrono::duration_cast<std::chrono::seconds>(now - m_mode3FirstSpawnTime).count();
+        if (sinceSpawn >= 5)
+        {
+            return false;
+        }
+    }
+
+    size_t otherTeam1 = 0;
+    size_t otherTeam2 = 0;
+    for (ServerPlayer* p : m_playerManager->m_players)
+    {
+        if (p == nullptr || p == player || p->IsAIPlayer() || p->IsSpectator())
+        {
+            continue;
+        }
+        if (p->m_teamId == Team1)
+        {
+            ++otherTeam1;
+        }
+        else if (p->m_teamId == Team2)
+        {
+            ++otherTeam2;
+        }
+    }
+
+    if (otherTeam1 + otherTeam2 == 0)
+    {
+        return false;
+    }
+
+    if (requestedTeam == Team1 && otherTeam2 == 0)
+    {
+        outTeam = Team2;
+        return true;
+    }
+
+    if (requestedTeam == Team2 && otherTeam1 == 0)
+    {
+        outTeam = Team1;
+        return true;
     }
 
     return false;

@@ -105,6 +105,7 @@ public:
     void EnsureEwokHuntTeams();
     void NoteMode3Activity();
     bool ShouldDelayMode3RoundOver();
+    bool ShouldOverrideMode3TeamChange(ServerPlayer* player, int requestedTeam, int& outTeam);
 
     ServerGameContext* GetServerGameContext()
     {
