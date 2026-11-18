@@ -39,36 +39,19 @@ void Mode3EntityBusFireEventHk(EntityBus* inst, const DataContainer* data, const
 class Mode3RoundOverGuardEntity : public KyberEntity<DataContainer>
 {
 public:
-    Mode3RoundOverGuardEntity(EntityManager* entityManager, NativeEntity* entity, DataContainer* data, const char* typeName, bool blockWhenDelayed)
+    Mode3RoundOverGuardEntity(EntityManager* entityManager, NativeEntity* entity, DataContainer* data, const char* typeName)
         : KyberEntity(entity, data)
         , m_typeName(typeName)
-        , m_blockWhenDelayed(blockWhenDelayed)
     {}
 
     void Event(EntityEvent* event) override
     {
-        if (m_nativeEntity != nullptr && g_program->m_server != nullptr &&
-            g_program->m_server->m_currentMode == "Mode3")
+        if (m_nativeEntity != nullptr && m_nativeEntity->GetRealm() == Realm_Server &&
+            g_program->m_server != nullptr && g_program->m_server->ShouldDelayMode3RoundOver())
         {
-            const bool isServer = m_nativeEntity->GetRealm() == Realm_Server;
-            if (isServer && g_program->m_server->ShouldDelayMode3RoundOver())
-            {
-                if (m_blockWhenDelayed)
-                {
-                    KYBER_LOG(Info, "[Mode3] Delayed premature " << m_typeName << " event (0x" << std::hex << event->eventId
-                                                                    << ") during Ewok Hunt startup window");
-                    return;
-                }
-                KYBER_LOG(Info, "[Mode3] Observed server " << m_typeName << " event (0x" << std::hex << event->eventId << ") during grace window");
-            }
-            else if (!m_blockWhenDelayed)
-            {
-                KYBER_LOG(Info, "[Mode3] Observed " << (isServer ? "server " : "client ") << m_typeName << " event (0x" << std::hex << event->eventId << ")");
-            }
-            else if (isServer)
-            {
-                KYBER_LOG(Info, "[Mode3] Allowing " << m_typeName << " event (0x" << std::hex << event->eventId << ")");
-            }
+            KYBER_LOG(Info, "[Mode3] Delayed premature " << m_typeName << " event (0x" << std::hex << event->eventId
+                                                            << ") during Ewok Hunt startup window");
+            return;
         }
 
         KyberEntity::Event(event);
@@ -76,41 +59,19 @@ public:
 
 private:
     const char* m_typeName;
-    bool m_blockWhenDelayed;
 };
 
 static EntityStaticRegistrar s_roundOverGuardRegistrar(
     "RoundOverEntityData",
     [](EntityManager* em, NativeEntity* entity, DataContainer* data) -> KyberEntityBase* {
-        return new Mode3RoundOverGuardEntity(em, entity, data, "RoundOverEntityData", true);
+        return new Mode3RoundOverGuardEntity(em, entity, data, "RoundOverEntityData");
     },
     false);
 
 static EntityStaticRegistrar s_endOfRoundGuardRegistrar(
     "ServerEndOfRoundStateEntityData",
     [](EntityManager* em, NativeEntity* entity, DataContainer* data) -> KyberEntityBase* {
-        return new Mode3RoundOverGuardEntity(em, entity, data, "ServerEndOfRoundStateEntityData", true);
-    },
-    false);
-
-static EntityStaticRegistrar s_gameRoundGuardRegistrar(
-    "GameRoundEntityData",
-    [](EntityManager* em, NativeEntity* entity, DataContainer* data) -> KyberEntityBase* {
-        return new Mode3RoundOverGuardEntity(em, entity, data, "GameRoundEntityData", false);
-    },
-    false);
-
-static EntityStaticRegistrar s_serverGameLoopWriterGuardRegistrar(
-    "ServerGameLoopStateWriterEntityData",
-    [](EntityManager* em, NativeEntity* entity, DataContainer* data) -> KyberEntityBase* {
-        return new Mode3RoundOverGuardEntity(em, entity, data, "ServerGameLoopStateWriterEntityData", false);
-    },
-    false);
-
-static EntityStaticRegistrar s_clientGameLoopWriterGuardRegistrar(
-    "ClientGameLoopStateWriterEntityData",
-    [](EntityManager* em, NativeEntity* entity, DataContainer* data) -> KyberEntityBase* {
-        return new Mode3RoundOverGuardEntity(em, entity, data, "ClientGameLoopStateWriterEntityData", false);
+        return new Mode3RoundOverGuardEntity(em, entity, data, "ServerEndOfRoundStateEntityData");
     },
     false);
 } // namespace Kyber

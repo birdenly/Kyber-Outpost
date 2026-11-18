@@ -74,6 +74,8 @@ void ServerLoadLevelMessagePostHk(LevelSetup* levelSetup, bool fadeOut, bool for
         }
 
         g_program->m_server->m_levelLoaded = false;
+        g_program->m_server->m_mode3RoundHasSpawned = false;
+        g_program->m_server->m_roundLoadedTime = std::chrono::steady_clock::now();
     }
 
     KYBER_LOG(Info, "[Server] Loading level " << levelSetup->Name << " [InitialStartPoint: " << initialStartPoint << ", InitialDSubLevel: "
@@ -94,9 +96,6 @@ void InitLevelSetup(LevelSetup* levelSetup, const char* level, const char* mode,
 
     g_program->m_server->m_currentLevel = level;
     g_program->m_server->m_currentMode = mode != nullptr ? mode : "";
-    g_program->m_server->m_levelLoaded = false;
-    g_program->m_server->m_mode3RoundHasSpawned = false;
-    g_program->m_server->m_roundLoadedTime = std::chrono::steady_clock::now();
 
     levelSetup->Init();
     levelSetup->Name = StringUtils::CopyWithArena(level);
@@ -954,14 +953,12 @@ bool Server::ShouldOverrideMode3TeamChange(ServerPlayer* player, int requestedTe
         return false;
     }
 
-    if (m_mode3RoundHasSpawned)
+    const bool inStartupWindow = ShouldDelayMode3RoundOver();
+    const bool protectEmptyEwoks = (requestedTeam == Team2) && (inStartupWindow || player->IsAlive());
+    const bool protectEmptyStormtroopers = (requestedTeam == Team1) && inStartupWindow;
+    if (!protectEmptyEwoks && !protectEmptyStormtroopers)
     {
-        auto now = std::chrono::steady_clock::now();
-        auto sinceSpawn = std::chrono::duration_cast<std::chrono::seconds>(now - m_mode3FirstSpawnTime).count();
-        if (sinceSpawn >= 5)
-        {
-            return false;
-        }
+        return false;
     }
 
     size_t otherTeam1 = 0;
@@ -987,13 +984,13 @@ bool Server::ShouldOverrideMode3TeamChange(ServerPlayer* player, int requestedTe
         return false;
     }
 
-    if (requestedTeam == Team1 && otherTeam2 == 0)
+    if (protectEmptyStormtroopers && otherTeam2 == 0)
     {
         outTeam = Team2;
         return true;
     }
 
-    if (requestedTeam == Team2 && otherTeam1 == 0)
+    if (protectEmptyEwoks && otherTeam1 == 0)
     {
         outTeam = Team1;
         return true;
