@@ -94,6 +94,8 @@ void InitLevelSetup(LevelSetup* levelSetup, const char* level, const char* mode,
 
     g_program->m_server->m_currentLevel = level;
     g_program->m_server->m_currentMode = mode != nullptr ? mode : "";
+    g_program->m_server->m_mode3RoundHasSpawned = false;
+    g_program->m_server->m_roundLoadedTime = std::chrono::steady_clock::now();
 
     levelSetup->Init();
     levelSetup->Name = StringUtils::CopyWithArena(level);
@@ -280,6 +282,8 @@ void Server::LoadNextLevel(
 void Server::OnLevelLoaded()
 {
     m_levelLoaded = true;
+    m_mode3RoundHasSpawned = false;
+    m_roundLoadedTime = std::chrono::steady_clock::now();
     {
         MutexGuard<LoadLevelRequest> requestGuard = m_latestLoadLevelRequest.Lock();
 
@@ -297,6 +301,8 @@ void Server::OnLevelLoaded()
     {
         g_program->m_console->EnqueueCommand("Kyber.ShuffleTeams");
     }
+
+    EnsureEwokHuntTeams();
 }
 
 const uint32_t kServerTeamAdminMarker = 19472;
@@ -813,6 +819,106 @@ void Server::InitializePlayer(ServerPlayer* player)
     // Set up inactivity timer
     player->GetOnlineServerPlayerExtent()->m_enableInactivityTimer = true;
     player->GetOnlineServerPlayerExtent()->m_unusedChatFilterDisabled = false;
+
+    if (m_currentMode == "Mode3" && !player->IsAIPlayer() && !player->IsSpectator())
+    {
+        EnsureEwokHuntTeams();
+    }
+}
+
+void Server::EnsureEwokHuntTeams()
+{
+    if (m_currentMode != "Mode3" || !IsRunning() || m_playerManager == nullptr)
+    {
+        return;
+    }
+
+    std::vector<ServerPlayer*> humans;
+    size_t team1Count = 0;
+    size_t team2Count = 0;
+    for (ServerPlayer* player : m_playerManager->m_players)
+    {
+        if (player == nullptr || player->IsAIPlayer() || player->IsSpectator())
+        {
+            continue;
+        }
+        humans.push_back(player);
+        if (player->m_teamId == Team1)
+        {
+            ++team1Count;
+        }
+        else if (player->m_teamId == Team2)
+        {
+            ++team2Count;
+        }
+    }
+
+    if (humans.size() < 2 || (team1Count > 0 && team2Count > 0))
+    {
+        return;
+    }
+
+    // Keep at least one human on both Team 1 (Ewoks) and Team 2 (Stormtroopers).
+    int targetTeam = (team1Count == 0) ? Team1 : Team2;
+    ServerPlayer* candidate = humans.back();
+    candidate->SetTeam(targetTeam);
+    KYBER_LOG(Info, "[Mode3] Assigned '" << (candidate->m_name ? candidate->m_name : "<null>")
+        << "' to Team " << targetTeam << " to keep both Ewok Hunt teams populated");
+}
+
+void Server::NoteMode3Activity()
+{
+    if (m_currentMode != "Mode3" || m_mode3RoundHasSpawned)
+    {
+        return;
+    }
+
+    m_mode3RoundHasSpawned = true;
+    m_mode3FirstSpawnTime = std::chrono::steady_clock::now();
+    KYBER_LOG(Info, "[Mode3] First human spawn detected; starting post-spawn grace window");
+}
+
+bool Server::ShouldDelayMode3RoundOver()
+{
+    if (m_currentMode != "Mode3")
+    {
+        return false;
+    }
+
+    if (!m_mode3RoundHasSpawned && m_playerManager != nullptr)
+    {
+        for (ServerPlayer* player : m_playerManager->m_players)
+        {
+            if (player != nullptr && !player->IsAIPlayer() && !player->IsSpectator() && player->IsAlive())
+            {
+                NoteMode3Activity();
+                break;
+            }
+        }
+    }
+
+    auto now = std::chrono::steady_clock::now();
+    auto sinceLoad = std::chrono::duration_cast<std::chrono::seconds>(now - m_roundLoadedTime).count();
+    if (sinceLoad < 50)
+    {
+        return true;
+    }
+
+    if (!m_mode3RoundHasSpawned && sinceLoad < 75)
+    {
+        return true;
+    }
+
+    if (m_mode3RoundHasSpawned)
+    {
+        auto sinceSpawn = std::chrono::duration_cast<std::chrono::seconds>(now - m_mode3FirstSpawnTime).count();
+        if (sinceSpawn < 25)
+        {
+            return true;
+        }
+    }
+
+    return false;
 }
 
 void Server::Heartbeat(const UpdateParameters& params)

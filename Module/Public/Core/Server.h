@@ -13,6 +13,7 @@
 #include <Core/EventManager.h>
 
 #include <Windows.h>
+#include <chrono>
 #include <optional>
 #include <string>
 #include <xhash>
@@ -101,6 +102,9 @@ public:
     void OnLevelLoaded();
 
     void InitializePlayer(ServerPlayer* player);
+    void EnsureEwokHuntTeams();
+    void NoteMode3Activity();
+    bool ShouldDelayMode3RoundOver();
 
     ServerGameContext* GetServerGameContext()
     {
@@ -141,6 +145,9 @@ public:
     bool m_restarting;
     bool m_hooksRemoved;
     bool m_levelLoaded;
+    std::chrono::steady_clock::time_point m_roundLoadedTime{};
+    std::chrono::steady_clock::time_point m_mode3FirstSpawnTime{};
+    bool m_mode3RoundHasSpawned = false;
     Mutex<LoadLevelRequest> m_latestLoadLevelRequest;
 };
 } // namespace Kyber

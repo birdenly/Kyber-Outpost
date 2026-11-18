@@ -468,18 +468,29 @@ void MessageManagerDispatchMessageHk(void* inst, Message* message)
     {
         KYBER_LOG(Debug, "PlayerAbilityPickedUpMessage: " << std::hex << message);
     }
-    else if (name == "NetworkOnPlayerSpawnedMessage")
+    else if (name == "NetworkOnPlayerSpawnedMessage" || name == "NetworkPlayerSpawnMessage")
     {
-        KYBER_LOG(Debug, "Player spawned: " << std::hex << message);
-        if (g_program->m_scriptManager != nullptr)
+        if (g_program->m_server != nullptr)
         {
-            g_program->m_scriptManager->GetEventManager().Fire("ClientPlayer:Spawned");
+            g_program->m_server->NoteMode3Activity();
+        }
+        if (name == "NetworkOnPlayerSpawnedMessage")
+        {
+            KYBER_LOG(Debug, "Player spawned: " << std::hex << message);
+            if (g_program->m_scriptManager != nullptr)
+            {
+                g_program->m_scriptManager->GetEventManager().Fire("ClientPlayer:Spawned");
+            }
         }
     }
     else if (name == "ServerPlayerRespawnMessage")
     {
         KYBER_LOG(Debug, "Server Player spawned: " << std::hex << message);
         ServerPlayerRespawnMessage* msg = (ServerPlayerRespawnMessage*)message;
+        if (g_program->m_server != nullptr && msg->player != nullptr && !msg->player->IsAIPlayer())
+        {
+            g_program->m_server->NoteMode3Activity();
+        }
         if (g_program->m_scriptManager != nullptr)
         {
             g_program->m_scriptManager->GetEventManager().Fire("ServerPlayer:Spawned", msg->player);

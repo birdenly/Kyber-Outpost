@@ -25,6 +25,7 @@ using namespace fastdelegate;
 
 namespace Kyber
 {
+void Mode3EntityBusFireEventHk(EntityBus* inst, const DataContainer* data, const EntityEvent* entityEvent);
 // https://stackoverflow.com/a/13842612
 #define SINGLE_ARG(...) __VA_ARGS__
 
@@ -438,7 +439,7 @@ void ListPlayersCommand(ConsoleContext& cc)
         }
         KYBER_LOG(Info, "[Players] " << (isBot ? "[BOT] " : "[HUMAN] ")
             << (player->m_name ? player->m_name : "<null>")
-            << " (Team " << player->m_teamId << ")");
+            << " (Team " << player->m_teamId << ", Alive " << (player->IsAlive() ? 1 : 0) << ")");
     }
     cc << "Humans: " << humanCount << ", Bots: " << botCount;
 }
@@ -841,6 +842,7 @@ Console::Console()
     //HookManager::CreateHook(HOOK_OFFSET(0x1473295D0), OnCreateHelperHk);
     //HookManager::CreateHook(HOOK_OFFSET(0x140196CF0), SendStatProgressMessageCtorHk);
     HookManager::CreateHook(HOOK_OFFSET(0x1401A8980), ConsoleRegistryExecuteConsoleCommandHk);
+    HookManager::CreateHook(HOOK_OFFSET(0x14114C290), Mode3EntityBusFireEventHk);
     Hook::ApplyQueuedActions();
 
     // MemoryUtils::Nop(HOOK_OFFSET(0x14543CFB2), 4);
