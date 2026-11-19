@@ -953,7 +953,7 @@ bool Server::ShouldOverrideMode3TeamChange(ServerPlayer* player, int requestedTe
         return false;
     }
 
-    const bool inStartupWindow = ShouldDelayMode3RoundOver();
+    const bool inStartupWindow = !m_mode3RoundHasSpawned || ShouldDelayMode3RoundOver();
     const bool protectEmptyEwoks = (requestedTeam == Team2) && (inStartupWindow || player->IsAlive());
     const bool protectEmptyStormtroopers = (requestedTeam == Team1) && inStartupWindow;
     if (!protectEmptyEwoks && !protectEmptyStormtroopers)
