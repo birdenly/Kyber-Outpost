@@ -7,8 +7,8 @@ import 'package:fluent_ui/fluent_ui.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:grpc/grpc.dart' hide Server;
 import 'package:kyber/kyber.dart';
-import 'package:kyber_launcher/core/services/instance_manager.dart';
 import 'package:kyber_launcher/core/services/app_settings.dart';
+import 'package:kyber_launcher/core/services/instance_manager.dart';
 import 'package:kyber_launcher/core/services/notification_service.dart';
 import 'package:kyber_launcher/features/lan/services/lan_discovery_service.dart';
 import 'package:kyber_launcher/features/maxima/models/maxima_game_instance.dart';
@@ -21,15 +21,15 @@ import 'package:web_socket_channel/web_socket_channel.dart';
 class ModerationCubit extends Cubit<ModerationServerState> {
   ModerationCubit() : super(const ModerationServerState()) {
     botChangeStream = ReplaySubject<(int, int)>();
-    botChangeStream!
-        .debounceTime(const Duration(milliseconds: 300))
-        .listen((event) {
-          sendCommand('/AutoPlayers.AllowAddAutoFillPlayers 1');
-          sendCommand('/AutoPlayers.ForceApplyGameplayBotsCount 1');
-          sendCommand(
-            '/AutoPlayers.ForceFillGameplayBotsTeam${event.$1} ${event.$2}',
-          );
-        });
+    botChangeStream!.debounceTime(const Duration(milliseconds: 300)).listen((
+      event,
+    ) {
+      sendCommand('/AutoPlayers.AllowAddAutoFillPlayers 1');
+      sendCommand('/AutoPlayers.ForceApplyGameplayBotsCount 1');
+      sendCommand(
+        '/AutoPlayers.ForceFillGameplayBotsTeam${event.$1} ${event.$2}',
+      );
+    });
   }
 
   final _logger = Logger('moderation_cubit');

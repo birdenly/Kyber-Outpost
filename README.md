@@ -1,5 +1,5 @@
 <h1 align="center">Kyber Outpost</h1>
-<h4 align="center">KYBER is an Open-Source Private Server tool for STAR WARS™ Battlefront™ II (2017).</h4>
+<h4 align="center">Kyber Outpost is an Open-Source Private Server tool fully under LAN for STAR WARS™ Battlefront™ II (2017).</h4>
 <p align="center">
   <a href="https://www.youtube.com/watch?v=l2NHgabpnXg">Jedha, Kyber, Erso</a>
 </p>
@@ -26,7 +26,7 @@
 
 ## Overview
 
-**Kyber Outpost** is a LAN version of [Kyber](https://github.com/ArmchairDevelopers/Kyber). It uses the **anadius EA emulator** + Kyber to launch the game and lets you host or join matches on the same network. Kyber Outpost still needs a legit copy with valid denuvo tokens, this will not change, this isnt a crack.
+**Kyber Outpost** is a LAN version of [Kyber](https://github.com/ArmchairDevelopers/Kyber). It uses a combination of **anadius EA emulator** + Kyber to launch the game and lets you host or join matches on the same network, besides mods generating your denuvo tokens nothing else in the launcher requires internet. Kyber Outpost still needs a legit copy with valid denuvo tokens, this will not change, this isnt a crack.
 
 Kyber Outpost adds these features to the original Kyber workflow:
 
