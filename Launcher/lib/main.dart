@@ -115,6 +115,7 @@ void main(List<String> args) async {
         webViewEnvironment = await WebViewEnvironment.create(
           settings: WebViewEnvironmentSettings(
             userDataFolder: '$applicationDocumentsDirectory\\webview',
+            additionalBrowserArguments: '--disable-gpu',
           ),
         );
       }
