@@ -19,15 +19,7 @@ void main() {
       dartFile: packageRoot.resolve('lib/gen/generated_bindings.dart'),
     ),
     headers: Headers(
-      compilerOptions: [
-        '-include',
-        'stdbool.h',
-        '-I${packageRoot.resolve('third_party/vivox').path.substring(1)}',
-      ],
       entryPoints: [
-        packageRoot.resolve(
-          'third_party/vivox/ffigen_vivox_shim.h',
-        ),
         packageRoot.resolve('third_party/unrar.h'),
       ],
     ),
