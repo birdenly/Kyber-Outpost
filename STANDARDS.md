@@ -84,7 +84,7 @@ lib/
 |------|------------|---------|
 | Cubits | `<Feature>Cubit` | `ServerBrowserCubit` |
 | Cubit States | `<Feature>State`, `<Feature><Variant>` | `KyberStatusState`, `KyberStatusPlaying` |
-| Services | `<Feature>Service` | `ModService`, `VoipService` |
+| Services | `<Feature>Service` | `ModService`, `LanDiscoveryService` |
 | Helpers | `<Feature>Helper` | `MaximaHelper`, `StorageHelper` |
 | Private Widgets | `_<Widget>` | `_HeaderBar`, `_StatusWidget` |
 | Screens | `<Feature>` | `ServerBrowser`, `Settings` |
