@@ -2,28 +2,6 @@ name: Build Outpost CLI
 
 on:
   workflow_dispatch:
-  push:
-    paths:
-      - '.github/workflows/build-cli.yaml'
-      - '.github/workflows/build-module.yaml'
-      - '.github/actions/setup-frontend/**'
-      - 'CLI/**'
-      - 'Module/**'
-      - 'Packages/**'
-      - 'pubspec.yaml'
-      - 'tool/setup_outpost.bat'
-      - 'tool/allow_lan_firewall.ps1'
-  pull_request:
-    paths:
-      - '.github/workflows/build-cli.yaml'
-      - '.github/workflows/build-module.yaml'
-      - '.github/actions/setup-frontend/**'
-      - 'CLI/**'
-      - 'Module/**'
-      - 'Packages/**'
-      - 'pubspec.yaml'
-      - 'tool/setup_outpost.bat'
-      - 'tool/allow_lan_firewall.ps1'
 
 permissions:
   contents: read
@@ -65,9 +43,14 @@ jobs:
 
       - name: Generate shared Dart sources
         run: |
+          New-Item -ItemType Directory -Path 'Packages/kyber/lib/gen', 'Launcher/lib/gen/rust', 'CLI/lib/gen' -Force | Out-Null
           dart run melos run generate_proto
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
           dart run melos run generate
+
+      - name: Generate Rust bridge
+        working-directory: CLI
+        run: flutter_rust_bridge_codegen generate --no-dart-fix --no-build-runner
 
       - name: Resolve CLI dependencies and generate models
         working-directory: CLI
@@ -75,10 +58,6 @@ jobs:
           flutter pub get
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
           dart run build_runner build --delete-conflicting-outputs
-
-      - name: Generate Rust bridge
-        working-directory: CLI
-        run: flutter_rust_bridge_codegen generate --no-dart-fix --no-build-runner
 
       - name: Build Rust library
         run: cargo build --release --manifest-path CLI/rust/Cargo.toml

@@ -3,14 +3,6 @@ name: Build Outpost module
 on:
   workflow_call:
   workflow_dispatch:
-  push:
-    paths:
-      - '.github/workflows/build-module.yaml'
-      - 'Module/**'
-  pull_request:
-    paths:
-      - '.github/workflows/build-module.yaml'
-      - 'Module/**'
 
 permissions:
   contents: read
@@ -59,7 +51,6 @@ jobs:
           $package = 'Module/build/outpost-module'
           New-Item -ItemType Directory -Path $package -Force | Out-Null
           Copy-Item -LiteralPath 'Module/bazel-bin/Kyber.dll' -Destination $package
-          Copy-Item -LiteralPath 'Module/ThirdParty/vivox/SDK/Libraries/Release/x64/vivoxsdk.dll' -Destination $package
           Copy-Item -LiteralPath 'LICENSE' -Destination $package
 
       - uses: actions/upload-artifact@v7

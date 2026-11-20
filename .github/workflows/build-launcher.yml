@@ -1,12 +1,17 @@
-name: Build Outpost launcher
+name: Build Outpost Release
 
 on:
   workflow_dispatch:
   push:
+    branches:
+      - main
+    tags:
+      - 'v*'
     paths:
       - '.github/workflows/build-launcher.yml'
       - '.github/workflows/build-module.yaml'
       - '.github/actions/setup-frontend/**'
+      - 'CLI/**'
       - 'Launcher/**'
       - 'Module/**'
       - 'Packages/**'
@@ -17,6 +22,7 @@ on:
       - '.github/workflows/build-launcher.yml'
       - '.github/workflows/build-module.yaml'
       - '.github/actions/setup-frontend/**'
+      - 'CLI/**'
       - 'Launcher/**'
       - 'Module/**'
       - 'Packages/**'
@@ -24,10 +30,10 @@ on:
       - 'tool/**'
 
 permissions:
-  contents: read
+  contents: write
 
 concurrency:
-  group: launcher-${{ github.event.pull_request.number || github.ref }}
+  group: release-${{ github.event.pull_request.number || github.ref }}
   cancel-in-progress: true
 
 jobs:
@@ -61,19 +67,32 @@ jobs:
       - name: Resolve workspace dependencies
         run: flutter pub get
 
-      - name: Generate Dart sources
+      - name: Generate Proto & Rust/FFI bindings
         run: |
+          New-Item -ItemType Directory -Path 'Packages/kyber/lib/gen', 'Launcher/lib/gen/rust', 'CLI/lib/gen' -Force | Out-Null
           dart run melos run generate_proto
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          Push-Location Launcher
+          flutter_rust_bridge_codegen generate --no-dart-fix --no-build-runner
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          dart run tool/ffigen.dart
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          Pop-Location
+          Push-Location CLI
+          flutter_rust_bridge_codegen generate --no-dart-fix --no-build-runner
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          Pop-Location
+
+      - name: Generate Dart models
+        run: |
           dart run melos run generate
-
-      - name: Generate Rust bridge
-        working-directory: Launcher
-        run: flutter_rust_bridge_codegen generate --no-dart-fix --no-build-runner
-
-      - name: Generate local FFI bindings
-        working-directory: Launcher
-        run: dart run tool/ffigen.dart
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          Push-Location CLI
+          flutter pub get
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          dart run build_runner build --delete-conflicting-outputs
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          Pop-Location
 
       - uses: actions/download-artifact@v8
         with:
@@ -86,21 +105,54 @@ jobs:
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
           dart tool/verify_lan_network.dart
 
-      - name: Build portable launcher
+      - name: Build portable Launcher
         run: ./tool/build_launcher_windows.ps1
+
+      - name: Build and bundle portable CLI
+        run: |
+          cargo build --release --manifest-path CLI/rust/Cargo.toml
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          $cliDir = 'Launcher/build/windows/x64/runner/Release/cli'
+          New-Item -ItemType Directory -Path $cliDir -Force | Out-Null
+          Push-Location CLI
+          dart compile exe bin/kyber_cli.dart -o "../$cliDir/kyber_cli.exe"
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          Pop-Location
+          Copy-Item -LiteralPath 'CLI/rust/target/release/rust_lib.dll' -Destination "$cliDir/rust_lib.dll" -Force
+          Copy-Item -LiteralPath 'Module/bazel-bin/Kyber.dll' -Destination "$cliDir/Kyber.dll" -Force
+          & "./$cliDir/kyber_cli.exe" --help
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+
+      - name: Create drag-and-drop Release ZIP
+        run: |
+          $releaseDir = 'Launcher/build/windows/x64/runner/Release'
+          $zipPath = 'Launcher/build/Kyber-Outpost-Windows-x64.zip'
+          if (Test-Path -LiteralPath $zipPath) { Remove-Item -LiteralPath $zipPath -Force }
+          Compress-Archive -Path "$releaseDir/*" -DestinationPath $zipPath -CompressionLevel Optimal -Force
 
       - uses: actions/upload-artifact@v7
         with:
-          name: outpost-launcher-windows-x64
-          path: Launcher/build/windows/x64/runner/Release/
+          name: Kyber-Outpost-Windows-x64
+          path: Launcher/build/Kyber-Outpost-Windows-x64.zip
           if-no-files-found: error
           retention-days: 14
+
+      - name: Publish GitHub Release
+        if: github.event_name != 'pull_request' && (github.ref == 'refs/heads/main' || startsWith(github.ref, 'refs/tags/'))
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ startsWith(github.ref, 'refs/tags/') && github.ref_name || 'latest' }}
+          name: ${{ startsWith(github.ref, 'refs/tags/') && format('Kyber Outpost {0}', github.ref_name) || 'Kyber Outpost (Latest Build)' }}
+          target_commitish: ${{ github.sha }}
+          files: Launcher/build/Kyber-Outpost-Windows-x64.zip
+          generate_release_notes: true
+          prerelease: false
 
       - name: Upload build logs
         if: always()
         uses: actions/upload-artifact@v7
         with:
           name: outpost-launcher-logs
-          path: Launcher/build/logs/
+          path: Launcher/build/logs/windows-release/
           if-no-files-found: ignore
           retention-days: 7
