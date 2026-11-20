@@ -104,6 +104,16 @@ try {
     $null = Invoke-BuildCommand -Name 'rust-bridge' -Executable $cargo -ArgumentList (
         $cargoOptions + @('--manifest-path', (Join-Path $launcherRoot 'rust\Cargo.toml')))
 
+    if (!(Get-Command nuget -ErrorAction SilentlyContinue)) {
+        New-Item -ItemType Directory -Path $buildRoot -Force | Out-Null
+        $nugetExe = Join-Path $buildRoot 'nuget.exe'
+        if (!(Test-Path -LiteralPath $nugetExe -PathType Leaf)) {
+            Write-Host 'Downloading nuget.exe for flutter_inappwebview_windows...'
+            Invoke-WebRequest -Uri 'https://dist.nuget.org/win-x86-commandline/latest/nuget.exe' -OutFile $nugetExe
+        }
+        $env:PATH = "$buildRoot;$env:PATH"
+    }
+
     Initialize-PluginJunctions
     $flutterOptions = @('--suppress-analytics', 'build', 'windows', '--release', '--no-pub', '--config-only')
     $prepared = Invoke-BuildCommand -Name 'flutter-config' -Executable $flutter -ArgumentList $flutterOptions -AllowFailure
@@ -127,6 +137,9 @@ try {
         throw "No usable CMake toolchain was found in $cachePath"
     }
     Write-Host "Using $generator and $cmake"
+    if (Test-Path -LiteralPath $releaseRoot) {
+        Remove-Item -LiteralPath $releaseRoot -Recurse -Force
+    }
     $null = Invoke-BuildCommand -Name 'cmake-config' -Executable $cmake -ArgumentList @(
         '-S', (Join-Path $launcherRoot 'windows'), '-B', $buildRoot, '-G', $generator,
         '-A', 'x64', '-DFLUTTER_TARGET_PLATFORM=windows-x64', "-DCMAKE_INSTALL_PREFIX:PATH=$releaseRoot")
@@ -141,7 +154,6 @@ try {
         (Join-Path $repoRoot 'LICENSE'),
         (Join-Path $launcherRoot 'rust\target\release\rust_lib.dll'),
         (Join-Path $repoRoot 'Module\bazel-bin\Kyber.dll'),
-        (Join-Path $repoRoot 'Module\ThirdParty\vivox\SDK\Libraries\Release\x64\vivoxsdk.dll'),
         (Join-Path $launcherRoot 'third_party\libs\UnRAR.dll'),
         (Join-Path $launcherRoot 'third_party\libs\7z.dll')
     )

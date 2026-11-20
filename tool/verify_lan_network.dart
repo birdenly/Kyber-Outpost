@@ -38,7 +38,6 @@ Future<void> main() async {
     'fd00::1',
     'api.nexusmods.com',
     'staticdelivery.nexusmods.com',
-    'mod-service.prod.kyber.gg',
   ]) {
     check(LanNetworkPolicy.allowsHost(host), 'Blocked LAN/mod host: $host');
   }
@@ -46,6 +45,7 @@ Future<void> main() async {
     'accounts.ea.com',
     'gateway.ea.com',
     'api-rpc.prod.kyber.gg',
+    'mod-service.prod.kyber.gg',
     's3.kyber.gg',
     'checkip.amazonaws.com',
     '1.1.1.1',
