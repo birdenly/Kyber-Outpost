@@ -2,13 +2,41 @@
 #include <flutter/flutter_view_controller.h>
 #include <windows.h>
 
+#include <string>
+
 #include "flutter_window.h"
 #include "utils.h"
 
 #include <protocol_handler_windows/protocol_handler_windows_plugin_c_api.h>
 
+namespace {
+
+void PreloadSystemDirectXDlls() {
+  // Preload System32 graphics DLLs before delay-loaded Flutter/plugin DLLs run
+  // so game proxies (such as SpecialK d3d11.dll/dxgi.dll) beside the launcher
+  // are never loaded into kyber_launcher.exe.
+  wchar_t system_dir[MAX_PATH] = {};
+  const UINT len = ::GetSystemDirectoryW(system_dir, MAX_PATH);
+  if (len == 0 || len >= MAX_PATH) {
+    return;
+  }
+
+  const std::wstring base(system_dir, len);
+  constexpr const wchar_t* kSystemDlls[] = {
+      L"\\dxgi.dll",
+      L"\\d3d11.dll",
+      L"\\d3d9.dll",
+  };
+  for (const wchar_t* dll : kSystemDlls) {
+    ::LoadLibraryW((base + dll).c_str());
+  }
+}
+
+}  // namespace
+
 int APIENTRY wWinMain(_In_ HINSTANCE instance, _In_opt_ HINSTANCE prev,
                       _In_ wchar_t *command_line, _In_ int show_command) {
+  PreloadSystemDirectXDlls();
   // Kyber Outpost (LAN Edition): multiple Launcher instances are allowed on the
   // same PC (split-screen), so there is no FindWindow single-instance check.
 
