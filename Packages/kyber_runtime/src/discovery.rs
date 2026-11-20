@@ -8,8 +8,14 @@ fn executable(path: PathBuf) -> Option<PathBuf> {
     path.is_file().then_some(path)
 }
 
-fn detect(launcher: Option<&Path>, registered: impl FnOnce() -> Vec<PathBuf>) -> Option<PathBuf> {
+fn detect(launcher: Option<&Path>, cwd: Option<&Path>, registered: impl FnOnce() -> Vec<PathBuf>) -> Option<PathBuf> {
     if let Some(path) = launcher.and_then(|path| executable(path.with_file_name(GAME_EXE))) {
+        return Some(path);
+    }
+    if let Some(path) = launcher.and_then(|path| path.parent()?.parent()).and_then(|dir| executable(dir.join(GAME_EXE))) {
+        return Some(path);
+    }
+    if let Some(path) = cwd.and_then(|dir| executable(dir.join(GAME_EXE))) {
         return Some(path);
     }
     registered().into_iter().find_map(executable)
@@ -41,7 +47,8 @@ pub fn find_game(slug: &str, explicit_path: Option<&str>) -> Result<PathBuf> {
     let result = if let Some(path) = explicit {
         executable(path)
     } else {
-        detect(env::current_exe().ok().as_deref(), registered_paths)
+        let cwd = env::current_dir().ok();
+        detect(env::current_exe().ok().as_deref(), cwd.as_deref(), registered_paths)
     };
     result.ok_or_else(|| anyhow::anyhow!(
         "Battlefront II was not found beside the launcher or at the installation registered in Windows. Install the complete launcher beside starwarsbattlefrontii.exe."
@@ -59,10 +66,13 @@ mod tests {
         let launcher = root.join("portable/kyber_launcher.exe");
         let registered = root.join("registered");
         std::fs::write(registered.join(GAME_EXE), []).unwrap();
-        assert_eq!(detect(Some(&launcher), || vec![root.join("missing"), registered.clone()]), Some(registered.join(GAME_EXE)));
+        assert_eq!(detect(Some(&launcher), None, || vec![root.join("missing"), registered.clone()]), Some(registered.join(GAME_EXE)));
         let portable = root.join("portable").join(GAME_EXE);
         std::fs::write(&portable, []).unwrap();
-        assert_eq!(detect(Some(&launcher), || panic!("portable game must take priority")), Some(portable));
+        assert_eq!(detect(Some(&launcher), None, || panic!("portable game must take priority")), Some(portable.clone()));
+        let cli = root.join("portable/cli/kyber_cli.exe");
+        std::fs::create_dir_all(cli.parent().unwrap()).unwrap();
+        assert_eq!(detect(Some(&cli), None, || panic!("parent game must take priority")), Some(portable));
         std::fs::remove_dir_all(root).unwrap();
     }
 }

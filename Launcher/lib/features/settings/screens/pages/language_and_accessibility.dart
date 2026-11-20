@@ -106,8 +106,6 @@ class LanguageAndAccessibility extends StatelessWidget {
             'removeBackground',
             'window',
             'disableHeadless',
-            'dummyServer',
-            'apiEnv',
           ],
           builder: (_) => KyberTable(
             items: [

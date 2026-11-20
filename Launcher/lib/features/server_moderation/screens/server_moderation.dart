@@ -119,62 +119,6 @@ class _ServerModerationState extends State<ServerModeration> {
                               ],
                             ),
                           ),
-                          const CardSection(),
-                          Padding(
-                            padding: const .all(10),
-                            child: Column(
-                              children: [
-                                KyberButton(
-                                  text: 'COPY LINK',
-                                  onPressed: () {
-                                    final uri = Uri(
-                                      scheme: 'https',
-                                      host: 'api.prod.kyber.gg',
-                                      path: 'redirect',
-                                      queryParameters: {
-                                        'target':
-                                            'join_server?server_id=${state.server?.id}',
-                                      },
-                                    );
-                                    Clipboard.setData(
-                                      .new(text: uri.toString()),
-                                    );
-                                    NotificationService.info(
-                                      message: 'Copied to clipboard!',
-                                    );
-                                  },
-                                ),
-                              ],
-                            ),
-                          ),
-                          const CardSection(),
-                          const Padding(
-                            padding: EdgeInsets.all(10),
-                            child: Column(
-                              spacing: 15,
-                              children: [
-                                NormalButton(
-                                  label: Text('EXPORT BANS'),
-                                  onPressed: NotificationService.notImplemented,
-                                ),
-                                NormalButton(
-                                  label: Text('IMPORT BANS'),
-                                  onPressed: NotificationService.notImplemented,
-                                ),
-                                NormalButton(
-                                  label: Text('KICK ALL'),
-                                  onPressed: NotificationService.notImplemented,
-                                ),
-                                NormalButton(
-                                  label: Text(
-                                    'BAN ALL',
-                                    textAlign: TextAlign.center,
-                                  ),
-                                  onPressed: NotificationService.notImplemented,
-                                ),
-                              ],
-                            ),
-                          ),
                         ],
                       ),
                     ),

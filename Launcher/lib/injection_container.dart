@@ -2,7 +2,6 @@
 import 'dart:async';
 
 import 'package:get_it/get_it.dart';
-import 'package:kyber/kyber.dart';
 import 'package:kyber_launcher/features/download_manager/services/download_orchestrator.dart';
 import 'package:kyber_launcher/features/kyber/services/kyber_grpc_service.dart';
 import 'package:kyber_launcher/features/lan/services/lan_discovery_service.dart';
@@ -21,9 +20,6 @@ void initializeDependencies() {
   unawaited(lanDiscoveryService.startListening());
 
   sl
-    ..registerSingleton<KyberGRPCService>(
-      KyberGRPCService.local(),
-    )
     ..registerSingleton<LanModServerService>(LanModServerService())
     ..registerSingleton<LanDiscoveryService>(lanDiscoveryService)
     ..registerSingleton<MaximaInstanceService>(MaximaInstanceService())

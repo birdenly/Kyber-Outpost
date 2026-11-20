@@ -1,21 +1,16 @@
-use crate::frb_generated::{RustAutoOpaque, StreamSink};
-use anyhow::bail;
-use flutter_rust_bridge::for_generated::futures::SinkExt;
+use crate::frb_generated::StreamSink;
 use log::{error, info};
-use std::cmp::Ordering;
 use std::fs::File;
-use std::io::{BufReader, Read, Write};
-use std::io::{Cursor, Sink};
+use std::io::{self, Read, Write};
+use std::path::Path;
 use std::sync::atomic::AtomicI32;
 use std::sync::{Arc, Mutex};
-use std::{fs, io};
-use std::path::Path;
 use tar::Builder;
 use tokio::task;
 use zip::write::SimpleFileOptions;
 use zip::CompressionMethod;
 
-pub async fn compress(file_paths: Vec<String>, target_file: String, mut progress_stream: StreamSink<(i32, i32)>) -> anyhow::Result<()> {
+pub async fn compress(file_paths: Vec<String>, target_file: String, progress_stream: StreamSink<(i32, i32)>) -> anyhow::Result<()> {
     let target = std::path::Path::new(&target_file);
     let file = File::create(target)?;
     let mut zip = zip::ZipWriter::new(file);
@@ -44,7 +39,7 @@ pub async fn compress(file_paths: Vec<String>, target_file: String, mut progress
     Ok(())
 }
 
-pub async fn compress_tar(file_paths: Vec<String>, target_file: String, mut progress_stream: StreamSink<(i32, i32)>) -> anyhow::Result<()> {
+pub async fn compress_tar(file_paths: Vec<String>, target_file: String, progress_stream: StreamSink<(i32, i32)>) -> anyhow::Result<()> {
     let target = Path::new(&target_file);
     let file = File::create(target)?;
     let mut tar_builder = Builder::new(file);
@@ -185,43 +180,6 @@ pub async fn extract_stream(
     // Wait for all tasks to complete
     for handle in handles {
         handle.await?;
-    }
-
-    Ok(())
-}
-
-
-pub async fn extract(file_path: String, target_dir: String) -> anyhow::Result<()> {
-    let fname = std::path::Path::new(&*file_path);
-    let file = File::open(fname)?;
-    let mut archive = zip::ZipArchive::new(file)?;
-
-    for i in 0..archive.len() {
-        let mut file = archive.by_index(i)?;
-        if file.is_dir() {
-            continue;
-        }
-
-        let outpath = match file.enclosed_name() {
-            Some(path) => path.to_owned(),
-            None => continue,
-        };
-        let final_path = std::path::Path::new(&*target_dir).join(outpath.file_name().unwrap().to_str().unwrap()).to_owned();
-
-        info!(
-            "File {} extracted to \"{}\" ({} bytes)",
-            i,
-            final_path.display(),
-            file.size()
-        );
-        if let Some(p) = final_path.parent() {
-            if !p.exists() {
-                fs::create_dir_all(p)?;
-            }
-        }
-
-        let mut outfile = File::create(&final_path)?;
-        io::copy(&mut file, &mut outfile)?;
     }
 
     Ok(())

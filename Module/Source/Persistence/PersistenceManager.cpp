@@ -112,14 +112,6 @@ void LoadPlayerPersistenceHk(void* inst, ServerPlayer* player)
 {
     static const auto trampoline = HookManager::Call(LoadPlayerPersistenceHk);
     trampoline(inst, player);
-
-    if (!g_program->m_server->IsRunning() || !g_program->m_server->m_onlineMode || player->IsAIPlayer() || player->IsSpectator() || !g_program->m_isDedicatedServer)
-    {
-        return;
-    }
-
-    KYBER_LOG(Info, "[Persistence] Loading persistence for player " << player->m_onlineId.m_nativeData << " " << std::hex << player);
-    g_program->m_server->m_persistenceManager->LoadPlayerStats(inst, player);
 }
 
 PlayerStatsMap ExtractPlayerStats(ServerPlayer* player)
@@ -222,13 +214,16 @@ void RevokeUnlockCommand(ConsoleContext& cc)
 }
 
 PersistenceManager::PersistenceManager()
-{
-    // API db is hardcoded for now, may add more in the future
-    m_database = new APIPersistenceDatabase(kyber_api::StatsSource::KYBER);
-}
+    : m_database(nullptr)
+{}
 
 void PersistenceManager::LoadPlayerStats(void* persistenceInst, ServerPlayer* player)
 {
+    if (m_database == nullptr)
+    {
+        return;
+    }
+
     m_database->Load(player->m_onlineId, [persistenceInst, player](PlayerStatsMap stats) {
         KYBER_LOG(Info, "[Persistence] Persistence loaded, applying...");
         ApplyPlayerStats(persistenceInst, player, stats);
@@ -237,7 +232,7 @@ void PersistenceManager::LoadPlayerStats(void* persistenceInst, ServerPlayer* pl
 
 void PersistenceManager::SavePlayerStats(ServerPlayer* player)
 {
-    if (player->IsAIPlayer() || player->IsSpectator())
+    if (m_database == nullptr || player->IsAIPlayer() || player->IsSpectator())
     {
         return;
     }
@@ -247,6 +242,11 @@ void PersistenceManager::SavePlayerStats(ServerPlayer* player)
 
 void PersistenceManager::SavePlayerStats(ServerPlayer* player, const PlayerStatsMap& stats)
 {
+    if (m_database == nullptr)
+    {
+        return;
+    }
+
     m_database->Save(player->m_onlineId, stats);
 }
 

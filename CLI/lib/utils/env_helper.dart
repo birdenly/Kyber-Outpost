@@ -9,8 +9,12 @@ class EnvHelper {
 
   static String getModulePath([String? customPath]) {
     if (customPath != null) return Directory(customPath).absolute.path;
+    final cwd = Directory.current.path;
+    if (File(p.join(cwd, 'Kyber.dll')).existsSync()) return cwd;
     final bundled = p.dirname(Platform.resolvedExecutable);
     if (File(p.join(bundled, 'Kyber.dll')).existsSync()) return bundled;
+    final parent = p.dirname(bundled);
+    if (File(p.join(parent, 'Kyber.dll')).existsSync()) return parent;
     return FileHelper.getModuleDirectory().path;
   }
 

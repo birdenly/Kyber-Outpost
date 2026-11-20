@@ -227,35 +227,25 @@ class _ServerInfoBoxState extends State<ServerInfoBox> {
               right: 0,
               child: ServerBackgroundImage(map: serverInfo.levelSetup.map),
             ),
-            if (!_regionResolved || !_modsLoaded)
-              Positioned.fill(
+            if (!_modsLoaded)
+              const Positioned.fill(
                 child: Row(
                   spacing: 10,
                   mainAxisAlignment: .center,
                   children: [
-                    const SizedBox(
+                    SizedBox(
                       width: 18,
                       height: 18,
                       child: ProgressRing(),
                     ),
-                    if (!_regionResolved) ...[
-                      const Text(
-                        'Connecting to proxies...',
-                        style: TextStyle(
-                          fontFamily: FontFamily.battlefrontUI,
-                          fontSize: 16,
-                          color: Colors.white,
-                        ),
+                    Text(
+                      'Loading mods...',
+                      style: TextStyle(
+                        fontFamily: FontFamily.battlefrontUI,
+                        fontSize: 16,
+                        color: Colors.white,
                       ),
-                    ] else
-                      const Text(
-                        'Loading mods...',
-                        style: TextStyle(
-                          fontFamily: FontFamily.battlefrontUI,
-                          fontSize: 16,
-                          color: Colors.white,
-                        ),
-                      ),
+                    ),
                   ],
                 ),
               )

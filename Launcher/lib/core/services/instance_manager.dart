@@ -1,6 +1,8 @@
 // Created for Kyber Outpost (LAN Edition) - 2026-11-11.
 import 'dart:io';
 
+import 'package:kyber_launcher/features/lan/models/lan_nickname.dart';
+
 /// Manages dynamic LAN ports for multiple instances (e.g. Nucleus Coop LAN play).
 ///
 /// Ports can be configured via environment variables (such as `KYBER_SERVER_PORT`
@@ -15,9 +17,13 @@ class InstanceManager {
   static int _index = 0;
   static int _gamePort = baseGamePort;
   static int _httpPort = baseHttpPort;
+  static String? _playerNameOverride;
 
   /// Zero-based instance index.
   static int get index => _index;
+
+  /// Optional player nickname override supplied via `--name` / `-n`.
+  static String? get playerNameOverride => _playerNameOverride;
 
   /// UDP port used for the local Battlefront II server.
   static int get gamePort => _gamePort;
@@ -32,8 +38,43 @@ class InstanceManager {
   /// Suffix for the default player name (empty for instance 0).
   static String get nameSuffix => _index == 0 ? '' : ' ${_index + 1}';
 
-  /// Resolves the game and HTTP ports dynamically.
-  static Future<void> initialize() async {
+  /// Extracts a valid `--name` or `-n` CLI nickname override from [args].
+  static String? parsePlayerNameArg(List<String> args) {
+    String? candidate;
+    for (var i = 0; i < args.length; i++) {
+      final arg = args[i];
+      if ((arg == '--name' || arg == '-n') && i + 1 < args.length) {
+        candidate = args[++i];
+      } else if (arg.startsWith('--name=')) {
+        candidate = arg.substring('--name='.length);
+      } else if (arg.startsWith('-n=')) {
+        candidate = arg.substring('-n='.length);
+      }
+    }
+    if (candidate == null) return null;
+    final trimmed = candidate.trim();
+    return validateLanNickname(trimmed) == null ? trimmed : null;
+  }
+
+  /// Picks the initial LAN nickname with CLI `--name` > saved Hive > default.
+  static String resolveInitialNickname({
+    String? savedName,
+    String? overrideName,
+    String? suffix,
+  }) {
+    final cliOverride = overrideName ?? _playerNameOverride;
+    if (cliOverride != null && validateLanNickname(cliOverride) == null) {
+      return cliOverride.trim();
+    }
+    if (savedName != null && validateLanNickname(savedName) == null) {
+      return savedName.trim();
+    }
+    return 'Jedha${suffix ?? nameSuffix}';
+  }
+
+  /// Resolves CLI overrides and the dynamic game and HTTP ports.
+  static Future<void> initialize([List<String> args = const []]) async {
+    _playerNameOverride = parsePlayerNameArg(args);
     // 1. Check explicit port override from environment (e.g. from Nucleus Coop)
     final envPort =
         int.tryParse(Platform.environment['KYBER_SERVER_PORT'] ?? '');

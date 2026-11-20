@@ -33,10 +33,6 @@ TL_DECLARE_FUNC(0x145478280, void*, AllocatingBuffer_writeEx, void* inst, const 
 TL_DECLARE_FUNC(0x1401B4EB0, void, ConsoleRegistry_registerConsoleMethods, const char* groupName, ConsoleMethod* methods, int count);
 TL_DECLARE_FUNC(0x1453ECF10, SINGLE_ARG(eastl::fixed_vector<InstanceMethod, 128>&), ConsoleRegistry_getInstanceMethods);
 TL_DECLARE_FUNC(0x14BEC6FE0, void*, NetworkSettingsMessage_ctor, void* inst);
-TL_DECLARE_FUNC(0x141BCE400, void, ServerPlayerCustomizationExtent_setActiveKit, ServerPlayerExtent* inst, uint32_t gpId, uint32_t unk0,
-    uint32_t vurId, uint32_t skinInfoId);
-TL_DECLARE_FUNC(0x141BCFC40, void, ServerPlayerCustomizationExtent_updateActiveKit, ServerPlayerExtent* inst, uint32_t gpId, void** selectionInfo, __int64 garbage);
-TL_DECLARE_FUNC(0x14D8987B0, void, PlayerAbilityPickedUpMessage_ctor, PlayerAbilityPickedUpMessage* inst, LocalPlayerId localPlayerId);
 
 void ConsoleContext::pushOutput(const std::string& out)
 {
@@ -104,12 +100,6 @@ void AddLevelCommand(ConsoleContext& cc)
     KYBER_LOG(Info, "Added " << level << ":" << mode << " to the map rotation");
 }
 
-Message* SendStatProgressMessageCtorHk(void* inst, __int64 category, __int64 type, __int64 localPlayerId)
-{
-    static auto trampoline = HookManager::Call(SendStatProgressMessageCtorHk);
-    return trampoline(inst, category, type, localPlayerId);
-}
-
 eastl::string ConsoleRegistryExecuteConsoleCommandHk(const char* cmdString, bool force)
 {
     static auto trampoline = HookManager::Call(ConsoleRegistryExecuteConsoleCommandHk);
@@ -120,192 +110,6 @@ eastl::string ConsoleRegistryExecuteConsoleCommandHk(const char* cmdString, bool
     }
 
     return trampoline(cmdString, force);
-}
-
-// this code is utterly horrific and has no need being such,
-// it makes a SendStatProgressMessage that is 0x38 in size and then sets its vtable to whatever that is
-void SendStatsCommand(ConsoleContext& cc)
-{
-    KYBER_LOG(Info, "Dispatching message");
-    void* messageManager = g_program->m_server->GetServerGameContext()->m_messageManager;
-    __int64 test[7];
-    SendStatProgressMessageCtorHk(test, 0x7C89B9B7, 0x933E652C, 0xFF);
-    *test = (__int64)0x1431E06F0;
-    MessageManagerDispatchMessageHk(messageManager, (Message*)test);
-    KYBER_LOG(Info, "Dispatched message");
-}
-
-void ServerPlayerExtentDebugCommand(ConsoleContext& cc)
-{
-    if (!g_program->m_server->IsRunning())
-    {
-        cc << "This is a server command, and you aren't running a server!";
-        return;
-    }
-
-    ServerPlayer* player = g_program->m_server->m_playerManager->m_players[0];
-    KYBER_LOG(Info, "----- Server Player Extents -----");
-
-    PlayerExtentRegistration* extentRegistration = *reinterpret_cast<PlayerExtentRegistration**>(0x143ED3378);
-    while (extentRegistration)
-    {
-        void* extent = reinterpret_cast<void*>(reinterpret_cast<uintptr_t>(player) + extentRegistration->size);
-        KYBER_LOG(Info, "Extent: " << std::hex << extent << " : " << extentRegistration->typeName << " Offset: " << std::hex
-                                   << extentRegistration->offset << " Size: " << std::hex << extentRegistration->size);
-
-        extentRegistration = extentRegistration->next;
-    }
-}
-
-void ClientPlayerExtentDebugCommand(ConsoleContext& cc)
-{
-    if (g_program->m_isDedicatedServer) 
-    {
-        cc << "Cant run on non client";
-        return;
-    }
-
-    ClientPlayer* player = ClientGameContext::Get()->m_clientPlayerManager->GetLocalPlayer(LocalPlayerId_0);
-    KYBER_LOG(Info, "----- Client Player Extents -----");
-
-    PlayerExtentRegistration* extentRegistration = *reinterpret_cast<PlayerExtentRegistration**>(0x143EE7850);
-    while (extentRegistration)
-    {
-        ServerPlayerExtent* extent = reinterpret_cast<ServerPlayerExtent*>(reinterpret_cast<uintptr_t>(player) + extentRegistration->size);
-        KYBER_LOG(Info, "Extent: " << std::hex << extent << " : " << extentRegistration->typeName << " Offset: " << std::hex
-                                   << extentRegistration->offset << " Size: " << std::hex << extentRegistration->size);
-
-        extentRegistration = extentRegistration->next;
-    }
-}
-
-void DebugServerPlayerManagerAddressCommand(ConsoleContext& cc)
-{
-    KYBER_LOG(Info, "Player Manager: " << std::hex << g_program->m_server->m_playerManager);
-}
-
-void TestSetPlayerActiveKit(ConsoleContext& cc)
-{
-    auto stream = cc.stream();
-    std::string playerName;
-    int gp;
-    int maxCount;
-    int vurId;
-    int skinInfo;
-    stream >> playerName >> gp >> maxCount >> vurId >> skinInfo;
-
-    cc << "Done";
-}
-
-void TestUpdateActiveKit(ConsoleContext& cc)
-{
-    auto stream = cc.stream();
-    std::string playerName;
-    uint32_t gp;
-    stream >> playerName >> gp;
-
-    ServerPlayer* serverPlayer = g_program->m_server->m_playerManager->GetPlayer(playerName.c_str());
-    ServerPlayerExtent* extent = serverPlayer->GetServerPlayerCustomizationExtent();
-
-    __int64 data1[6];
-    __int64 data2[1];
-    void* data1Ptr = &data1[1];
-    void* data2Ptr = &data2[0];
-
-    Asset* assets1[3];
-    assets1[0] = reinterpret_cast<Asset*>(ResourceManagerLookupDataContainer("Gameplay/Equipment/Abilities/Ability_BattleCommand/SC_Trooper_37"));
-
-    // ServerPlayerCustomizationExtent_updateActiveKit(extent, gp, (void**)0x142D6CDE0, (void**)0x142D6CDE0);
-    ServerPlayerCustomizationExtent_updateActiveKit(extent, 1605240203, reinterpret_cast<void**>(&assets1), (__int64)0x142D6CDE0);
-    cc << "Done";
-}
-
-void TestSetAbility(ConsoleContext& cc)
-{
-    auto stream = cc.stream();
-    std::string playerName;
-    uint32_t abilityId;
-    uint32_t slot;
-    stream >> playerName >> abilityId >> slot;
-
-    ServerPlayer* serverPlayer = g_program->m_server->m_playerManager->GetPlayer(playerName.c_str());
-
-    PlayerAbilityPickedUpMessage* message = (PlayerAbilityPickedUpMessage*)FB_SERVER_ARENA->alloc(sizeof(PlayerAbilityPickedUpMessage));
-    PlayerAbilityPickedUpMessage_ctor(message, serverPlayer->m_localPlayerId);
-
-    message->playerId = serverPlayer->m_onlineId.m_nativeData;
-    message->abilityId = abilityId;
-    message->playerAbilityCategory = slot;
-
-    g_program->m_server->GetServerGameContext()->m_serverPeer->SendMessage(message);
-    g_program->m_server->GetServerGameContext()->m_messageManager->QueueMessage(reinterpret_cast<Message*>(message), 0.0f);
-
-    cc << "Done";
-}
-
-void DebugLogComponentsInCharacter(ConsoleContext& cc)
-{
-    if (!g_program->m_server->IsRunning())
-    {
-        cc << "This is a server command, and you aren't running a server!";
-        return;
-    }
-
-    ServerPlayer* player = g_program->m_server->m_playerManager->m_players[0];
-    if (player == nullptr)
-    {
-        return;
-    }
-
-    ServerCharacterEntity* character;
-    if ((character = player->GetCharacterEntity()) == nullptr)
-    {
-        return;
-    }
-    KYBER_LOG(Info, "----- Character Components List Begin -----");
-
-    const ComponentContainer& components = *character->m_componentContainer;
-    for (ComponentContainer::Iterator componentIt = components.begin(); componentIt != components.end(); componentIt++)
-    {
-        if (componentIt == nullptr || componentIt->m_component == nullptr)
-        {
-            continue;
-        }
-        KYBER_LOG(Info, std::hex << componentIt->m_component << " " << componentIt->m_component->getType()->getName());
-    }
-
-    KYBER_LOG(Info, "----- Character Components List End -----");
-}
-
-void LogMemoryLeakCommand(ConsoleContext& cc)
-{
-    cc << "Memory leaked: " << MemoryLeakDb::GetTotalLeaked() << " bytes";
-}
-
-void SaveLocationCommand(ConsoleContext& cc)
-{
-    // ClientCharacterEntity* entity = ClientGameContext::Get()->GetPlayerManager()->GetLocalPlayer()->controlledControllable;
-
-    ClientCharacterEntity* entity = nullptr;
-    if (entity == nullptr)
-    {
-        return;
-    }
-
-    Vec3 location = entity->m_clientSoldierPrediction->Location;
-    KYBER_LOG(Info, "Player X: " << location.x << " Y: " << location.y << " Z: " << location.z);
-
-    std::ofstream outfile;
-
-    outfile.open("PlayerLocations.txt", std::ios_base::app | std::ios_base::app); // append instead of overwrite
-    outfile << location.x << "," << location.y << "," << location.z;
-    outfile << std::endl;
-}
-
-void CrashGameCommand(ConsoleContext& cc)
-{
-    int* ptr = nullptr;
-    *ptr = 1;
 }
 
 void SetTeamCommand(ConsoleContext& cc)
@@ -788,22 +592,6 @@ void KickByIdCommand(ConsoleContext& cc)
     cc << "Kicked " << player->m_name;
 }
 
-void FullEntityBusInternalFireEventHk2(void* inst, const DataContainer* data, const EntityEvent* entityEvent)
-{
-    static auto trampoline = HookManager::Call(FullEntityBusInternalFireEventHk2);
-    if (data != nullptr && entityEvent != nullptr)
-    {
-        const Guid* guid = data->GetInstanceGuid();
-        std::stringstream a;
-        if (guid != nullptr)
-        {
-            a << " (exported: " << guid->ToString() << ")";
-        }
-        KYBER_LOG(Info, data->getType()->getName() << a.str() << " is calling event " << std::hex << entityEvent->eventId);
-    }
-    trampoline(inst, data, entityEvent);
-}
-
 void* EntityFactoryInternalCreateEntityHk(void* params, void* dc)
 {
     static auto trampoline = HookManager::Call(EntityFactoryInternalCreateEntityHk);
@@ -854,14 +642,7 @@ Console::Console()
     RegisterConsoleCommand(&RestartCommand, "Restart");
     RegisterConsoleCommand(&LoadLevelCommand, "LoadLevel", "<level> <mode>");
     RegisterConsoleCommand(&LoadSPLevelCommand, "LoadSPLevel", "<level> <startPoint> <initialSubLevel>");
-    RegisterConsoleCommand(&LoadSPLevel2Command, "LoadSPLevel2");
     RegisterConsoleCommand(&AddLevelCommand, "AddLevel", "<level> <mode>");
-    RegisterConsoleCommand(&SendStatsCommand, "SendStats");
-    RegisterConsoleCommand(&ServerPlayerExtentDebugCommand, "ServerPlayerExtentDebug");
-    RegisterConsoleCommand(&ClientPlayerExtentDebugCommand, "ClientPlayerExtentDebug");
-    RegisterConsoleCommand(&DebugServerPlayerManagerAddressCommand, "PlayerManagerAddr");
-    RegisterConsoleCommand(&SaveLocationCommand, "SaveLocation");
-    RegisterConsoleCommand(&CrashGameCommand, "CrashGame");
     RegisterConsoleCommand(&SetTeamCommand, "SetTeam", "<player> <team>");
     RegisterConsoleCommand(&SetTeamByIndexCommand, "SetTeamByIndex", "<playerIndex> <team>");
     RegisterConsoleCommand(&SetTeamByIdCommand, "SetTeamById", "<playerId> <team>");
@@ -876,22 +657,6 @@ Console::Console()
     RegisterConsoleCommand(&HostServerCommand, "HostServer", "<level> <mode> [maxPlayers]");
     RegisterConsoleCommand(&KickByIdCommand, "KickById", "<playerId> [reason]");
     RegisterConsoleCommand(&HotReloadLuaCommand, "HotReloadLua");
-    RegisterConsoleCommand(&TestSetPlayerActiveKit, "TestSetActive", "<player> <gpId> <unknown> <vurId> <skinInfoId>");
-    RegisterConsoleCommand(&TestUpdateActiveKit, "TestUpdateActive", "<player> <gpId>");
-    RegisterConsoleCommand(&TestSetAbility, "TestSetAbility", "<player> <abilityId> <slot>");
-    RegisterConsoleCommand(&DebugLogComponentsInCharacter, "DebugLogComponentsCharacter");
-    RegisterConsoleCommand(&LogMemoryLeakCommand, "LogMemoryLeak");
-
-    if (true || !g_program->m_isDedicatedServer)
-    {
-        return;
-    }
-
-    typedef FastDelegate<void(const char*, const char*, uint32_t)> HandlerDelegate_t;
-    auto s_outputHandlers = (eastl::vector<HandlerDelegate_t>*)0x143A5B1C0;
-
-    auto delegate = HandlerDelegate_t([](const char* tag, const char* line, uint32_t size) { std::cout << line; });
-    s_outputHandlers->push_back(delegate);
 }
 
 void Console::UnregisterCommand(const char* name)

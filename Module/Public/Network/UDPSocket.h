@@ -4,9 +4,6 @@
 
 #include <Network/SocketCreator.h>
 #include <SDK/SDK.h>
-#include <Network/WebSocket.h>
-
-#include <Proto/kyber_api.grpc.pb.h>
 
 #include <cstring>
 #include <cstdint>
@@ -153,8 +150,6 @@ public:
     virtual intptr_t NativeSocket() const override;
     virtual int Port() const override;
     virtual const SocketAddr* Address() const override;
-    void UpdateProxies(const eastl::vector<kyber_api::ProxyInfo>& newList);
-    void ReconnectProxies();
 
 private:
     friend class SocketManager;
@@ -171,10 +166,5 @@ private:
     unsigned int m_peerAddressIsValid : 1;
     ProtocolDirection m_direction;
     SocketSpawnInfo m_info;
-
-    // Indexed by the proxy list
-    eastl::vector<WebSocket> m_sockets;
-
-    std::shared_ptr<WebSocket::ReceiveQueue> m_proxyQueue;
 };
 } // namespace Kyber

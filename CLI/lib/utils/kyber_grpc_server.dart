@@ -45,15 +45,6 @@ class KyberGRPCServer {
 
   Server? _server;
 
-  InitializeRequest getInitializeRequest() {
-    final request = _initializeRequest;
-    if (request == null) {
-      throw Exception('Initialize request is not set');
-    }
-
-    return _initializeRequest!;
-  }
-
   void setInitializeRequest(InitializeRequest request) {
     _initializeRequest = request;
   }
@@ -77,9 +68,5 @@ class KyberGRPCServer {
     Env.set('KYBER_LAUNCHER_PORT', port.toString());
 
     _logger.info('Server listening on port $port');
-  }
-
-  void dispose() {
-    _server?.shutdown();
   }
 }

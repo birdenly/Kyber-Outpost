@@ -1,15 +1,10 @@
-import 'dart:io';
-
 import 'package:args/args.dart';
 import 'package:args/command_runner.dart';
 import 'package:cli_completion/cli_completion.dart';
 import 'package:get_it/get_it.dart';
-import 'package:kyber/kyber.dart';
 import 'package:kyber_cli/commands/start_game.dart';
 import 'package:kyber_cli/commands/start_server_command.dart';
 import 'package:kyber_cli/gen/api/outpost.dart' as mx;
-import 'package:kyber_cli/utils/windows_env.dart';
-import 'package:kyber_collection/kyber_collection.dart';
 import 'package:mason_logger/mason_logger.dart';
 
 final sl = GetIt.instance;
@@ -43,7 +38,6 @@ class KyberCliCommandRunner extends CompletionCommandRunner<int> {
     mxLogs = mx.setupLogStream().asBroadcastStream();
 
     argParser
-      ..addFlag('skip-updates', help: 'Skip checking for updates.')
       ..addFlag('version', negatable: false, help: 'Print the current version.')
       ..addFlag(
         'verbose',
@@ -92,11 +86,6 @@ class KyberCliCommandRunner extends CompletionCommandRunner<int> {
             _logger.warn(message);
         }
       });
-
-      final apiEnv = Platform.environment['KYBER_API_ENV'] ?? 'prod';
-
-      Env.set('KYBER_ENVIRONMENT', apiEnv);
-      sl.registerSingleton(KyberGRPCService.local());
 
       if (topLevelResults.command != null &&
           !topLevelResults.arguments.contains('--help')) {

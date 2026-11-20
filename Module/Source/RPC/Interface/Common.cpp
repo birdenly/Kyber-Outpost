@@ -68,9 +68,7 @@ ServerUnaryReactor* CommonInterfaceService::GetInfo(
         response->mutable_client()->set_serverid(g_program->m_server->m_socketSpawnInfo.serverName);
     }
 
-    bool vivoxInitialized =
-        g_program->m_client->m_voipManager != nullptr && !g_program->m_client->m_voipManager->GetRenderDevices().empty();
-    response->set_vivoxinitialized(vivoxInitialized);
+    response->set_vivoxinitialized(false);
 
     reactor->Finish(Status::OK);
     return reactor;

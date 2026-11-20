@@ -13,7 +13,6 @@ import 'package:kyber_launcher/features/mods/services/mod_service.dart';
 import 'package:kyber_launcher/features/nexusmods/widgets/graphql_provider.dart';
 import 'package:kyber_launcher/features/settings/dialogs/chromium_download_dialog.dart';
 import 'package:kyber_launcher/gen/fonts.gen.dart';
-import 'package:kyber_launcher/injection_container.dart';
 import 'package:kyber_launcher/shared/ui/cards/kyber_container.dart';
 import 'package:kyber_launcher/shared/ui/dialog/kyber_dialog.dart';
 import 'package:kyber_launcher/shared/ui/utils/background_blur.dart';
@@ -49,20 +48,7 @@ class _ModSelectorState extends State<ModSelector> {
   @override
   void initState() {
     Timer.run(() async {
-      try {
-        final config = await sl
-            .get<KyberGRPCService>()
-            .launcherClient
-            .getLauncherConfig(Empty());
-        apiMods = {for (final e in config.featuredMods) e.modId: e};
-        for (final item in config.featuredMods) {
-          downloadIds[item.modId] = item.fileId.toInt();
-        }
-      } catch (_) {}
-
-      for (final item in defaultIds.entries.take(6 - downloadIds.length)) {
-        downloadIds[item.key] = item.value;
-      }
+      downloadIds.addAll(defaultIds);
 
       try {
         final result = await nexusGqlClient!.query$modsByUID(

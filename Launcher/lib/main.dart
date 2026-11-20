@@ -30,7 +30,6 @@ import 'package:kyber_launcher/features/server_browser/providers/server_browser_
 import 'package:kyber_launcher/features/server_browser/providers/server_list_cubit.dart';
 import 'package:kyber_launcher/features/server_moderation/providers/moderation_cubit.dart';
 import 'package:kyber_launcher/features/server_moderation/providers/moderation_servers_cubit.dart';
-import 'package:kyber_launcher/features/tutorial/providers/tutorial_cubit.dart';
 import 'package:kyber_launcher/gen/assets.gen.dart';
 import 'package:kyber_launcher/gen/fonts.gen.dart';
 import 'package:kyber_launcher/gen/rust/frb_generated.dart';
@@ -52,7 +51,6 @@ WebViewEnvironment? webViewEnvironment;
 String? bbCodeJs;
 
 const kProdEnv = 'prod';
-const kDevPlaytestEnv = 'devplaytest';
 
 Box<dynamic> box = Hive.box('data');
 Box<List> mapRotationBox = Hive.box('mapRotation');
@@ -72,9 +70,9 @@ Future<void> loadCerts() async {
 
 String? launcherVersion;
 
-void main() async {
+void main(List<String> args) async {
   LanNetworkPolicy.install();
-  await InstanceManager.initialize();
+  await InstanceManager.initialize(args);
   if (Platform.isWindows && !kDebugMode) {
     final exeDir = dirname(Platform.resolvedExecutable);
     final rustLib = File(join(exeDir, 'rust_lib.dll'));
@@ -244,19 +242,6 @@ class _AppState extends State<App> {
               ),
             );
 
-            if (Preferences.admin.apiEnv == kDevPlaytestEnv) {
-              child = Banner(
-                message: 'NOT FINAL',
-                location: .topEnd,
-                color: Colors.red,
-                textStyle: const TextStyle(
-                  fontSize: 10,
-                  fontWeight: .bold,
-                ),
-                child: child,
-              );
-            }
-
             child = DefaultSvgTheme(
               theme: const .new(currentColor: Color(0xFFD9D9D9)),
               child: child,
@@ -277,7 +262,6 @@ class _AppState extends State<App> {
                       BlocProvider(create: (_) => StatusCubit()),
                       BlocProvider(create: (_) => MaximaCubit()),
                       BlocProvider(create: (_) => MapRotationCubit()),
-                      BlocProvider(create: (_) => TutorialCubit()),
                       BlocProvider(create: (_) => KyberStatusCubit()),
                       BlocProvider(create: (_) => ModBrowserCubit()),
                       BlocProvider(create: (_) => ServerListCubit()),

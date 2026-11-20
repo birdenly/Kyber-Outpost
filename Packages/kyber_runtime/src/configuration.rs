@@ -306,12 +306,6 @@ pub(crate) fn prepare(
         ("LoadExtraDLLsFromMain", module_path.clone(), Always),
     ])?;
     persist_configuration(directory, &config_path, "anadius.cfg", config)?;
-
-    // Leave only anadius.cfg active; stale anadius_override.cfg files would override it.
-    let override_path = directory.join("anadius_override.cfg");
-    if override_path.is_file() {
-        fs::remove_file(&override_path).context("Could not remove stale anadius_override.cfg")?;
-    }
     Ok(())
 }
 
@@ -353,11 +347,6 @@ mod tests {
         assert_eq!(value(&second, "Game", "Language"), "pt_BR");
         assert_eq!(value(&second, "Game", "DenuvoExeHash"), sha1_file(&exe).unwrap());
         assert_eq!(value(&second, "Game", "DenuvoToken"), "new-test-token");
-        let override_path = directory.path().join("anadius_override.cfg");
-        fs::write(&override_path, "\"Config2\" { \"User\" { \"Username\" \"OutpostPlayer 2\" } }").unwrap();
-        prepare(&exe, &module, "new-test-token", &profile).unwrap();
-        assert_eq!(second, fs::read_to_string(&config).unwrap());
-        assert!(!override_path.exists());
         // Reject an invalid name without changing configuration or leaking activation.
         let bad = super::super::LocalProfile { id: profile.id.clone(), name: "bad\"name".into() };
         let error = prepare(&exe, &module, "private-test-token", &bad).unwrap_err().to_string();

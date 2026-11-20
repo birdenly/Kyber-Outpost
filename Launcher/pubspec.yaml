@@ -97,7 +97,6 @@ dependencies:
   uuid: ^4.2.2
   version: ^3.0.0
   video_player_win: ^3.1.1
-  web_socket_channel: ^3.0.1
   win32: ^6.4.0
   window_manager: ^0.5.1
   window_to_front: ^1.0.0
@@ -114,7 +113,6 @@ dependencies:
       url: https://github.com/media-kit/media-kit
       path: media_kit_video
   crop_your_image: ^2.0.0
-  rhttp: 0.15.1
   mime: ^2.1.0
 
 dependency_overrides:

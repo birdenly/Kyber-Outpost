@@ -21,16 +21,5 @@ KyberVoipSettingsEntity::KyberVoipSettingsEntity(EntityManager* entityManager, N
 }
 
 void KyberVoipSettingsEntity::PropertyChanged(PropertyModification* modification)
-{
-    if (modification->Is("InputVolume"))
-    {
-        float newVolume = round(*reinterpret_cast<float*>(modification->value) * 100);
-        KYBER_LOG(Info, "Voip volume changed: " << newVolume);
-
-        if (g_program->m_client->m_voipManager != nullptr)
-        {
-            g_program->m_client->m_voipManager->SetInputVolume(newVolume);
-        }
-    }
-}
+{}
 } // namespace Kyber

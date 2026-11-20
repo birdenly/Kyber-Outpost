@@ -9,6 +9,7 @@ import 'package:flutter_svg/flutter_svg.dart';
 import 'package:kyber_collection/kyber_collection.dart';
 import 'package:kyber_launcher/core/config/colors.dart';
 import 'package:kyber_launcher/core/services/app_settings.dart';
+import 'package:kyber_launcher/core/services/instance_manager.dart';
 import 'package:kyber_launcher/core/services/module_version_service.dart';
 import 'package:kyber_launcher/core/services/notification_service.dart';
 import 'package:kyber_launcher/features/download_manager/providers/download_manager_cubit.dart';
@@ -202,8 +203,10 @@ class _WalkThroughSetupState extends State<WalkThroughSetup> {
         builder: (_) => LanNicknameDialog(
           initialName:
               player.getUsername() ??
-              (box.get('lanPlayerName') as String?) ??
-              'Jedha',
+              InstanceManager.resolveInitialNickname(
+                savedName: box.get('lanPlayerName') as String?,
+                suffix: '',
+              ),
         ),
       );
       if (!mounted || nickname == null) return;

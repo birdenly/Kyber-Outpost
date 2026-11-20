@@ -7,7 +7,6 @@ import 'package:kyber/kyber.dart';
 import 'package:kyber_collection/kyber_collection.dart';
 import 'package:kyber_launcher/core/core.dart';
 import 'package:kyber_launcher/features/kyber/dialogs/kyber_anti_virus_exclusion.dart';
-import 'package:kyber_launcher/features/maxima/dialogs/maxima_expired_session_dialog.dart';
 import 'package:kyber_launcher/features/maxima/dialogs/maxima_game_locator_dialog.dart';
 import 'package:kyber_launcher/features/maxima/dialogs/maxima_game_not_found_dialog.dart';
 import 'package:kyber_launcher/features/maxima/helper/maxima_helper.dart';
@@ -122,12 +121,6 @@ class _MaximaStartGameDialogState extends State<MaximaStartGameDialog> {
         await showKyberDialog(
           context: dialogContext,
           builder: (_) => const KyberAntiVirusExclusion(),
-        );
-        return;
-      } else if (error.message.contains('invalid redirect')) {
-        await showKyberDialog(
-          context: dialogContext,
-          builder: (_) => const MaximaExpiredSessionDialog(),
         );
         return;
       }

@@ -7,7 +7,6 @@
 #include <SDK/Types.h>
 #include <Core/EventManager.h>
 #include <Network/SocketManager.h>
-#include <Voip/VoipManager.h>
 #include <Misc/SquadManager/ClientSquadManager.h>
 #include <Misc/PlayerGameplayManager.h>
 
@@ -28,9 +27,7 @@ public:
 
     void HandleClientServerJoin(NetworkCreatePlayerMessage* message);
     void RegisterClientUpdatePassListener(ClientUpdatePassListener* listener);
-    void AttemptJoinVoip();
 
-    // If proxied is true, IP is assumed to be a proxy ID
     void JoinServer(const std::string& id, std::string ip, uint16_t port, bool spectate, bool proxied = false, bool changeState = true);
 
     __int64 ChangeClientState(ClientState currentClientState)
@@ -47,7 +44,6 @@ public:
     ClientState m_clientState;
 
     SocketManager* m_socketManager;
-    VoipManager* m_voipManager;
     EventManager* m_eventManager;
     ClientSquadManager* m_squadManager;
     ClientPlayerGameplayManager* m_gameplayManager;

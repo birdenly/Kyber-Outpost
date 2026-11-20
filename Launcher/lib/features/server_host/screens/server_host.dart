@@ -14,7 +14,6 @@ import 'package:kyber_launcher/features/server_moderation/providers/moderation_c
 import 'package:kyber_launcher/features/server_moderation/providers/moderation_servers_cubit.dart';
 import 'package:kyber_launcher/features/server_moderation/screens/moderation_server_list.dart';
 import 'package:kyber_launcher/features/server_moderation/screens/server_moderation.dart';
-import 'package:kyber_launcher/features/tutorial/models/tutorials/server_host_tutorial.dart';
 import 'package:kyber_launcher/gen/assets.gen.dart';
 import 'package:kyber_launcher/shared/ui/buttons/button.dart';
 import 'package:kyber_launcher/shared/ui/elements/kyber_input.dart';
@@ -228,15 +227,11 @@ class _ServerHostState extends State<ServerHost> {
             child: BlocBuilder<ModerationCubit, ModerationServerState>(
               builder: (context, state) {
                 if (createServer) {
-                  return ServerSettingsBox(
-                    key: ServerHostTutorial.serverSettingsKey,
-                  );
+                  return const ServerSettingsBox();
                 }
 
                 if (state.selected) {
-                  return ServerSettingsBox(
-                    key: ServerHostTutorial.serverSettingsKey,
-                  );
+                  return const ServerSettingsBox();
                 }
 
                 if (state.server != null) {

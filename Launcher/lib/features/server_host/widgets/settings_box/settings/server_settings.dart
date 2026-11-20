@@ -1,7 +1,6 @@
 import 'package:fluent_ui/fluent_ui.dart';
 import 'package:flutter_form_builder/flutter_form_builder.dart';
 import 'package:form_builder_validators/form_builder_validators.dart';
-import 'package:kyber_launcher/core/services/notification_service.dart';
 import 'package:kyber_launcher/features/server_host/widgets/settings_box/server_settings_box.dart';
 import 'package:kyber_launcher/shared/ui/ui.dart';
 import 'package:super_sliver_list/super_sliver_list.dart';
@@ -70,13 +69,6 @@ class ServerSettings extends StatelessWidget {
                       );
                     },
                   );
-                },
-              ),
-              KyberTableItem.switchButton(
-                title: 'Proximity Chat',
-                value: true,
-                onChange: (value) async {
-                  NotificationService.notImplemented();
                 },
               ),
             ],

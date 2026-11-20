@@ -1,15 +1,11 @@
 // Modified for Kyber Outpost (LAN Edition) - 2026-11-10.
-import 'dart:async';
 import 'dart:io';
 
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:flutter_rust_bridge/flutter_rust_bridge.dart';
-import 'package:kyber/kyber.dart';
 import 'package:kyber_launcher/core/services/instance_manager.dart';
 import 'package:kyber_launcher/core/config/colors.dart';
 import 'package:kyber_launcher/core/services/app_settings.dart';
-import 'package:kyber_launcher/core/services/windows_env.dart';
-import 'package:kyber_launcher/features/ea/services/search_service.dart';
 import 'package:kyber_launcher/features/lan/models/lan_nickname.dart';
 import 'package:kyber_launcher/features/maxima/models/maxima_game_instance.dart';
 import 'package:kyber_launcher/gen/rust/api/outpost.dart';
@@ -30,8 +26,6 @@ class MaximaCubit extends Cubit<MaximaState> {
 
   final logger = Logger('outpost_profile');
 
-  Timer? _updateTimer;
-
   bool _loggingIn = false;
 
   @override
@@ -39,7 +33,6 @@ class MaximaCubit extends Cubit<MaximaState> {
     if (sl.isRegistered<MaximaCubit>()) {
       sl.unregister<MaximaCubit>();
     }
-    _updateTimer?.cancel();
     await super.close();
   }
 
@@ -55,24 +48,6 @@ class MaximaCubit extends Cubit<MaximaState> {
     final profile = await getLocalProfile(name: nickname);
     await box.put('lanPlayerName', nickname);
     emit(state.copyWith(servicePlayer: profile));
-  }
-
-  Future<void> verifyToken([int tries = 0]) async {
-    return;
-  }
-
-  void removeDiscordData() {
-    emit(
-      MaximaState(
-        status: state.status,
-        error: state.error,
-        entitlements: state.entitlements,
-        loggedIn: state.loggedIn,
-        gameRunning: state.gameRunning,
-        isPatron: state.isPatron,
-        servicePlayer: state.servicePlayer,
-      ),
-    );
   }
 
   Future<void> init({bool skipSetupCheck = false}) async {
@@ -142,10 +117,9 @@ class MaximaCubit extends Cubit<MaximaState> {
       emit(state.copyWith(status: MaximaStatus.loading));
 
       final savedName = box.get('lanPlayerName') as String?;
-      final nickname =
-          savedName != null && validateLanNickname(savedName) == null
-          ? savedName
-          : 'Jedha${InstanceManager.nameSuffix}';
+      final nickname = InstanceManager.resolveInitialNickname(
+        savedName: savedName,
+      );
       servicePlayer = await getLocalProfile(name: nickname);
 
       await WindowToFront.activate();
@@ -153,9 +127,6 @@ class MaximaCubit extends Cubit<MaximaState> {
       logger.info(
         'Initialized LAN session as ${servicePlayer.displayName}',
       );
-
-      ProcessEnv.set('KYBER_ONLINE_MODE', '0');
-      ProcessEnv.set('KYBER_API_TOKEN', 'lan_offline_token');
 
       emit(
         state.copyWith(
@@ -165,7 +136,6 @@ class MaximaCubit extends Cubit<MaximaState> {
               .toList(),
           servicePlayer: servicePlayer,
           status: MaximaStatus.loaded,
-          isPatron: false,
         ),
       );
 
@@ -182,12 +152,6 @@ class MaximaCubit extends Cubit<MaximaState> {
       _loggingIn = false;
 
       logger.info('Initialized (LAN Mode)');
-
-      if (!sl.isRegistered<SearchService>()) {
-        sl.registerSingleton<SearchService>(
-          SearchService(),
-        );
-      }
 
       return;
     } on Object catch (error, stackTrace) {

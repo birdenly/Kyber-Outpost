@@ -7,7 +7,6 @@ import 'package:kyber/kyber.dart';
 import 'package:kyber_launcher/core/config/colors.dart';
 import 'package:kyber_launcher/gen/assets.gen.dart';
 import 'package:kyber_launcher/gen/fonts.gen.dart';
-import 'package:kyber_launcher/injection_container.dart';
 import 'package:super_sliver_list/super_sliver_list.dart';
 
 const credits = <String, Map<String, List<String>>>{
@@ -97,18 +96,10 @@ class _CreditsState extends State<Credits> {
 
   @override
   void initState() {
-    final x = sl
-        .get<KyberGRPCService>()
-        .launcherClient
-        .patronList(Empty())
-        .then<PatronListResponse>((v) => v)
-        .catchError((_) => PatronListResponse());
     Future.delayed(const Duration(seconds: 1), () async {
       if (!mounted) return;
 
-      final result = await x;
-
-      if (!mounted) return;
+      final result = PatronListResponse();
 
       await player.play(
         AssetSource(Assets.sounds.kblCredits.split('/').skip(1).join('/')),

@@ -25,8 +25,6 @@
 #include <spdlog/sinks/stdout_color_sinks.h>
 #include <spdlog/spdlog.h>
 
-#include <ixwebsocket/IXNetSystem.h>
-
 #include <cstdio>
 #include <stdlib.h>
 #include <string.h>
@@ -213,8 +211,6 @@ void Program::InitializationThread()
         apiToken = "lan_offline_token";
     }
 
-    ix::initNetSystem();
-
     m_api = std::make_unique<API>(apiToken);
 
     m_interface = std::make_unique<InterfaceService>();
@@ -224,11 +220,6 @@ void Program::InitializationThread()
     m_entityManager = new EntityManager();
     m_settingsManager = new KyberSettingsManager();
     m_scriptManager = new ScriptManager();
-
-    if (!m_isDedicatedServer && m_server->m_onlineMode)
-    {
-        m_client->m_voipManager = new VoipManager();
-    }
 
     std::string title = "KYBER OUTPOST";
     if (m_isDedicatedServer)
@@ -257,7 +248,7 @@ void Program::InitializationThread()
     using namespace std::chrono_literals;
 
     std::string line;
-    while (true || !(GetAsyncKeyState(VK_END) & 1))
+    while (true)
     {
         if (!useStdinConsole)
         {
@@ -276,16 +267,7 @@ void Program::InitializationThread()
             KYBER_LOG(Info, "[Console] Result: " << result);
         });
         Console_enqueueCommand(line.c_str(), delegate);
-
-        // KYBER_LOG(Info, "Executed command " << line.c_str());
     }
-
-    KYBER_LOG(Info, "Shutting down...");
-    // fclose(pFile);
-    // FreeConsole();
-
-    Uninitialize();
-    FreeLibrary(m_module);
 }
 
 void Program::InitializeConsole()
@@ -418,15 +400,6 @@ void MessageManagerDispatchMessageHk(void* inst, Message* message)
 
         if (g_program->m_server->IsRunning())
         {
-            if (g_program->m_server->m_onlineMode)
-            {
-                g_program->m_server->m_persistenceManager->SavePlayerStats(msg->m_player);
-
-                g_program->GetAPI()->GetServerManagement()->SendPlayerList();
-                g_program->GetAPI()->GetServerManagement()->SendConsoleMessage(
-                    StringUtils::Format("%s (%llu) left the server", msg->m_player->m_name, msg->m_player->m_onlineId.m_nativeData));
-            }
-
             ServerPlayerDisconnectedEvent* disconnectedEvent = new (FB_SERVER_ARENA) ServerPlayerDisconnectedEvent();
             disconnectedEvent->player = msg->m_player;
             g_program->m_server->m_eventManager->QueueEvent(disconnectedEvent);
@@ -439,13 +412,6 @@ void MessageManagerDispatchMessageHk(void* inst, Message* message)
     }
     else if (name == "ServerPlayerChatMessage")
     {
-        ServerPlayerChatMessage* msg = (ServerPlayerChatMessage*)message;
-
-        if (g_program->m_server->m_onlineMode)
-        {
-            std::string log = std::string(msg->m_sender->m_name) + ": " + msg->m_message;
-            g_program->GetAPI()->GetServerManagement()->SendConsoleMessage(log);
-        }
     }
     else if (name == "ServerPeerInitializedMessage")
     {
@@ -607,16 +573,8 @@ void GameSimulationInitDedicatedServerHk(void* inst, void* createInfo)
     netObjectSettings->MaxServerConnectionCount = 64;
     // netObjectSettings->DeltaCompressionSettings.IsEnabled = false;
 
-    if (g_program->m_server->m_onlineMode)
-    {
-        g_program->m_server->Register();
-        g_program->m_server->InitializeChatFilterPreset();
-    }
-    else
-    {
-        g_program->m_server->m_serverId = "lan_server";
-        KYBER_LOG(Info, "[Server] Dedicated server starting in LAN mode on UDP port 25200");
-    }
+    g_program->m_server->m_serverId = "lan_server";
+    KYBER_LOG(Info, "[Server] Dedicated server starting in LAN mode on UDP port 25200");
 
     ServerCreationInfo& info = *g_program->m_server->m_creationInfo;
     ServerSettings* serverSettings = Settings<ServerSettings>("Server");

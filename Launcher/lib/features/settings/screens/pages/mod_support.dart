@@ -17,7 +17,7 @@ class ModSupport extends StatelessWidget {
         const SettingsHeader(title: 'MODS'),
         HiveListener(
           box: box,
-          keys: ['enabledPreloadMods', 'incrementalDownloadsEnabled'],
+          keys: ['enabledPreloadMods'],
           builder: (_) => KyberTable(
             items: [
               KyberTableItem.button(
@@ -41,13 +41,6 @@ class ModSupport extends StatelessWidget {
                 value: Preferences.general.enabledPreloadMods,
                 onChange: (bool value) {
                   Preferences.general.enabledPreloadMods = value;
-                },
-              ),
-              KyberTableItem.switchButton(
-                title: 'Incremental Mod Downloads',
-                value: Preferences.general.incrementalDownloadsEnabled,
-                onChange: (bool value) {
-                  Preferences.general.incrementalDownloadsEnabled = value;
                 },
               ),
             ],

@@ -4,6 +4,7 @@
 
 #include <Core/Server.h>
 #include <Proto/kyber_interface.grpc.pb.h>
+#include <RPC/AsyncRPCManager.h>
 
 #include <grpcpp/channel.h>
 

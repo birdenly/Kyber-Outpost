@@ -34,10 +34,6 @@ class SettingsBoxHeader extends StatelessWidget {
   final void Function(int page) onPageChanged;
   final int selectedPage;
 
-  Future<void> uploadHashes(BuildContext context) async {
-    return;
-  }
-
   @override
   Widget build(BuildContext context) {
     return Padding(

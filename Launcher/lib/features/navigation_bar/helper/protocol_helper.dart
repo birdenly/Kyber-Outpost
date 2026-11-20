@@ -2,7 +2,6 @@ import 'dart:io';
 
 import 'package:fluent_ui/fluent_ui.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:kyber/kyber.dart';
 import 'package:kyber_collection/kyber_collection.dart';
 import 'package:kyber_launcher/core/config/strings.dart';
 import 'package:kyber_launcher/core/routing/app_router.dart';
@@ -14,11 +13,8 @@ import 'package:kyber_launcher/features/download_manager/models/download_request
 import 'package:kyber_launcher/features/download_manager/services/download_orchestrator.dart';
 import 'package:kyber_launcher/features/maxima/helper/maxima_helper.dart';
 import 'package:kyber_launcher/features/maxima/providers/maxima_cubit.dart';
-import 'package:kyber_launcher/features/mods/helper/mod_helper.dart';
 import 'package:kyber_launcher/features/mods/services/mod_service.dart';
 import 'package:kyber_launcher/features/nexusmods/services/nexusmods_service.dart';
-import 'package:kyber_launcher/features/server_browser/models/server_entry.dart';
-import 'package:kyber_launcher/features/server_browser/providers/server_browser_cubit.dart';
 import 'package:kyber_launcher/injection_container.dart';
 import 'package:kyber_launcher/main.dart';
 import 'package:logging/logging.dart';
@@ -28,10 +24,8 @@ import 'package:window_manager/window_manager.dart';
 
 class ProtocolHelper {
   static const List<String> _supportedUrls = [
-    'join_server',
     'start_game',
     'deep_link',
-    'discord_linked',
   ];
 
   static Future<void> register() async {
@@ -48,6 +42,10 @@ class ProtocolHelper {
 
   static Future<void> handleCall(String url) async {
     try {
+      if (url.trim().startsWith('-')) {
+        return;
+      }
+
       if (!Preferences.general.setup) {
         Logger.root.severe('Received protocol url but setup is not complete');
         return;
@@ -177,25 +175,6 @@ class ProtocolHelper {
       }
 
       switch (uri.host) {
-        case 'discord_linked':
-          await navigatorKey.currentContext?.read<MaximaCubit>().verifyToken();
-          return;
-        case 'join_server':
-          if (uri.queryParameters.isEmpty ||
-              uri.queryParameters['server_id'] == null) {
-            Logger.root.severe('Received protocol url but server_id is null');
-            return;
-          }
-
-          var forceJoin = false;
-          if (uri.queryParameters['force_join'] != null) {
-            forceJoin = uri.queryParameters['force_join'] == '1';
-          }
-
-          await _joinServer(
-            uri.queryParameters['server_id']!,
-            forceJoin: forceJoin,
-          );
         case 'start_game':
           if (!navigatorKey.currentContext!
               .read<MaximaCubit>()
@@ -235,49 +214,6 @@ class ProtocolHelper {
       Logger.root.info('Received protocol url: $url');
     } catch (e, s) {
       Logger.root.severe('error: failed to handle protocol url', e, s);
-    }
-  }
-
-  static Future<void> _joinServer(
-    String serverId, {
-    bool forceJoin = false,
-  }) async {
-    if (serverId.isEmpty) {
-      Logger.root.severe('Received protocol url but server_id is null');
-      return;
-    }
-
-    router.goNamed('home');
-    final server = await sl
-        .get<KyberGRPCService>()
-        .serverBrowserClient
-        .getServer(ServerRequest(id: serverId));
-    if (!server.hasName()) {
-      Logger.root.severe('error: server not found');
-      return;
-    }
-
-    final context = shellNavigatorKey.currentContext;
-    if (context == null) {
-      Logger.root.severe('error: shellNavigator context is null');
-      return;
-    }
-
-    if (context.mounted) {
-      final entry = SingleServer(server: server);
-      context.read<ServerBrowserCubit>().selectServer(entry);
-
-      if (forceJoin) {
-        context.read<ServerBrowserCubit>().joinServer();
-        return;
-      }
-
-      final mods = server.mods;
-      if (mods.every((m) => ModHelper.isInstalled(m.name, m.version))) {
-        context.read<ServerBrowserCubit>().joinServer();
-      } else {
-        context.read<ServerBrowserCubit>().selectServer(entry);
-      }
     }
   }
 }

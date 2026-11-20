@@ -71,19 +71,6 @@ const char* TypeInfo::getName() const
 void DataContainer::release()
 {
     return;
-    
-    if (0 == InterlockedDecrement((volatile unsigned __int32*)&m_refCount))
-    {
-        this->~DataContainer();
-        if (MemoryArena* arena = ArenaMap::FindArenaForObject(this, false))
-        {
-            arena->free(this);
-        }
-        else
-        {
-            MemoryLeakDb::AddEntry((getType() != nullptr) ? getType()->typeInfoData->totalSize : 0, "DataContainer release");
-        }
-    }
 }
 
 DataContainer* ResourceManagerLookupDataContainer(const char* name)

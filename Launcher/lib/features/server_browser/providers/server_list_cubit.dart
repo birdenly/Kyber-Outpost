@@ -11,11 +11,7 @@ import 'package:kyber_launcher/features/server_browser/constants/modes.dart';
 import 'package:kyber_launcher/features/server_browser/models/server_entry.dart';
 import 'package:kyber_launcher/features/server_browser/models/server_filter.dart';
 import 'package:kyber_launcher/features/server_browser/models/server_list_state.dart';
-import 'package:kyber_launcher/features/server_moderation/providers/moderation_servers_cubit.dart';
-import 'package:kyber_launcher/gen/rust/api/outpost.dart';
 import 'package:kyber_launcher/injection_container.dart';
-
-List<ServicePlayer> _friends = [];
 
 const _pageLimit = 12;
 
@@ -26,24 +22,8 @@ class ServerListCubit extends Cubit<ServerListState> {
   ServerListCubit() : super(const ServerListInitial()) {
     filter = ServerFilter();
 
-    getFriendList()
-        .then((value) {
-          _friends = value;
-          loadServers();
-        })
-        .catchError((_) {
-          _friends = [];
-          loadServers();
-        })
-        .timeout(
-          const Duration(seconds: 3),
-          onTimeout: () {
-            _friends = [];
-            loadServers();
-          },
-        );
-
     emit(const ServerListLoading());
+    loadServers();
 
     _updateTimer = Timer.periodic(const Duration(seconds: 5), (timer) {
       final route = router.routeInformationProvider.value.uri.toString();
@@ -271,19 +251,6 @@ class ServerListCubit extends Cubit<ServerListState> {
             return 1;
           }
 
-          final aIsFriend = _friends.any(
-            (e) => e.displayName == serverA.creator,
-          );
-          final bIsFriend = _friends.any(
-            (e) => e.displayName == serverB.creator,
-          );
-
-          if (aIsFriend && !bIsFriend) {
-            return -1;
-          } else if (!aIsFriend && bIsFriend) {
-            return 1;
-          }
-
           if (serverA.requiresPassword && !serverB.requiresPassword) {
             return 1;
           } else if (!serverA.requiresPassword && serverB.requiresPassword) {
@@ -322,10 +289,5 @@ class ServerListCubit extends Cubit<ServerListState> {
         filter: filter,
       ),
     );
-  }
-
-  /// Checks if a server's creator is in the friends list.
-  bool isServerCreatorFriend(Server server) {
-    return _friends.any((e) => e.displayName == server.creator);
   }
 }

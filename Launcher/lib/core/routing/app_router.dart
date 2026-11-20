@@ -4,7 +4,6 @@ import 'package:go_router/go_router.dart';
 import 'package:kyber_collection/kyber_collection.dart';
 import 'package:kyber_launcher/features/download_manager/screens/download_manager.dart';
 import 'package:kyber_launcher/features/frosty/screens/create_frosty_collection.dart';
-import 'package:kyber_launcher/features/kyber/widgets/debug_server_launcher.dart';
 import 'package:kyber_launcher/features/mod_browser/providers/mod_cubit.dart';
 import 'package:kyber_launcher/features/mod_browser/providers/mod_search_cubit.dart';
 import 'package:kyber_launcher/features/mod_browser/screens/mod_details.dart';
@@ -54,8 +53,6 @@ int _getRouterIndex(Uri? uri) {
       return 0;
     case '/server_host':
       return 1;
-    case '/stats':
-      return 2;
     case '/mods':
       return 3;
     case '/settings':
@@ -231,18 +228,6 @@ final router = GoRouter(
               child: const ServerBrowser(),
             );
           },
-          routes: [
-            GoRoute(
-              parentNavigatorKey: shellNavigatorKey,
-              path: 'debug-launch',
-              name: 'debug-launch',
-              pageBuilder: (context, state) => buildCustomSubPage(
-                state: state,
-                pageKey: state.pageKey,
-                child: const DebugServerLauncher(),
-              ),
-            ),
-          ],
         ),
         GoRoute(
           path: '/server_host',

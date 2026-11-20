@@ -1,26 +1,17 @@
 // Modified for Kyber Outpost (LAN Edition) - 2026-11-10.
-import 'dart:async';
-import 'dart:io';
-
 import 'package:collection/collection.dart';
-import 'package:fluent_ui/fluent_ui.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
-import 'package:grpc/grpc.dart' hide Server;
 import 'package:kyber/kyber.dart';
 import 'package:kyber_launcher/core/services/instance_manager.dart';
 import 'package:kyber_launcher/core/services/notification_service.dart';
 import 'package:kyber_launcher/features/lan/services/lan_discovery_service.dart';
 import 'package:kyber_launcher/injection_container.dart';
 import 'package:logging/logging.dart';
-import 'package:web_socket_channel/web_socket_channel.dart';
 
 class IngameViewCubit extends Cubit<IngameViewState> {
   IngameViewCubit() : super(const IngameViewState());
 
   final _logger = Logger('ingame_view_cubit');
-  Timer? _keepAliveTimer;
-
-  WebSocketChannel? _channel;
 
   int _loadId = 0;
 
@@ -34,9 +25,6 @@ class IngameViewCubit extends Cubit<IngameViewState> {
     _logger.info('Unloading server');
 
     _loadId++;
-    _channel?.sink.close();
-    _channel = null;
-    _keepAliveTimer?.cancel();
 
     emit(const IngameViewState());
 
@@ -56,9 +44,6 @@ class IngameViewCubit extends Cubit<IngameViewState> {
     }
 
     final loadId = ++_loadId;
-    unawaited(_channel?.sink.close());
-    _channel = null;
-    _keepAliveTimer?.cancel();
 
     try {
       final id = serverId ?? state.id;
@@ -89,46 +74,6 @@ class IngameViewCubit extends Cubit<IngameViewState> {
         return;
       }
       emit(state.copyWith(id: id, server: server));
-      return;
-    } on WebSocketException catch (e, s) {
-      if (loadId != _loadId) {
-        return;
-      }
-      var error = 'Failed to connect to websocket';
-      switch (e.httpStatusCode ?? 0) {
-        case 401:
-          error = 'Failed to connect to websocket: Unauthorized';
-        case 404:
-          error = 'The specified server was not found';
-      }
-
-      _logger.severe('Failed to connect to websocket', e, s);
-      NotificationService.error(message: error);
-      unloadServer();
-    } on GrpcError catch (e, s) {
-      if (loadId != _loadId) {
-        return;
-      }
-      _logger.severe('Error loading server:', e, s);
-      NotificationService.showNotification(
-        title: 'Server error',
-        message:
-            e.message ??
-            'An error occurred while communicating with the server',
-        severity: InfoBarSeverity.error,
-      );
-      unloadServer();
-    } on SocketException catch (e, s) {
-      if (loadId != _loadId) {
-        return;
-      }
-      _logger.severe('Socket error:', e, s);
-      NotificationService.showNotification(
-        title: 'Server error',
-        message: 'An error occurred while communicating with the server',
-        severity: InfoBarSeverity.error,
-      );
-      unloadServer();
     } catch (e, s) {
       if (loadId != _loadId) {
         return;
@@ -137,7 +82,6 @@ class IngameViewCubit extends Cubit<IngameViewState> {
       NotificationService.showNotification(
         title: 'Server error',
         message: 'An error occurred while communicating with the server',
-        severity: InfoBarSeverity.error,
       );
       unloadServer();
     }

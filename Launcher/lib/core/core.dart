@@ -9,7 +9,6 @@ export 'i18n/app_locale.dart';
 export 'i18n/localization.dart';
 export 'routing/app_router.dart';
 export 'services/app_settings.dart';
-export 'services/cache_image_manager.dart';
 export 'services/disk_helper.dart';
 export 'services/hotkey_manager.dart';
 export 'services/image_helper.dart';

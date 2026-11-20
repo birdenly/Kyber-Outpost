@@ -85,12 +85,6 @@ void* RuntimeDatabaseDomainCtorHk(
 // Debug settings
 static bool logEbx = false;
 static bool logChunks = false;
-static std::string lastEbxLoad = "";
-
-void LogLastEbxLoadCommand(ConsoleContext& cc)
-{
-    KYBER_LOG(Info, "Last EBX load: " << lastEbxLoad);
-}
 
 void EbxPartitionReaderProcessHk(EbxPartitionReader* inst, void* inBuffer, uint32_t inSize)
 {
@@ -1313,7 +1307,6 @@ void MergeLayoutManifest(LayoutManifest& manifest)
 
 ModLoader::ModLoader(FileSuperBundleManager* superBundleManager, ModData modData)
     : m_superBundleManager(superBundleManager)
-    , m_liveEditManager(nullptr)
 {
     g_modLoader = this;
     KYBER_LOG(Info, "[ModLoader] Initializing");
@@ -1363,8 +1356,6 @@ ModLoader::ModLoader(FileSuperBundleManager* superBundleManager, ModData modData
     FinalizeModLoads();
 
     RegisterRenderListener(this);
-
-    g_program->m_consoleRegistrationCallbacks.push_back([&]() { RegisterConsoleCommand(&LogLastEbxLoadCommand, "LogLastEbxLoad"); });
 
     // clang-format off
     HookTemplate hookOffsets[] = {

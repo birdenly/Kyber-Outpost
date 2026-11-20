@@ -60,7 +60,6 @@ class AccountsAndUpdates extends StatelessWidget {
             'removeBackground',
             'window',
             'disableHeadless',
-            'dummyServer',
             'developerMode',
           ],
           builder: (_) => KyberTable(

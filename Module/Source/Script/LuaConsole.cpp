@@ -46,12 +46,6 @@ private:
 
 static int ConsoleRegisterFunc(lua_State* L)
 {
-    if (false && g_program->m_scriptManager->IsPostInitialization(PluginRealm_Server))
-    {
-        KYBER_LOG(Warning, "Attempted to register a command after initialization!");
-        return 0;
-    }
-
     if (!lua_isstring(L, 1))
     {
         return 0;

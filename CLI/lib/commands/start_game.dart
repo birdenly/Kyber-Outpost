@@ -4,9 +4,9 @@ import 'dart:convert';
 import 'dart:io';
 
 import 'package:args/command_runner.dart';
+import 'package:dio/dio.dart';
 import 'package:flutter_rust_bridge/flutter_rust_bridge.dart';
-import 'package:grpc/grpc.dart' hide Server;
-import 'package:kyber/kyber.dart' hide ProxyList;
+import 'package:kyber/kyber.dart';
 import 'package:kyber_cli/command_runner.dart';
 import 'package:kyber_cli/gen/api/outpost.dart';
 import 'package:kyber_cli/models/maxima_instance.dart';
@@ -25,11 +25,6 @@ import 'package:path/path.dart';
 class StartGameCommand extends Command<int> {
   StartGameCommand({required Logger logger}) : _logger = logger {
     argParser
-      ..addFlag(
-        'lan',
-        defaultsTo: true,
-        help: 'Starts the game in LAN/Offline mode',
-      )
       ..addOption(
         'name',
         abbr: 'n',
@@ -59,22 +54,23 @@ class StartGameCommand extends Command<int> {
         valueHelp: '[arg1, arg2, ...]',
       )
       ..addOption(
-        'game-data-path',
-        help: 'Specify the game data path',
-        valueHelp: 'path',
-        callback: (p0) => p0 is String ? Directory(p0) : null,
-      )
-      ..addOption(
-        'module-branch',
-        help: 'Specify the branch to use for the Kyber module',
-        valueHelp: 'branch',
-      )
-      ..addOption(
         'module-path',
         help: 'Specify a custom directory to use for the Kyber module',
         valueHelp: 'path/to/module',
       )
-      ..addOption('interface-port', valueHelp: '9000');
+      ..addOption('interface-port', valueHelp: '9000')
+      ..addOption(
+        'http-port',
+        help:
+            'Override LAN host HTTP mod server port (default: server port + 2)',
+        valueHelp: '25202',
+      )
+      ..addOption(
+        'server-port',
+        help:
+            'Local KYBER_SERVER_PORT override to avoid conflicts on the same PC',
+        valueHelp: '25201',
+      );
   }
 
   @override
@@ -93,10 +89,6 @@ class StartGameCommand extends Command<int> {
     EnvHelper.setPath(modulePath);
     Env.set('KYBER_MODULE_PATH', join(modulePath, 'Kyber.dll'));
 
-    if (argResults?['lan'] == false) {
-      _logger.err('This build only supports LAN. Use --connect-ip and --name.');
-      return ExitCode.usage.code;
-    }
     final customName = argResults?['name'] as String?;
     _logger.info('Initializing the local player profile...');
     late ServicePlayer player;
@@ -120,9 +112,6 @@ class StartGameCommand extends Command<int> {
     }
 
     _logger.success('Ready as ${customName ?? player.displayName}.');
-
-    Env.set('KYBER_ONLINE_MODE', '0');
-    Env.set('KYBER_API_TOKEN', 'lan_offline_token');
     _logger.info('Running in Kyber Outpost LAN mode (offline).');
 
     final rawModsPath = argResults?['raw-mods'] as String?;
@@ -156,12 +145,19 @@ class StartGameCommand extends Command<int> {
       _logger.info('Configured direct LAN connection to $targetIp:$targetPort');
     }
 
+    if (joinServerByIP != null &&
+        !Platform.environment.containsKey('KYBER_SERVER_PORT')) {
+      final localPortArg = int.tryParse(
+        argResults?['server-port'] as String? ?? '',
+      );
+      final localPort = localPortArg ?? await _findAvailableGamePort();
+      Env.set('KYBER_SERVER_PORT', localPort.toString());
+    }
+
     final kyberPort =
         argResults?['interface-port'] as String? ??
         (await KyberNetworkHelper.findAvailablePort()).toString();
     Env.set('KYBER_INTERFACE_PORT', kyberPort);
-    Env.set('KYBER_API_HOSTNAME', sl.get<KyberGRPCService>().host);
-    Env.set('KYBER_HTTP_HOSTNAME', sl.get<KyberGRPCService>().httpHostname);
 
     ModData? modData;
     var gameplayMods = <FrostyMod>[];
@@ -169,20 +165,7 @@ class StartGameCommand extends Command<int> {
       final metaData = await ModCollection.readCollection(collectionFile);
       final dir = CollectionHelper().getModsDirectory();
       final mods = CollectionHelper().getModsList(metaData);
-      final fbMods = ModHelper.readFrostyMods(
-        mods.map((e) => join(dir, e)).toList(),
-      );
-
-      gameplayMods = ModHelper.filterGameplayMods(fbMods);
-
-      modData = ModData(
-        basePath: normalize(dir),
-        modPaths: mods,
-        mods: gameplayMods.map((e) => e.toServerMod()),
-        explodedMods: ModHelper.expandMods(
-          gameplayMods,
-        ).map((e) => e.toServerMod()),
-      );
+      (gameplayMods, modData) = _buildModData(dir, mods);
     } else if (rawModsPath != null) {
       final rawModsFile = File(rawModsPath);
       if (!rawModsFile.existsSync()) {
@@ -194,20 +177,21 @@ class StartGameCommand extends Command<int> {
       final rawMods = RawMods.fromJson(
         jsonDecode(data) as Map<String, dynamic>,
       );
-      final fbMods = ModHelper.readFrostyMods(
-        rawMods.modPaths.map((e) => join(rawMods.basePath, e)).toList(),
+      (gameplayMods, modData) = _buildModData(
+        rawMods.basePath,
+        rawMods.modPaths,
       );
-
-      gameplayMods = ModHelper.filterGameplayMods(fbMods);
-
-      modData = ModData(
-        basePath: rawMods.basePath,
-        modPaths: rawMods.modPaths,
-        mods: gameplayMods.map((e) => e.toServerMod()),
-        explodedMods: ModHelper.expandMods(
-          gameplayMods,
-        ).map((e) => e.toServerMod()),
+    } else if (joinServerByIP != null) {
+      final httpPortArg = int.tryParse(
+        argResults?['http-port'] as String? ?? '',
       );
+      final synced = await _syncLanMods(
+        joinServerByIP.ip,
+        httpPortArg ?? (joinServerByIP.port + 2),
+      );
+      if (synced != null) {
+        (gameplayMods, modData) = synced;
+      }
     }
 
     final modEntries = <String, ModEntry>{};
@@ -261,22 +245,16 @@ class StartGameCommand extends Command<int> {
     final pid = await startGame(
       gameSlug: 'star-wars-battlefront-2',
       gamePathOverride: argResults?['game-path'] as String?,
-      gameArgs: [],
+      gameArgs: argResults?['game-args'] as List<String>? ?? [],
     );
 
-    _logger.info(
-      'Injecting Kyber from ${FileHelper.getModuleDirectory().path}/Kyber.dll...',
-    );
-    await waitForKyberModule(
-      pid: pid,
-      path: FileHelper.getModuleDirectory().path + "\\Kyber.dll",
-    );
+    final kyberDllPath = join(modulePath, 'Kyber.dll');
+    _logger.info('Injecting Kyber from $kyberDllPath...');
+    await waitForKyberModule(pid: pid, path: kyberDllPath);
 
     sl.registerSingleton<MaximaGameInstance>(
       MaximaGameInstance(
         pid: pid,
-        isDedicated: true,
-        clientService: ClientGRPCService('', 0),
         mods: gameplayMods,
       ),
     );
@@ -302,5 +280,102 @@ class StartGameCommand extends Command<int> {
     }
 
     return ExitCode.success.code;
+  }
+
+  (List<FrostyMod>, ModData) _buildModData(
+    String basePath,
+    List<String> modPaths,
+  ) {
+    final normalizedBase = normalize(basePath);
+    final fbMods = ModHelper.readFrostyMods(
+      modPaths.map((e) => join(normalizedBase, e)).toList(),
+    );
+    final gameplayMods = ModHelper.filterGameplayMods(fbMods);
+    final modData = ModData(
+      basePath: normalizedBase,
+      modPaths: modPaths,
+      mods: gameplayMods.map((e) => e.toServerMod()),
+      explodedMods: ModHelper.expandMods(
+        gameplayMods,
+      ).map((e) => e.toServerMod()),
+    );
+    return (gameplayMods, modData);
+  }
+
+  Future<int> _findAvailableGamePort() async {
+    for (var port = 25201; port < 25300; port++) {
+      try {
+        final sock = await RawDatagramSocket.bind(
+          InternetAddress.anyIPv4,
+          port,
+          reuseAddress: false,
+        );
+        sock.close();
+        return port;
+      } catch (_) {}
+    }
+    return 25201;
+  }
+
+  Future<(List<FrostyMod>, ModData)?> _syncLanMods(
+    String hostIp,
+    int httpPort,
+  ) async {
+    final dio = Dio(
+      BaseOptions(
+        baseUrl: 'http://$hostIp:$httpPort',
+        connectTimeout: const Duration(seconds: 3),
+        receiveTimeout: const Duration(seconds: 30),
+      ),
+    );
+    try {
+      final resp = await dio.get<dynamic>('/lan/info');
+      final data = resp.data;
+      if (data is! Map<String, dynamic>) return null;
+      final rawMods = data['mods'];
+      if (rawMods is! List || rawMods.isEmpty) return null;
+
+      final modsDir = CollectionHelper().getModsDirectory();
+      await Directory(modsDir).create(recursive: true);
+
+      final modPaths = <String>[];
+      for (final item in rawMods) {
+        if (item is! Map) continue;
+        final rawFilename = item['filename']?.toString();
+        final index = item['index'];
+        final expectedSize = (item['fileSize'] as num?)?.toInt();
+        if (rawFilename == null || rawFilename.isEmpty || index == null) {
+          continue;
+        }
+
+        final safeName = basename(rawFilename);
+        final destFile = File(join(modsDir, safeName));
+        final needsDownload =
+            !destFile.existsSync() ||
+            (expectedSize != null &&
+                expectedSize > 0 &&
+                destFile.lengthSync() != expectedSize);
+        if (needsDownload) {
+          _logger.info(
+            'Downloading LAN mod $safeName from $hostIp:$httpPort...',
+          );
+          final tmpPath = '${destFile.path}.downloading';
+          await dio.download('/lan/mods/$index', tmpPath);
+          final tmpFile = File(tmpPath);
+          if (destFile.existsSync()) destFile.deleteSync();
+          await tmpFile.rename(destFile.path);
+        }
+        modPaths.add(safeName);
+      }
+
+      if (modPaths.isEmpty) return null;
+      _logger.info('Synced ${modPaths.length} LAN mod(s) from host.');
+      return _buildModData(modsDir, modPaths);
+    } catch (e) {
+      _logger.detail('No LAN mod manifest fetched from $hostIp:$httpPort ($e)');
+      return null;
+    } finally {
+      dio.close();
+    }
   }
 }

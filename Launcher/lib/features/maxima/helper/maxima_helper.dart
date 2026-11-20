@@ -198,10 +198,9 @@ class MaximaHelper {
 
     final moduleDirectory = ModuleVersionService.selectedModuleDirectory;
     final moduleFile = File(p.join(moduleDirectory.path, 'Kyber.dll'));
-    final vivoxFile = File(p.join(moduleDirectory.path, 'vivoxsdk.dll'));
-    if (!moduleFile.existsSync() || !vivoxFile.existsSync()) {
+    if (!moduleFile.existsSync()) {
       throw FileSystemException(
-        'The local Kyber module is incomplete. Kyber.dll and vivoxsdk.dll '
+        'The local Kyber module is incomplete. Kyber.dll '
         'must be present before starting the game.',
         moduleDirectory.path,
       );
@@ -239,11 +238,10 @@ class MaximaHelper {
       }
     } catch (_) {}
     final playerName =
-        cubitPlayerName ?? 'Jedha${InstanceManager.nameSuffix}';
+        cubitPlayerName ??
+        InstanceManager.resolveInitialNickname();
     await outpost.getLocalProfile(name: playerName);
-    ProcessEnv.set('KYBER_ONLINE_MODE', '0');
     ProcessEnv.set('KYBER_SERVER_PORT', InstanceManager.gamePort.toString());
-    ProcessEnv.set('KYBER_API_TOKEN', 'lan_offline_token');
     ProcessEnv.set('EALaunchEAID', playerName);
     ProcessEnv.set('EALaunchUserAuthToken', 'lan_offline_token');
     ProcessEnv.set(
@@ -251,12 +249,7 @@ class MaximaHelper {
       (await VersionModule.module.getCurrentVersion()) ?? '0.0.0-lan',
     );
     ProcessEnv.set('KYBER_INTERFACE_PORT', interfacePort.toString());
-    ProcessEnv.set(
-      'KYBER_HTTP_HOSTNAME',
-      sl.get<KyberGRPCService>().httpHostname,
-    );
     ProcessEnv.set('PATH', newPath);
-    ProcessEnv.set('KYBER_API_HOSTNAME', sl.get<KyberGRPCService>().host);
 
     if (grpcDebug) {
       ProcessEnv.set('GRPC_TRACE', 'all');

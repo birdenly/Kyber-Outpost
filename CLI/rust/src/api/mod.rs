@@ -3,5 +3,3 @@
 //
 
 pub mod outpost;
-pub mod ping;
-pub mod archive;

@@ -16,10 +16,7 @@ class LogsAndActivity extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return HiveListener(
-      box: box,
-      keys: const ['discordRPC'],
-      builder: (bx) => SuperListView(
+    return SuperListView(
         children: [
           Padding(
             padding: const EdgeInsets.all(8).copyWith(left: 20),
@@ -118,7 +115,6 @@ class LogsAndActivity extends StatelessWidget {
             ),
           ),
         ],
-      ),
     );
   }
 }

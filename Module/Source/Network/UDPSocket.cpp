@@ -12,14 +12,8 @@
 
 #include <ws2tcpip.h>
 
-#ifdef SIMULATE_OLD_PROXY
-    #include <nlohmann/json.hpp>
-#endif
-
 namespace Kyber
 {
-static uint8_t s_proxifyBuffer[3072];
-
 static bool IsLanAddress(const sockaddr_in& address)
 {
     const uint32_t ip = ntohl(address.sin_addr.s_addr);
@@ -57,7 +51,6 @@ UDPSocket::UDPSocket(SocketCreator* creator, ProtocolDirection direction, Socket
     , m_info(info)
 {
     m_info.isProxied = false;
-    m_proxyQueue = std::make_shared<WebSocket::ReceiveQueue>();
 }
 
 UDPSocket::~UDPSocket() {}
@@ -75,64 +68,12 @@ void UDPSocket::Close()
     m_socketHandle = INVALID_SOCKET;
 }
 
-uint8_t* ProxifyBuffer(uint8_t* buffer, int& bufferSize, sockaddr* addr)
-{
-    bufferSize += 2;
-
-    s_proxifyBuffer[0] = ((sockaddr_in*)addr)->sin_port >> 8;
-    s_proxifyBuffer[1] = ((sockaddr_in*)addr)->sin_port;
-    memcpy(s_proxifyBuffer + 2, buffer, bufferSize - 2);
-
-    return s_proxifyBuffer;
-}
-
 bool UDPSocket::Send(uint8_t* buffer, int bufferSize, unsigned int flags)
 {
     sockaddr* addr = (sockaddr*)m_peerAddress.Data();
     if (!IsLanAddress(*reinterpret_cast<sockaddr_in*>(addr)))
     {
         return false;
-    }
-
-    // KYBER_LOG(Info, "[" << DirectionToString(m_direction) << "] Sending " << bufferSize << " bytes to "
-    //                     << inet_ntoa(((sockaddr_in*)addr)->sin_addr) << ":" << ntohs(((sockaddr_in*)addr)->sin_port));
-
-    const char* ip = nullptr;
-    if (m_info.isProxied || (
-        m_direction == ProtocolDirection::Clientbound && 
-            (ip = inet_ntoa(((sockaddr_in*)addr)->sin_addr)) && strncmp(ip, "0.1.1.", 6) == 0
-                            )
-                        )
-    {
-        int proxyIndex = 0;
-
-        bool proxify = m_direction == ProtocolDirection::Clientbound;
-        if (proxify)
-        {
-            buffer = ProxifyBuffer(buffer, bufferSize, addr);
-
-            const char* finalSection = ip + 6;
-            proxyIndex = atoi(finalSection);
-
-            if (proxyIndex < 0 || proxyIndex >= m_sockets.size())
-            {
-                KYBER_LOG(Error, "Invalid proxy index: " << proxyIndex);
-                return false;
-            }
-        }
-
-        bool success = m_sockets[proxyIndex].Send(buffer, bufferSize);
-        if (!success)
-        {
-            // We are probably connecting or reconnecting, so we can just tell the engine this
-            // was successful. It's built for UDP, so it'll handle the packet loss for us.
-
-            // In the future, if it becomes a problem, it may be worth implementing a timeout for
-            // proxy reconnections, and letting the client bail if things aren't working.
-            return true;
-        }
-        
-        return true;
     }
 
     if (sendto(m_socketHandle, reinterpret_cast<const char*>(buffer), bufferSize, 0, addr, sizeof(sockaddr_in)) < 0)
@@ -159,67 +100,32 @@ int UDPSocket::ReceiveFromWhen(uint8_t* buffer, int bufferSize, unsigned int& wh
     int addressSize = sizeof(sockaddr_in);
     sockaddr_in addr = *(sockaddr_in*)m_peerAddress.Data();
 
-    // KYBER_LOG(Info, "[" << DirectionToString(m_direction) << "] Receiving data");
-
-    int proxyId = -1;
-    int recvSize = 0;
-
-    std::optional<WebSocketMessage*> data = m_proxyQueue->tryDequeue();
-    if (data)
-    {
-        WebSocketMessage* msgData = *data;
-        recvSize = std::min(bufferSize, static_cast<int>(msgData->size));
-        when = msgData->timestamp;
-        proxyId = msgData->socketId;
-        memcpy(buffer, msgData->data, recvSize);
-
-        FB_GLOBAL_ARENA->del(msgData);
-    }
-    else if (m_socketHandle != INVALID_SOCKET) // Local
-    {
-        when = NetTick();
-        recvSize = recvfrom(m_socketHandle, (char*)buffer, bufferSize, 0, (sockaddr*)&addr, &addressSize);
-        if (recvSize < 0)
-        {
-            int error = WSAGetLastError();
-            if (error != WSAEWOULDBLOCK)
-            {
-                KYBER_LOG(Debug, "Error receiving data: " << error);
-            }
-
-            return recvSize;
-        }
-
-        if (!IsLanAddress(addr))
-        {
-            return 0;
-        }
-    }
-    else
+    if (m_socketHandle == INVALID_SOCKET)
     {
         KYBER_LOG(Error, "Invalid socket handle");
         return -1;
     }
 
-    if (proxyId != -1 && m_direction == ProtocolDirection::Clientbound)
+    when = NetTick();
+    int recvSize = recvfrom(m_socketHandle, (char*)buffer, bufferSize, 0, (sockaddr*)&addr, &addressSize);
+    if (recvSize < 0)
     {
-        addr.sin_family = AF_INET;
-        addr.sin_addr.s_addr = inet_addr(("0.1.1." + std::to_string(proxyId)).c_str());
-        addr.sin_port = buffer[0] << 8 | buffer[1];
+        int error = WSAGetLastError();
+        if (error != WSAEWOULDBLOCK)
+        {
+            KYBER_LOG(Debug, "Error receiving data: " << error);
+        }
 
-        std::memmove(buffer, buffer + 2, recvSize - 2);
-        recvSize -= 2;
+        return recvSize;
     }
 
-    if (proxyId == -1 || m_direction != ProtocolDirection::Serverbound)
+    if (!IsLanAddress(addr))
     {
-        m_peerAddress.SetData(&addr, sizeof(sockaddr_in));
-        m_peerAddressIsValid = true;
+        return 0;
     }
 
-    // KYBER_LOG(Info, "[" << DirectionToString(m_direction) << "] Received " << recvSize << " bytes from " << inet_ntoa(addr.sin_addr) <<
-    // ":"
-    //                     << ntohs(addr.sin_port));
+    m_peerAddress.SetData(&addr, sizeof(sockaddr_in));
+    m_peerAddressIsValid = true;
 
 #ifdef _DEBUG
     KYBER_LOG(Trace, "[" << DirectionToString(m_direction) << "] Received " << recvSize << " bytes");
@@ -259,73 +165,7 @@ bool UDPSocket::Listen(const SocketAddr& address, bool blocking)
 
     KYBER_LOG(Trace, "Created listening socket");
 
-    m_sockets.clear();
-
-    if (m_info.isProxied && m_direction == ProtocolDirection::Serverbound)
-    {
-        m_sockets.push_back(WebSocket("client", 0, m_proxyQueue));
-        m_sockets.back().ConnectAsClient(m_info.proxyAddress, g_program->m_client->m_joinToken);
-    }
-    else if (m_direction == ProtocolDirection::Clientbound && g_program->m_server->IsRunning() && g_program->m_server->m_onlineMode)
-    {
-        const char* pinnedProxy = std::getenv("KYBER_PINNED_PROXY");
-        if (pinnedProxy != nullptr)
-        {
-            m_sockets.push_back(WebSocket("pinned", 0, m_proxyQueue));
-            m_sockets.back().ConnectAsServer(pinnedProxy, g_program->m_client->m_joinToken);
-        }
-        else
-        {
-            auto proxies = g_program->GetAPI()->GetProxy()->GetList();
-            m_sockets.reserve(proxies.size());
-
-            uint32_t id = 0;
-            for (const auto& proxy : proxies)
-            {
-                m_sockets.push_back(WebSocket(proxy.id(), id++, m_proxyQueue));
-                m_sockets.back().ConnectAsServer(proxy.ip(), g_program->m_client->m_joinToken);
-            }
-        }
-    }
-
     return true;
-}
-
-void UDPSocket::UpdateProxies(const eastl::vector<kyber_api::ProxyInfo>& newList)
-{
-    for (const auto& proxyInfo : newList)
-    {
-        bool seen = false;
-        for (const auto& proxy : m_sockets) 
-        {
-            if (proxy.GetId() == proxyInfo.id())
-            {
-                seen = true;
-                break;
-            }
-        }
-
-        if (!seen)
-        {
-            m_sockets.push_back(WebSocket(proxyInfo.id(), m_sockets.size(), m_proxyQueue));
-            m_sockets.back().ConnectAsServer(proxyInfo.ip(), g_program->m_client->m_joinToken);
-        }
-    }
-}
-
-void UDPSocket::ReconnectProxies()
-{
-    if (m_direction != ProtocolDirection::Clientbound)
-    {
-        return;
-    }
-
-    KYBER_LOG(Info, "[Network] Reconnecting to " << m_sockets.size() << " proxies");
-
-    for (auto& proxy : m_sockets)
-    {
-        proxy.Reconnect(g_program->m_client->m_joinToken);
-    }
 }
 
 bool UDPSocket::Connect(const SocketAddr& address, bool blocking)

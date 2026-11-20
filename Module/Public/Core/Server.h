@@ -85,16 +85,11 @@ public:
     void EnableGameHooks();
     void DisableGameHooks();
     void InitializeGamePatches();
-    void InitializeGameSettings();
-    void InitializeChatFilterPreset();
     void OnClientStartup();
 
     // Note: Only to be ran for in-proc servers, not designed for dedicated.
     void Start(const ServerCreationInfo& info, bool changeState = true);
     void Stop();
-
-    void Heartbeat(const UpdateParameters& params);
-    void Register(bool force = false, bool reuseId = false);
 
     void OnEvent(const Event& event) override;
 
@@ -122,7 +117,6 @@ public:
     void SetDedicatedCreationInfo(const ServerCreationInfo& info);
 
     SocketManager* m_socketManager;
-    ISocket* m_natClient;
     ServerPlayerManager* m_playerManager;
     PersistenceManager* m_persistenceManager;
     ServerSquadManager* m_squadManager;
@@ -137,7 +131,6 @@ public:
 
     std::optional<ServerCreationInfo> m_creationInfo;
     std::string m_serverId;
-    bool m_onlineMode;
 
     // This means the server is running in Client-As-Server.
     // This isn't true if this is a dedicated server, use Program::m_isDedicatedServer.

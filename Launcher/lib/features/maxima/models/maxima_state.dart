@@ -12,13 +12,10 @@ class MaximaState {
   const MaximaState({
     required this.status,
     this.servicePlayer,
-    this.kyberToken,
     this.error,
     this.entitlements,
     this.loggedIn = false,
     this.gameRunning = false,
-    this.isPatron = false,
-    this.discordData,
   });
 
   factory MaximaState.initial() => const MaximaState(
@@ -27,12 +24,9 @@ class MaximaState {
 
   final String? error;
   final List<UserEntitlement>? entitlements;
-  final String? kyberToken;
   final MaximaStatus status;
   final bool loggedIn;
   final bool gameRunning;
-  final bool isPatron;
-  final DiscordUserData? discordData;
   final ServicePlayer? servicePlayer;
 
   bool isEntitled(UserEntitlement entitlement) =>
@@ -45,27 +39,20 @@ class MaximaState {
       entitlements.any(isEntitled);
 
   bool canUsePerks() =>
-      isEntitledAny([.globalServerModerator, .staff, .patreonPerks]) ||
-      isPatron;
+      isEntitledAny([.globalServerModerator, .staff, .patreonPerks]);
 
   MaximaState copyWith({
     MaximaStatus? status,
     ServicePlayer? servicePlayer,
-    String? kyberToken,
     List<UserEntitlement>? entitlements,
     bool? loggedIn,
     bool? gameRunning = false,
-    bool? isPatron,
-    DiscordUserData? discordData,
   }) => MaximaState(
     entitlements: entitlements ?? this.entitlements,
-    kyberToken: kyberToken ?? this.kyberToken,
     status: status ?? this.status,
     servicePlayer: servicePlayer ?? this.servicePlayer,
     loggedIn: loggedIn ?? this.loggedIn,
     gameRunning: gameRunning ?? this.gameRunning,
-    isPatron: isPatron ?? this.isPatron,
-    discordData: discordData ?? this.discordData,
   );
 }
 

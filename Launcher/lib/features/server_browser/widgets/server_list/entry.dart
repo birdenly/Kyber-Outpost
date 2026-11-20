@@ -1,5 +1,4 @@
 import 'package:auto_size_text/auto_size_text.dart';
-import 'package:cached_network_image/cached_network_image.dart';
 import 'package:collection/collection.dart';
 import 'package:fluent_ui/fluent_ui.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
@@ -15,7 +14,6 @@ import 'package:kyber_launcher/features/server_browser/models/server_entry.dart'
 import 'package:kyber_launcher/features/server_browser/providers/server_browser_cubit.dart';
 import 'package:kyber_launcher/gen/assets.gen.dart';
 import 'package:kyber_launcher/gen/fonts.gen.dart';
-import 'package:kyber_launcher/injection_container.dart';
 import 'package:kyber_launcher/shared/ui/elements/kyber_badge.dart';
 import 'package:kyber_launcher/shared/ui/ui.dart';
 import 'package:tinycolor2/tinycolor2.dart';
@@ -150,18 +148,6 @@ class ServerListEntry extends StatelessWidget {
                       height: 65,
                       child: Builder(
                         builder: (context) {
-                          if (serverInfo.mapImageHash.isNotEmpty) {
-                            return CachedNetworkImage(
-                              imageUrl:
-                                  'https://${sl.get<KyberGRPCService>().httpHostname}/images/${serverInfo.mapImageHash}.jpeg',
-                              fit: BoxFit.cover,
-                              alignment: Alignment.centerLeft,
-                              colorBlendMode: BlendMode.darken,
-                              color: Colors.black.withOpacity(.12),
-                              fadeInDuration: .zero,
-                            );
-                          }
-
                           return MapHelper.getImageForMap(
                             map['map'] as String,
                           )!.image(

@@ -14,7 +14,6 @@ class Preferences {
   static final windowData = WindowData();
   static final admin = Admin();
   static final nexusMods = NexusMods();
-  static final patreon = Patreon();
 }
 
 class General {
@@ -28,12 +27,6 @@ class General {
       box.get('enabledPreloadMods', defaultValue: true) as bool;
 
   set enabledPreloadMods(bool value) => box.put('enabledPreloadMods', value);
-
-  bool get incrementalDownloadsEnabled =>
-      box.get('incrementalDownloadsEnabled', defaultValue: true) as bool;
-
-  set incrementalDownloadsEnabled(bool value) =>
-      box.put('incrementalDownloadsEnabled', value);
 
   String? get currentVersion => box.get('currentVersion') as String?;
 
@@ -63,23 +56,10 @@ class General {
 
   set modsPath(String value) => box.put('modsPath', value);
 
-  String get proxy => box.get('proxy', defaultValue: '') as String;
-
-  set proxy(String value) => box.put('proxy', value);
-
-  bool get discordRPC => box.get('discordRPC', defaultValue: true) as bool;
-
-  set discordRPC(bool value) => box.put('discordRPC', value);
-
   bool get ingameHotkeyEnabled =>
       box.get('ingameHotkeyEnabled', defaultValue: true) as bool;
 
   set ingameHotkeyEnabled(bool value) => box.put('ingameHotkeyEnabled', value);
-
-  bool get sentryOptedOut =>
-      box.get('sentryOptedOut', defaultValue: false) as bool;
-
-  set sentryOptedOut(bool value) => box.put('sentryOptedOut', value);
 
   bool get acceptedRules =>
       box.get('acceptedRules1', defaultValue: false) as bool;
@@ -90,51 +70,6 @@ class General {
       box.get('modBrowserPerPage', defaultValue: 20) as int;
 
   set modBrowserPerPage(int value) => box.put('modBrowserPerPage', value);
-
-  int get defaultInputVolume =>
-      box.get('defaultInputVolume', defaultValue: 65) as int;
-
-  set defaultInputVolume(int value) => box.put('defaultInputVolume', value);
-
-  bool get voiceChatEnabled =>
-      box.get('voiceChatEnabled', defaultValue: true) as bool;
-
-  set voiceChatEnabled(bool enabled) => box.put('voiceChatEnabled', enabled);
-
-  int get defaultOutputVolume =>
-      box.get('defaultOutputVolume', defaultValue: 65) as int;
-
-  set defaultOutputVolume(int value) => box.put('defaultOutputVolume', value);
-
-  bool get pushToTalk => box.get('pushToTalk', defaultValue: true) as bool;
-
-  set pushToTalk(bool value) => box.put('pushToTalk', value);
-
-  String get pushToTalkKeyDisplay =>
-      box.get('pushToTalkKeybindDisplay', defaultValue: 'T') as String;
-
-  set pushToTalkKeyDisplay(String value) =>
-      box.put('pushToTalkKeybindDisplay', value);
-
-  // 116 -> T
-  int get pushToTalkKey =>
-      box.get(
-            'pushToTalkKeybind',
-            defaultValue: Platform.isWindows ? 0x54 : 116,
-          )
-          as int;
-
-  set pushToTalkKey(int value) => box.put('pushToTalkKeybind', value);
-
-  String get selectedInputDevice =>
-      box.get('inputDevice', defaultValue: '') as String;
-
-  set selectedInputDevice(String value) => box.put('inputDevice', value);
-
-  String get selectedOutputDevice =>
-      box.get('outputDevice', defaultValue: '') as String;
-
-  set selectedOutputDevice(String value) => box.put('outputDevice', value);
 
   String? get selectedCosmeticCollection =>
       box.get('selectedCosmeticCollection') as String?;
@@ -152,13 +87,6 @@ class General {
 
   set locale(String value) => box.put('locale', value);
 
-  // TODO: remove dummy from key name
-  bool get allowPartyInvitesFromAnyone =>
-      box.get('allowPartyInvitesFromAnyoneDUMMY', defaultValue: true) as bool;
-
-  set allowPartyInvitesFromAnyone(bool value) =>
-      box.put('allowPartyInvitesFromAnyoneDUMMY', value);
-
   bool get groupServersByRegion =>
       box.get('groupServersByRegion', defaultValue: true) as bool;
 
@@ -174,16 +102,6 @@ class General {
       box.get('disableForceDX11', defaultValue: false) as bool;
 
   set disableForceDX11(bool value) => box.put('disableForceDX11', value);
-}
-
-class Patreon {
-  String? get patreonId => box.get('patreon_id') as String?;
-
-  set patreonId(String? value) => box.put('patreon_id', value);
-
-  String? get membershipId => box.get('membership_id') as String?;
-
-  set membershipId(String? value) => box.put('membership_id', value);
 }
 
 class NexusMods {
@@ -303,16 +221,8 @@ class WindowData {
 }
 
 class Admin {
-  bool get dummyServer => box.get('dummyServer', defaultValue: false) as bool;
-
-  set dummyServer(bool value) => box.put('dummyServer', value);
-
   bool get removeBackground =>
       box.get('removeBackground', defaultValue: false) as bool;
 
   set removeBackground(bool value) => box.put('removeBackground', value);
-
-  String get apiEnv => box.get('apiEnv', defaultValue: 'prod') as String;
-
-  set apiEnv(String value) => box.put('apiEnv', value);
 }

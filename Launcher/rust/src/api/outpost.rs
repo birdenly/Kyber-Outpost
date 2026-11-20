@@ -4,18 +4,11 @@ use flutter_rust_bridge::for_generated::anyhow::{self, bail};
 use kyber_local_runtime as runtime;
 use crate::frb_generated::StreamSink;
 
-pub struct ServiceImage { pub height: Option<u16>, pub width: Option<u16>, pub path: String }
-pub struct ServiceAvatarList { pub small: ServiceImage, pub medium: ServiceImage, pub large: ServiceImage }
 pub struct ServicePlayer {
-    pub id: String, pub pd: String, pub psd: String,
-    pub display_name: String, pub unique_name: String, pub nickname: String,
-    pub avatar: Option<ServiceAvatarList>, pub relationship: String,
+    pub id: String,
+    pub display_name: String,
+    pub nickname: String,
 }
-
-#[frb(non_opaque)]
-pub enum BasicPresence { Unknown, Offline, Online, Dnd, Away }
-#[frb(non_opaque)]
-pub struct RtmPresence { pub player_id: String, pub basic: BasicPresence, pub status: String, pub game: Option<String> }
 
 pub async fn initialize_runtime() -> anyhow::Result<()> {
     log::info!("Outpost local runtime ready");
@@ -26,9 +19,9 @@ pub async fn get_local_profile(name: Option<String>) -> anyhow::Result<ServicePl
     if let Some(name) = name { runtime::set_player_name(&name)?; }
     let profile = runtime::local_profile();
     Ok(ServicePlayer {
-        id: profile.id.clone(), pd: profile.id.clone(), psd: profile.id,
-        display_name: profile.name.clone(), unique_name: profile.name.clone(), nickname: profile.name,
-        avatar: None, relationship: "SELF".to_owned(),
+        id: profile.id,
+        display_name: profile.name.clone(),
+        nickname: profile.name,
     })
 }
 
@@ -69,21 +62,6 @@ pub async fn game_events(pid: u32, game_sink: StreamSink<String>) -> anyhow::Res
     runtime::process::forget_finished(pid)?;
     Ok(())
 }
-
-// Compatibility for existing offline UI models. These never use EA services.
-pub async fn check_game_ownership() -> anyhow::Result<bool> { Ok(!get_game_dir(runtime::GAME_SLUG.to_owned()).is_empty()) }
-pub async fn get_auth_token() -> String { "lan_offline_token".to_owned() }
-pub async fn get_friend_list() -> anyhow::Result<Vec<ServicePlayer>> { Ok(Vec::new()) }
-pub async fn set_rtm_presence(status: String) -> anyhow::Result<()> { let _ = status; Ok(()) }
-pub async fn start_rtm_connection() -> anyhow::Result<()> { Ok(()) }
-pub async fn get_rtm_presences(presence_sink: StreamSink<RtmPresence>) -> anyhow::Result<()> { let _ = presence_sink; Ok(()) }
-pub async fn avatar_image(pd: &str, width: u16, height: u16) -> anyhow::Result<String> { let _ = (pd, width, height); Ok(String::new()) }
-pub async fn get_user(pd: String) -> anyhow::Result<ServicePlayer> {
-    let player = get_local_profile(None).await?;
-    if pd != player.pd { bail!("Local player not found"); }
-    Ok(player)
-}
-pub async fn search_user(name: String) -> anyhow::Result<ServicePlayer> { let _ = name; bail!("Account search is unavailable in LAN mode") }
 
 #[frb(init)]
 pub fn init_app() { flutter_rust_bridge::setup_default_user_utils(); }

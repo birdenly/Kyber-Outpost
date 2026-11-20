@@ -16,7 +16,6 @@ import 'package:kyber_launcher/features/server_host/widgets/settings_box/server_
 import 'package:kyber_launcher/injection_container.dart';
 import 'package:logging/logging.dart';
 import 'package:rxdart/rxdart.dart';
-import 'package:web_socket_channel/web_socket_channel.dart';
 
 class ModerationCubit extends Cubit<ModerationServerState> {
   ModerationCubit() : super(const ModerationServerState()) {
@@ -36,8 +35,6 @@ class ModerationCubit extends Cubit<ModerationServerState> {
   Timer? _keepAliveTimer;
 
   ReplaySubject<(int, int)>? botChangeStream;
-
-  WebSocketChannel? _channel;
 
   int _loadId = 0;
 
@@ -121,8 +118,6 @@ class ModerationCubit extends Cubit<ModerationServerState> {
     _logger.info('Unloading server');
 
     _loadId++;
-    _channel?.sink.close();
-    _channel = null;
     _keepAliveTimer?.cancel();
 
     emit(const ModerationServerState());
@@ -142,8 +137,6 @@ class ModerationCubit extends Cubit<ModerationServerState> {
     }
 
     final loadId = ++_loadId;
-    unawaited(_channel?.sink.close());
-    _channel = null;
     _keepAliveTimer?.cancel();
 
     try {
@@ -211,21 +204,6 @@ class ModerationCubit extends Cubit<ModerationServerState> {
           unawaited(pollLocalPlayers());
         },
       );
-    } on WebSocketException catch (e, s) {
-      if (loadId != _loadId) {
-        return;
-      }
-      var error = 'Failed to connect to websocket';
-      switch (e.httpStatusCode ?? 0) {
-        case 401:
-          error = 'Failed to connect to websocket: Unauthorized';
-        case 404:
-          error = 'The specified server was not found';
-      }
-
-      _logger.severe('Failed to connect to websocket', e, s);
-      NotificationService.error(message: error);
-      unloadServer();
     } on GrpcError catch (e, s) {
       if (loadId != _loadId) {
         return;

@@ -9,9 +9,8 @@
 #include <ModLoader/CustomAssetHandler.h>
 #include <ModLoader/BundleMerger.h>
 #include <ModLoader/ManifestMerger.h>
-#include <ModLoader/LiveEditManager.h>
 #include <ModLoader/ResourceMerger.h>
-#include <RPC/API/ServerBrowser.h>
+#include <Proto/kyber_common.pb.h>
 
 #include <frosty_mod.h>
 
@@ -121,8 +120,6 @@ public:
     BundleMerger m_bundleMerger;
     ManifestMerger m_manifestMerger;
     ResourceMerger m_resourceMerger;
-
-    LiveEditManager* m_liveEditManager;
 
     eastl::unordered_map<uint32_t, CustomAssetHandler*> m_handlers;
     eastl::unordered_map<uint32_t, eastl::string> m_dupedHandlerSources;

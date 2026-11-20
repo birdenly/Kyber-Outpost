@@ -5,7 +5,6 @@ import 'dart:io';
 
 import 'package:args/command_runner.dart';
 import 'package:flutter_rust_bridge/flutter_rust_bridge.dart';
-import 'package:grpc/grpc.dart';
 import 'package:kyber/kyber.dart';
 import 'package:kyber_cli/command_runner.dart';
 import 'package:kyber_cli/gen/api/outpost.dart';
@@ -25,12 +24,7 @@ import 'package:path/path.dart';
 class StartServerCommand extends Command<int> {
   StartServerCommand({required Logger logger}) : _logger = logger {
     argParser
-      ..addFlag('show-console', help: 'Shows the Kyber console window.')
-      ..addFlag(
-        'no-dedicated',
-        help: 'Starts a non-dedicated server',
-        negatable: false,
-      )
+      ..addFlag('hide-console', help: 'Hides the Kyber console window.')
       ..addSeparator('Server Options')
       ..addOption('server-name', abbr: 'n', help: 'Specify the server name')
       ..addOption('server-password', abbr: 'p', help: 'Specify the server name')
@@ -86,11 +80,6 @@ class StartServerCommand extends Command<int> {
         'module-path',
         help: 'Specify a custom directory to use for the Kyber module',
         valueHelp: 'path/to/module',
-      )
-      ..addOption(
-        'module-branch',
-        help: 'Specify the branch to use for the Kyber module',
-        valueHelp: 'branch',
       )
       ..addOption('interface-port', valueHelp: '9000');
   }
@@ -151,7 +140,7 @@ class StartServerCommand extends Command<int> {
         Platform.environment.containsKey('KYBER_MAP_ROTATION')) {
       File? file;
       if ((argResults?['rotation-file'] as String?) != null) {
-        final file = File(argResults?['rotation-file'] as String);
+        file = File(argResults?['rotation-file'] as String);
         if (!file.existsSync()) {
           _logger.err('The specified rotation file does not exist');
           return ExitCode.usage.code;
@@ -219,31 +208,18 @@ class StartServerCommand extends Command<int> {
       await CollectionHelper().useCollection(collectionFile);
     }
 
-    const kToken = 'lan_offline_token';
-
-    Env.set('KYBER_ONLINE_MODE', '0');
-    sl.get<KyberGRPCService>().token = kToken;
-
     Env.delete('KYBER_HIDE_CONSOLE');
-    final showConsole = argResults?['show-console'] as bool?;
-    if (showConsole != null && showConsole) {
+    final hideConsole = argResults?['hide-console'] as bool?;
+    if (hideConsole != null && hideConsole) {
       Env.set('KYBER_HIDE_CONSOLE', '1');
     }
 
-    Env.set('KYBER_API_TOKEN', kToken);
-
-    final noDedicated = argResults?['no-dedicated'] as bool? ?? false;
-    Env.set('KYBER_DEDICATED_SERVER', noDedicated ? '0' : '1');
-    if (noDedicated) {
-      Env.delete('KYBER_DEDICATED_SERVER');
-    }
+    Env.set('KYBER_DEDICATED_SERVER', '1');
 
     final kyberPort =
         argResults?['interface-port'] as String? ??
         (await KyberNetworkHelper.findAvailablePort()).toString();
     Env.set('KYBER_INTERFACE_PORT', kyberPort);
-    Env.set('KYBER_API_HOSTNAME', sl.get<KyberGRPCService>().host);
-    Env.set('KYBER_HTTP_HOSTNAME', sl.get<KyberGRPCService>().httpHostname);
 
     final rawModsPath = argResults?['raw-mods'] as String?;
     ModData? modData;
@@ -255,10 +231,7 @@ class StartServerCommand extends Command<int> {
           argResults?['collection-mods-directory'] as String? ??
           CollectionHelper().getModsDirectory();
 
-      final mods = CollectionHelper().getModsList(
-        metaData,
-        modDirectory: modsDir,
-      );
+      final mods = CollectionHelper().getModsList(metaData);
       final apiMods = CollectionHelper().getModsList(
         metaData,
         listFrostyCollectionMods: false,
@@ -425,8 +398,6 @@ class StartServerCommand extends Command<int> {
     sl.registerSingleton<MaximaGameInstance>(
       MaximaGameInstance(
         pid: pid,
-        isDedicated: true,
-        clientService: ClientGRPCService('', 0),
         mods: gameplayMods,
       ),
     );

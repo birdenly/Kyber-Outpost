@@ -20,7 +20,6 @@ Client::Client()
     : m_joining(false)
     , m_spectator(false)
     , m_connected(false)
-    , m_voipManager(nullptr)
     , m_socketManager(nullptr)
     , m_eventManager(new EventManager())
     , m_squadManager(new ClientSquadManager(m_eventManager))
@@ -42,96 +41,31 @@ void Client::HandleClientServerJoin(NetworkCreatePlayerMessage* message)
         return;
     }
 
-    if (!g_program->m_server->m_onlineMode)
+    const char* customName = std::getenv("EALaunchEAID");
+
+    if (customName != nullptr && strlen(customName) > 0)
     {
-        const char* customName = std::getenv("EALaunchEAID");
-
-        if (customName != nullptr && strlen(customName) > 0)
-        {
-            message->playerName = StringUtils::CopyWithArena(customName);
-        }
-
-        message->isSpectator = m_spectator;
-        KYBER_LOG(Info, "[Client] [LAN] Joining game as '" << message->playerName << "' (Spectator: " << message->isSpectator << ")");
-        return;
+        message->playerName = StringUtils::CopyWithArena(customName);
     }
 
-    char* name = StringUtils::CopyWithArena("KyberAuthentication:" + m_joinToken);
-    message->playerName = name;
     message->isSpectator = m_spectator;
-
-    KYBER_LOG(Info, "[Client] Joining game with authentication");
-    KYBER_LOG(Debug, "[Client] Joining game as '" << message->playerName << "'");
-
-    AttemptJoinVoip();
-}
-
-void Client::AttemptJoinVoip()
-{
-    if (!g_program->m_server->m_onlineMode || g_program->GetAPI()->GetVoip() == nullptr)
-    {
-        return;
-    }
-
-    if (m_voipManager == nullptr || !m_voipManager->IsLoggedIn() ||
-        g_program->m_server->m_socketSpawnInfo.serverName.empty() || m_voipManager->IsConnected())
-    {
-        return;
-    }
-
-    KYBER_LOG(Info, "[Client] Joining VoIP");
-    g_program->GetAPI()->GetVoip()->JoinChannel(
-        g_program->m_server->m_socketSpawnInfo.serverName, [&](std::optional<const VoipJoinChannelResponse*> response) {
-            if (!response)
-            {
-                KYBER_LOG(Error, "[VoIP] Failed to retrieve vivox channel credentials. Proximity chat will not work!");
-                return;
-            }
-
-            m_voipManager->AddSession((*response)->channel(), (*response)->accesstoken());
-        });
+    KYBER_LOG(Info, "[Client] [LAN] Joining game as '" << message->playerName << "' (Spectator: " << message->isSpectator << ")");
 }
 
 void Client::JoinServer(const std::string& id, std::string ip, uint16_t port, bool spectate, bool proxied, bool changeState)
 {
     proxied = false;
 
-    if (!id.empty() && g_program->m_server->m_onlineMode && g_program->GetAPI()->GetServerBrowser() != nullptr)
-    {
-        auto server = g_program->GetAPI()->GetServerBrowser()->GetServer(id);
-        if (!server)
-        {
-            KYBER_LOG(Error, "[Client] Server " << id << " not found, connection failed!");
-            return;
-        }
-
-        auto meta = server->meta();
-        auto proxy_id_it = meta.find("pinned_proxy_id");
-        if (proxy_id_it != meta.end())
-        {
-            auto proxies = g_program->GetAPI()->GetProxy()->GetList();
-            for (const auto& proxy : proxies)
-            {
-                if (proxy.id() == proxy_id_it->second)
-                {
-                    ip = proxy.ip();
-                    KYBER_LOG(Info, "[Client] Overriding with pinned proxy '" << proxy.id() << "'");
-                    break;
-                }
-            }
-        }
-    }
-
     ClientSettings* clientSettings = Settings<ClientSettings>("Client");
     clientSettings->ServerIp = StringUtils::CopyWithArena(ip);
 
-    SocketSpawnInfo info(proxied, proxied ? ip : "", id, "");
+    SocketSpawnInfo info(false, "", id, "");
     g_program->m_server->m_socketSpawnInfo = info;
     m_joining = true;
     m_spectator = spectate;
 
-    KYBER_LOG(Info, "[Client] Joining server " << id << " at " << ip << ":" << port << " [Proxied: " << proxied
-                                               << ", Spectate: " << spectate << ", ChangeState: " << changeState << "]");
+    KYBER_LOG(Info, "[Client] Joining server " << id << " at " << ip << ":" << port
+                                               << " [Spectate: " << spectate << ", ChangeState: " << changeState << "]");
 
     Settings<NetworkSettings>("Network")->ServerPort = port;
     if (changeState)
@@ -144,11 +78,6 @@ __int64 ClientCtorHk(__int64 inst, void* a2, __int64 a3)
 {
     static const auto trampoline = HookManager::Call(ClientCtorHk);
     KYBER_LOG(Info, "[Client] Creating client");
-
-    if (g_program->m_client->m_voipManager != nullptr)
-    {
-        g_program->m_client->m_voipManager->Init();
-    }
 
     if (g_program->m_scriptManager != nullptr)
     {
@@ -186,11 +115,6 @@ __int64 ClientStateChangeHk(__int64 inst, ClientState currentClientState, Client
         {
             KYBER_LOG(Info, "[Client] Leaving server");
 
-            if (g_program->m_client->m_voipManager != nullptr)
-            {
-                g_program->m_client->m_voipManager->RemoveSession();
-            }
-
             g_program->m_client->m_spectator = false;
         }
 
@@ -202,11 +126,6 @@ __int64 ClientStateChangeHk(__int64 inst, ClientState currentClientState, Client
             {
                 KYBER_LOG(Info, "[Server] Stopping server");
                 server->Stop();
-
-                if (g_program->m_client->m_voipManager != nullptr)
-                {
-                    g_program->m_client->m_voipManager->RemoveSession();
-                }
 
                 g_program->m_client->m_spectator = false;
 
@@ -232,10 +151,6 @@ __int64 ClientStateChangeHk(__int64 inst, ClientState currentClientState, Client
     {
         g_program->GetAPI()->GetLauncherInterface()->OnServerJoined();
         g_program->m_allowInteraction = true;
-        if (server->m_runningHosted)
-        {
-            server->InitializeGameSettings();
-        }
     }
 
     return trampoline(inst, currentClientState, lastClientState);
@@ -312,17 +227,8 @@ bool ClientInitNetworkHk(__int64 inst, bool singleplayer, bool localhost, bool c
 void ClientConnectToAddressHk(__int64 inst, const char* ipAddress, const char* serverPassword)
 {
     static const auto trampoline = HookManager::Call(ClientConnectToAddressHk);
-    SocketSpawnInfo info = g_program->m_server->m_socketSpawnInfo;
-    if (false && g_program->m_client->m_joining && info.isProxied)
-    {
-        KYBER_LOG(Info, "[Client] Connecting to server (proxied)");
-        trampoline(inst, (std::string(info.proxyAddress) + ":25201").c_str(), serverPassword);
-    }
-    else
-    {
-        KYBER_LOG(Info, "[Client] Connecting to server " << ipAddress);
-        trampoline(inst, ipAddress, serverPassword);
-    }
+    KYBER_LOG(Info, "[Client] Connecting to server " << ipAddress);
+    trampoline(inst, ipAddress, serverPassword);
 
     if (g_program->m_client->m_joining)
     {
