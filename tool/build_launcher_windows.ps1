@@ -148,8 +148,11 @@ try {
     # only kyber_launcher on a clean machine would skip it, so restore first.
     $null = Invoke-BuildCommand -Name 'plugin-deps' -Executable $cmake -ArgumentList @(
         '--build', $buildRoot, '--config', 'Release', '--target', 'flutter_inappwebview_windows_DEPS')
+    # Build the complete Visual Studio target graph after NuGet restoration.
+    # This ensures generated plugin and application targets are linked together
+    # instead of relying on an incomplete target-only build.
     $null = Invoke-BuildCommand -Name 'launcher' -Executable $cmake -ArgumentList @(
-        '--build', $buildRoot, '--config', 'Release', '--target', 'kyber_launcher', '--parallel', "$Jobs")
+        '--build', $buildRoot, '--config', 'Release', '--target', 'ALL_BUILD', '--parallel', "$Jobs")
     $null = Invoke-BuildCommand -Name 'install' -Executable $cmake -ArgumentList @(
         '--install', $buildRoot, '--config', 'Release', '--component', 'Runtime', '--prefix', $releaseRoot)
 
