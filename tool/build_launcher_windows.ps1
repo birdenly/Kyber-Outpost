@@ -148,8 +148,10 @@ try {
     # only kyber_launcher on a clean machine would skip it, so restore first.
     $null = Invoke-BuildCommand -Name 'plugin-deps' -Executable $cmake -ArgumentList @(
         '--build', $buildRoot, '--config', 'Release', '--target', 'flutter_inappwebview_windows_DEPS')
+    # Build the complete target graph (same as `flutter build windows`) so every
+    # plugin and generated target is built, not only kyber_launcher's direct deps.
     $null = Invoke-BuildCommand -Name 'launcher' -Executable $cmake -ArgumentList @(
-        '--build', $buildRoot, '--config', 'Release', '--target', 'kyber_launcher', '--parallel', "$Jobs")
+        '--build', $buildRoot, '--config', 'Release', '--target', 'ALL_BUILD', '--parallel', "$Jobs")
     $null = Invoke-BuildCommand -Name 'install' -Executable $cmake -ArgumentList @(
         '--install', $buildRoot, '--config', 'Release', '--component', 'Runtime', '--prefix', $releaseRoot)
 
