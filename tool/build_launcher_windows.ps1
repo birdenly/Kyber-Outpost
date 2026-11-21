@@ -143,6 +143,11 @@ try {
     $null = Invoke-BuildCommand -Name 'cmake-config' -Executable $cmake -ArgumentList @(
         '-S', (Join-Path $launcherRoot 'windows'), '-B', $buildRoot, '-G', $generator,
         '-A', 'x64', '-DFLUTTER_TARGET_PLATFORM=windows-x64', "-DCMAKE_INSTALL_PREFIX:PATH=$releaseRoot")
+    # flutter_inappwebview_windows restores WebView2/WIL/nlohmann.json from NuGet
+    # in a separate target that its plugin library does not depend on. Building
+    # only kyber_launcher on a clean machine would skip it, so restore first.
+    $null = Invoke-BuildCommand -Name 'plugin-deps' -Executable $cmake -ArgumentList @(
+        '--build', $buildRoot, '--config', 'Release', '--target', 'flutter_inappwebview_windows_DEPS')
     $null = Invoke-BuildCommand -Name 'launcher' -Executable $cmake -ArgumentList @(
         '--build', $buildRoot, '--config', 'Release', '--target', 'kyber_launcher', '--parallel', "$Jobs")
     $null = Invoke-BuildCommand -Name 'install' -Executable $cmake -ArgumentList @(
