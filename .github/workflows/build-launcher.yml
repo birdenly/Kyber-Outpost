@@ -90,7 +90,7 @@ jobs:
           Push-Location CLI
           flutter pub get
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
-          dart run build_runner build --delete-conflicting-outputs
+          dart run build_runner build
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
           Pop-Location
 

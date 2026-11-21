@@ -23,13 +23,13 @@ melos:
     analyze:
       exec: dart analyze .
     generate:
-      run: melos exec --ignore=kyber_cli --depends-on=build_runner -- "dart run build_runner build --enable-experiment=dot-shorthands -d"
+      run: melos exec --concurrency=1 --ignore=kyber_cli --depends-on=build_runner -- "dart run build_runner build --enable-experiment=dot-shorthands"
     generate_index:
       run: melos exec --scope="kyber_launcher" flutter pub global run index_generator
     generate_gql:
       run: melos exec --scope="nexus_gql" "get-graphql-schema https://api.nexusmods.com/v2/graphql > lib/schema.graphql"
     generate_gql_client:
-      run: melos exec --scope="nexus_gql" --depends-on=build_runner "dart run build_runner build -d"
+      run: melos exec --scope="nexus_gql" --depends-on=build_runner "dart run build_runner build"
     generate_frb:
       run: melos exec --scope="kyber_launcher,kyber_cli" flutter_rust_bridge_codegen generate
     generate_proto:

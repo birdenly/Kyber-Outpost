@@ -57,7 +57,7 @@ jobs:
         run: |
           flutter pub get
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
-          dart run build_runner build --delete-conflicting-outputs
+          dart run build_runner build
 
       - name: Build Rust library
         run: cargo build --release --manifest-path CLI/rust/Cargo.toml
