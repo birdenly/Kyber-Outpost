@@ -123,7 +123,11 @@ Existing language settings and custom options are preserved. To select an instal
 
 If the room does not appear, use **DIRECT IP** with the host's local IPv4 address and game port, for example `192.168.1.50:25200`.
 
-### Virtual LAN
+## If you would like to give a thanks
+
+https://ko-fi.com/birden. No perks or help will be given to this, Ko-fi is actually for different non-AI projects I do.
+
+## Virtual LAN
 
 For players on different networks, Outpost accepts Radmin VPN (`26.x.x.x`), Hamachi (`25.x.x.x`), and VPNs using private IPv4 addresses or `100.64.0.0/10`. Join the same virtual network and use **DIRECT IP** with the host's VPN address, for example `26.10.20.30:25200`. Automatic room discovery depends on the VPN's broadcast support.
 
@@ -135,10 +139,10 @@ Downloading mods directly from the in-app browser requires a NexusMods account. 
 
 ### NexusMods Login (Personal API Key)
 
-Unlike upstream KYBER (which used its own registered SSO key), **Kyber Outpost** authenticates using your own **Personal API Key**:
+Unlike KYBER (which used its own registered SSO key), **Kyber Outpost** authenticates using your own **Personal API Key**:
 
 1. Click **Login** in the NexusMods prompt or **Settings -> Accounts -> NexusMods**.
-2. Read the API key notice and press **OK** to show the login browser (preloaded in the background).
+2. Read the API key notice and press **OK** to show the login browser.
 3. Sign in with your NexusMods account. You will be redirected automatically to `https://www.nexusmods.com/settings/api-keys`.
 4. If you have not generated a Personal API Key yet, scroll down and click **Request API Key**. Kyber Outpost automatically detects the key from the page, validates it directly against `api.nexusmods.com`, and finishes login.
 5. Your Personal API Key is encrypted locally using **Windows DPAPI** (`CryptProtectData`, scoped to your Windows user account) before being saved in local settings.
