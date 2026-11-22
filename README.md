@@ -127,6 +127,13 @@ If the room does not appear, use **DIRECT IP** with the host's local IPv4 addres
 
 https://ko-fi.com/birden. No perks or help will be given to this, Ko-fi is actually for different non-AI projects I do.
 
+### Screenshots
+
+![Screenshot 3](assets/prints/star3.png)
+![Screenshot 5](assets/prints/star5.png)
+
+More screenshots are available in the [screenshots folder](assets/prints/), all screenshots are multiple instances on one PC connecting with LAN.
+
 ## Virtual LAN
 
 For players on different networks, Outpost accepts Radmin VPN (`26.x.x.x`), Hamachi (`25.x.x.x`), and VPNs using private IPv4 addresses or `100.64.0.0/10`. Join the same virtual network and use **DIRECT IP** with the host's VPN address, for example `26.10.20.30:25200`. Automatic room discovery depends on the VPN's broadcast support.
