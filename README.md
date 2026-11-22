@@ -26,7 +26,7 @@
 
 ## Overview
 
-**Kyber Outpost** is a LAN version of [Kyber](https://github.com/ArmchairDevelopers/Kyber). It uses a combination of **anadius EA emulator** + Kyber to launch the game and lets you host or join matches on the same network, besides mods generating your denuvo tokens nothing else in the launcher requires internet. Kyber Outpost still needs a legit copy with valid denuvo tokens, this will not change, this isnt a crack.
+**Kyber Outpost** is a LAN version of [Kyber](https://github.com/ArmchairDevelopers/Kyber). It uses a combination of **anadius EA emulator** + Kyber to launch the game and lets you host or join matches on the same network, besides mods and generating your denuvo tokens nothing else in the launcher requires internet. Kyber Outpost still needs a legit copy with valid denuvo tokens, this will not change, this isnt a crack.
 
 Kyber Outpost adds these features to the original Kyber workflow:
 
