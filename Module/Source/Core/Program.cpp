@@ -676,7 +676,7 @@ void FileSuperBundleManagerUpdateConfigHk(FileSuperBundleManager* inst)
     static const auto trampoline = HookManager::Call(FileSuperBundleManagerUpdateConfigHk);
     KYBER_LOG(Info, "[ModLoader] Updating SuperBundle config");
 
-    if (std::getenv("KYBER_DISABLE_MODLOADER") == nullptr)
+    if (std::getenv("KYBER_DISABLE_MODLOADER") == nullptr && !g_program->m_modData.modPaths.empty())
     {
         g_modLoader = new ModLoader(inst, g_program->m_modData);
     }
