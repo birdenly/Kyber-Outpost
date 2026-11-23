@@ -174,7 +174,12 @@ try {
             throw "Runtime copy failed verification: $destination"
         }
     }
-    foreach ($required in @('kyber_launcher.exe', 'flutter_windows.dll', 'data\app.so', 'data\icudtl.dat')) {
+    $vanillaAggregationZip = Join-Path $repoRoot 'Module\Assets\VanillaBundleAggregation.kb.zip'
+    if (!(Test-Path -LiteralPath $vanillaAggregationZip -PathType Leaf)) {
+        throw "Required bundle aggregation archive is missing: $vanillaAggregationZip"
+    }
+    Expand-Archive -LiteralPath $vanillaAggregationZip -DestinationPath $releaseRoot -Force
+    foreach ($required in @('kyber_launcher.exe', 'flutter_windows.dll', 'VanillaBundleAggregation.kb', 'data\app.so', 'data\icudtl.dat')) {
         if (!(Test-Path -LiteralPath (Join-Path $releaseRoot $required) -PathType Leaf)) {
             throw "The release is incomplete: $required"
         }
