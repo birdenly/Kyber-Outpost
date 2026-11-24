@@ -194,6 +194,27 @@ class StartGameCommand extends Command<int> {
       }
     }
 
+    // Same mod-loader gate as the Launcher's maxima_helper: the module only
+    // checks KYBER_DISABLE_MODLOADER, and without VanillaBundleAggregation.kb
+    // the mod loader stalls the game instead of failing.
+    if (modData?.modPaths.isNotEmpty ?? false) {
+      final aggregation = File(
+        join(modulePath, 'VanillaBundleAggregation.kb'),
+      );
+      if (!aggregation.existsSync()) {
+        _logger.err(
+          'VanillaBundleAggregation.kb is required to load mods. '
+          'Expected it at ${aggregation.path}',
+        );
+        return ExitCode.unavailable.code;
+      }
+      if (Platform.environment.containsKey('KYBER_DISABLE_MODLOADER')) {
+        Env.delete('KYBER_DISABLE_MODLOADER');
+      }
+    } else {
+      Env.set('KYBER_DISABLE_MODLOADER', '1');
+    }
+
     final modEntries = <String, ModEntry>{};
     for (final mod in gameplayMods.where(
       (element) =>
