@@ -164,7 +164,7 @@ Unlike KYBER (which used its own registered SSO key), **Kyber Outpost** authenti
 | Activation missing or rejected | Restore the original executable, run the game through the official store on this computer, then repeat. This is related to denuvo, the game needs to be legit. |
 | Bad DLL hash | Start through Outpost to calculate the hashes. Check that `dbdata.dll` exists in the game folder. |
 | Room missing or connection fails | Check both firewalls, the host's IP address, and Wi-Fi client isolation. Try DIRECT IP. |
-| Missing VanillaBundleAggregation.kb | Supply the compatible file or launch without mods. |
+| Missing VanillaBundleAggregation.kb | Supply the compatible file next to `Kyber.dll` or launch without mods. This also applies to players joining with `kyber_cli`, which needs the file whenever the host has mods. |
 
 The default LAN ports are **UDP 25200** for the game, **UDP 25201** for discovery, and **TCP 25202** for room information and mods. A [firewall helper](tool/allow_lan_firewall.ps1) is available for configuring rules manually.
 
